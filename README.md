@@ -245,7 +245,7 @@ declutter-ai/
 
 | Original | Minimalist | Modern | Scandinavian |
 |----------|------------|--------|--------------|
-| ![](docs/samples/original1.jpg) | ![](docs/samples/minimal1.jpg) | ![](docs/samples/modern1.jpg) | ![](docs/samples/scandi1.jpg) |
+| ![](docs/samples/Average-Bedroom-Sizes-in-American-Homes-Remodeling-and-Design-Tips-3.webp) | ![](docs/samples/bedroom_minimalist_23.jpg) | ![](docs/samples/bedroom_modern_10.jpg) | ![](docs/samples/bedroom_scandinavian_3.jpg) |
 
 
 
@@ -260,7 +260,7 @@ declutter-ai/
 
 ---
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 ### AI/ML
 - PyTorch
@@ -278,7 +278,6 @@ declutter-ai/
 - React
 - React Native
 - Tailwind CSS
-- Axios
 
 ### DevOps
 - GitHub Actions (CI/CD)
@@ -288,16 +287,16 @@ declutter-ai/
 
 ---
 
-## 📝 Documentation
+##  Documentation
 
-- [Project Report](docs/report.pdf)
+- [Project Report](docs/CMSE405_PPM_.docx)
 - [Final Presentation](docs/presentation.pptx)
 - [API Documentation](docs/api.md)
 - [User Guide](docs/user-guide.md)
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 This is an academic project. For questions or collaboration:
 
@@ -309,16 +308,16 @@ This is an academic project. For questions or collaboration:
 
 ---
 
-## 📄 License
+##  License
 
 This project is for academic purposes as part of CMSE 405 coursework at Eastern Mediterranean University.
 
 ---
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - **Supervisor:** Prof. Dr. Hakan Altunçay
-- **Dataset:** [Kaggle Interior Design Dataset](link)
+- **Dataset:** [Kaggle Interior Design Dataset](https://www.kaggle.com/datasets/galinakg/interior-design-images-and-metadata)
 - **CycleGAN:** Zhu et al. (2017) - Unpaired Image-to-Image Translation
 - **YOLO:** Ultralytics YOLOv8
 
@@ -327,14 +326,14 @@ This project is for academic purposes as part of CMSE 405 coursework at Eastern 
 ## 📞 Contact
 
 **Mohamed Elfaki** - Project Lead  
-📧 mohamed.elfaki@example.com  
-🔗 [LinkedIn](your-linkedin) | [GitHub](your-github)
+📧 mohbusiness2400@gmail.com 
+🔗 [LinkedIn](https://www.linkedin.com/in/mohamed-elfaki-1-/) | [GitHub](https://github.com/SyntaxNomad)
 
-**Project Link:** [https://github.com/your-username/declutter-ai](https://github.com/your-username/declutter-ai)
+**Project Link:** [DeClutter](https://github.com/DeClutter-Capstone/Main-System)
 
 ---
 
-## 📊 Project Status
+##  Project Status
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![Training](https://img.shields.io/badge/training-in%20progress-yellow)

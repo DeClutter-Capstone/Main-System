@@ -316,7 +316,7 @@ This project is for academic purposes as part of CMSE 405 coursework at Eastern 
 
 ##  Acknowledgments
 
-- **Supervisor:** Prof. Dr. Hakan Altunçay
+- **Supervisor:** Prof. Dr. Hakan Altinçay
 - **Dataset:** [Kaggle Interior Design Dataset](https://www.kaggle.com/datasets/galinakg/interior-design-images-and-metadata)
 - **CycleGAN:** Zhu et al. (2017) - Unpaired Image-to-Image Translation
 - **YOLO:** Ultralytics YOLOv8

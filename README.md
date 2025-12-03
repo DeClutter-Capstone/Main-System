@@ -316,7 +316,7 @@ This project is for academic purposes as part of CMSE 405 coursework at Eastern 
 
 ##  Acknowledgments
 
-- **Supervisor:** Prof. Dr. Hakan Altinçay
+- **Supervisor:** Prof. Dr. Hakan Altunçay
 - **Dataset:** [Kaggle Interior Design Dataset](https://www.kaggle.com/datasets/galinakg/interior-design-images-and-metadata)
 - **CycleGAN:** Zhu et al. (2017) - Unpaired Image-to-Image Translation
 - **YOLO:** Ultralytics YOLOv8
@@ -325,9 +325,14 @@ This project is for academic purposes as part of CMSE 405 coursework at Eastern 
 
 ## 📞 Contact
 
-**Mohamed Elfaki** - Project Lead  
+**Mohamed Elfaki** - Project Member  
 📧 mohbusiness2400@gmail.com 
 🔗 [LinkedIn](https://www.linkedin.com/in/mohamed-elfaki-1-/) | [GitHub](https://github.com/SyntaxNomad)
+
+
+**Firas Abedlgadir** - Project Member  
+📧 firasnazar@gmail.com 
+🔗 [LinkedIn](https://www.linkedin.com/in/firas-abdelgadir-98322a247/) | [GitHub](https://github.com/firasnazar2004)
 
 **Project Link:** [DeClutter](https://github.com/DeClutter-Capstone/Main-System)
 

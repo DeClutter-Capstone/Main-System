@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import psycopg2
 import os 
 
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -14,12 +15,29 @@ DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
 
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(app)
+
 conn = psycopg2.connect(database=DB_NAME , user = DB_USER, password = DB_PASSWORD, host = DB_HOST, port = DB_PORT)
 cur = conn.cursor()
 
 
 
 ##Tables 
+
+#2.) Styles Table
+cur.execute("""  
+CREATE TABLE IF NOT EXISTS styles (
+    style_id SERIAL PRIMARY KEY,
+    style_name VARCHAR(100) NOT NULL,
+    style_description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+""")
 
 #1.) User Table
 cur.execute("""
@@ -35,15 +53,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 """)
 
-#2.) Styles Table
-cur.execute("""
-CREATE TABLE IF NOT EXISTS styles (
-    style_id SERIAL PRIMARY KEY,
-    style_name VARCHAR(100) NOT NULL,
-    style_description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-""")
+
 
 #3.) Projects Table 
 cur.execute("""
@@ -125,5 +135,4 @@ CREATE TABLE IF NOT EXISTS activity_log (
 conn.commit()
 cur.close()
 conn.close()
-
-db = SQLAlchemy(app)
+    

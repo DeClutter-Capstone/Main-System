@@ -35,7 +35,7 @@ const styles = {
     alignItems: "center",
   } as React.CSSProperties,
   logo: {
-    height: "49px",
+    height: "40px",
     width: "auto",
   } as React.CSSProperties,
   navSection: {
@@ -47,7 +47,7 @@ const styles = {
     background: "none",
     border: "none",
     color: "#333",
-    fontSize: "1.5rem",
+    fontSize: "1.25rem",
     fontWeight: "500",
     cursor: "pointer",
     transition: "color 0.3s ease",

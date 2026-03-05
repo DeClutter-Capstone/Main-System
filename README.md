@@ -199,10 +199,17 @@ declutter-ai/
 │   ├── trainA/, trainB/
 │   └── testA/, testB/
 ├── pytorch-CycleGAN-and-pix2pix/ # CycleGAN implementation
-├── backend/                      # Flask/FastAPI backend
-│   ├── app.py
-│   ├── models/
-│   └── utils/
+├── backend/                      # FastAPI backend
+│   ├── app
+│       ├── ai_models/
+│       └── api/                  # API endpoints
+│       └── database/             # handles database connection 
+│       └── models/               #SQLAlchemy database models; each py file corresponds to db table. 
+│       └── schemas/              # Defines request/response formats using Pydantic.
+│       └── services/             # All system services: transformation, yolo detection, getting input image, etc. 
+│       └── storage/              #stores all images in the transformation process, put in gitignore toavoid pushing of images
+│       └── config.py             #loads env variables
+│       └── main.py               # entry point of system
 ├── frontend/                     # React web app
 │   ├── src/
 │   └── public/
@@ -269,7 +276,7 @@ declutter-ai/
 - OpenCV
 
 ### Backend
-- Flask/FastAPI
+- FastAPI
 - PostgreSQL
 - AWS S3
 - Docker

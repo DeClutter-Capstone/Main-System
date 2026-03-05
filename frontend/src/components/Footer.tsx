@@ -46,6 +46,9 @@ function Footer() {
           </nav>
         </div>
       </div>
+
+      {/* Copyright */}
+      <div style={styles.copyright}>2026 © DeClutter, Inc.</div>
     </footer>
   );
 }
@@ -90,6 +93,14 @@ const styles = {
     fontSize: "0.95rem",
     fontFamily: "'Alata', sans-serif",
     cursor: "pointer",
+  } as React.CSSProperties,
+  copyright: {
+    textAlign: "center",
+    fontSize: "0.9rem",
+    color: "#888888",
+    marginTop: "3rem",
+    fontFamily: "'Alata', sans-serif",
+    paddingRight: "calc(2rem + 1000px)",
   } as React.CSSProperties,
 };
 

@@ -1,4 +1,10 @@
+import { Link, useLocation } from "react-router-dom";
+
 function NavBar() {
+  const location = useLocation();
+
+  const isActive = (path: string) => location.pathname === path;
+
   return (
     <nav style={styles.navbar}>
       {/* Logo on the left */}
@@ -12,18 +18,42 @@ function NavBar() {
 
       {/* Navigation items in the middle */}
       <div style={styles.navItems}>
-        <a href="#generate" style={styles.navLink}>
+        <Link
+          to="/generate"
+          style={{
+            ...styles.navLink,
+            color: isActive("/generate") ? "#4384E2" : "#333",
+          }}
+        >
           Generate
-        </a>
-        <a href="#projects" style={styles.navLink}>
+        </Link>
+        <Link
+          to="/projects"
+          style={{
+            ...styles.navLink,
+            color: isActive("/projects") ? "#4384E2" : "#333",
+          }}
+        >
           My Projects
-        </a>
-        <a href="#history" style={styles.navLink}>
+        </Link>
+        <Link
+          to="/history"
+          style={{
+            ...styles.navLink,
+            color: isActive("/history") ? "#4384E2" : "#333",
+          }}
+        >
           History
-        </a>
-        <a href="#faq" style={styles.navLink}>
+        </Link>
+        <Link
+          to="/faq"
+          style={{
+            ...styles.navLink,
+            color: isActive("/faq") ? "#4384E2" : "#333",
+          }}
+        >
           FAQ
-        </a>
+        </Link>
       </div>
 
       {/* Profile icon on the right */}

@@ -1,8 +1,10 @@
+import Layout from "../components/Layout";
+
 function Generate() {
   return (
-    <div>
+    <Layout>
       <h1>Generate Page</h1>
-    </div>
+    </Layout>
   );
 }
 

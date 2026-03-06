@@ -1,8 +1,26 @@
 import TopBar from "../components/TopBar";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-function Authentication() {
+interface AuthenticationProps {
+  onAuthenticate: () => void;
+}
+
+function Authentication({ onAuthenticate }: AuthenticationProps) {
   const [email, setEmail] = useState("");
+  const navigate = useNavigate();
+
+  const handleContinueWithEmail = () => {
+    if (email) {
+      onAuthenticate();
+      navigate("/home");
+    }
+  };
+
+  const handleContinueWithGoogle = () => {
+    onAuthenticate();
+    navigate("/home");
+  };
 
   return (
     <div style={styles.pageContainer}>
@@ -20,9 +38,12 @@ function Authentication() {
             </p>
 
             {/* Google Sign-in button */}
-            <button style={styles.googleButton}>
+            <button
+              style={styles.googleButton}
+              onClick={handleContinueWithGoogle}
+            >
               <img
-                src="public/google icon.png"
+                src="/google icon.png"
                 alt="Google"
                 style={styles.googleIcon}
               />
@@ -46,7 +67,12 @@ function Authentication() {
             />
 
             {/* Continue with email button */}
-            <button style={styles.emailButton}>Continue with email</button>
+            <button
+              style={styles.emailButton}
+              onClick={handleContinueWithEmail}
+            >
+              Continue with email
+            </button>
           </div>
         </div>
 
@@ -81,7 +107,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     padding: "2rem",
-    backgroundColor: "#F9F9F9",
+    backgroundColor: "#f5f5f5ff",
   } as React.CSSProperties,
   card: {
     width: "420px",

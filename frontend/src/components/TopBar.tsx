@@ -1,4 +1,10 @@
+import { Link, useLocation } from "react-router-dom";
+
 function TopBar() {
+  const location = useLocation();
+
+  const isActive = (path: string) => location.pathname === path;
+
   return (
     <div style={styles.container}>
       {/* Logo on the left */}
@@ -12,9 +18,15 @@ function TopBar() {
 
       {/* Navigation links on the right */}
       <nav style={styles.navSection}>
-        <a href="/" style={styles.navLink}>
+        <Link
+          to="/home"
+          style={{
+            ...styles.navLink,
+            color: isActive("/home") ? "#4384E2" : "#333",
+          }}
+        >
           Home
-        </a>
+        </Link>
         <a href="/#about" style={styles.navLink}>
           About
         </a>

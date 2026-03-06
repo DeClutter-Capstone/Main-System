@@ -19,6 +19,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     minHeight: "100vh",
+    backgroundColor: "#f5f5f5ff",
   } as React.CSSProperties,
   mainContent: {
     flex: 1,

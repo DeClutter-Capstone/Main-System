@@ -1,8 +1,10 @@
+import Layout from "../components/Layout";
+
 function History() {
   return (
-    <div>
+    <Layout>
       <h1>History Page</h1>
-    </div>
+    </Layout>
   );
 }
 

@@ -1,8 +1,10 @@
+import Layout from "../components/Layout";
+
 function FAQ() {
   return (
-    <div>
+    <Layout>
       <h1>FAQ Page</h1>
-    </div>
+    </Layout>
   );
 }
 

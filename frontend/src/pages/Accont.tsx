@@ -1,8 +1,10 @@
+import Layout from "../components/Layout";
+
 function Account() {
   return (
-    <div>
+    <Layout>
       <h1>Account Page</h1>
-    </div>
+    </Layout>
   );
 }
 

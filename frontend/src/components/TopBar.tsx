@@ -12,10 +12,18 @@ function TopBar() {
 
       {/* Navigation links on the right */}
       <nav style={styles.navSection}>
-        <button style={styles.button}>Home</button>
-        <button style={styles.button}>About</button>
-        <button style={styles.button}>API</button>
-        <button style={styles.button}>Blog</button>
+        <a href="/" style={styles.navLink}>
+          Home
+        </a>
+        <a href="/#about" style={styles.navLink}>
+          About
+        </a>
+        <a href="/#api" style={styles.navLink}>
+          API
+        </a>
+        <a href="/#blog" style={styles.navLink}>
+          Blog
+        </a>
       </nav>
     </div>
   );
@@ -43,9 +51,7 @@ const styles = {
     gap: "6rem",
     alignItems: "center",
   } as React.CSSProperties,
-  button: {
-    background: "none",
-    border: "none",
+  navLink: {
     color: "#333",
     fontSize: "1.25rem",
     fontWeight: "500",
@@ -53,6 +59,7 @@ const styles = {
     transition: "color 0.3s ease",
     fontFamily: "'Alata', sans-serif",
     padding: "0.5rem 1rem",
+    textDecoration: "none",
   } as React.CSSProperties,
 };
 

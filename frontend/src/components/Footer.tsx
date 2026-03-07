@@ -1,11 +1,6 @@
 function Footer() {
   return (
     <footer style={styles.footer}>
-      <style>{`
-        a:hover {
-          text-decoration: underline;
-        }
-      `}</style>
       <div style={styles.container}>
         {/* Company Column */}
         <div style={styles.column}>
@@ -100,7 +95,7 @@ const styles = {
     color: "#888888",
     marginTop: "3rem",
     fontFamily: "'Alata', sans-serif",
-    paddingRight: "calc(2rem + 1000px)",
+    paddingRight: "calc(2rem + 1700px)",
   } as React.CSSProperties,
 };
 

@@ -1,68 +1,28 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import { useState } from "react";
-import Authentication from "./pages/Authentication";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
+import About from "./pages/About";
 import Generate from "./pages/Generate";
 import Porjects from "./pages/Porjects";
 import History from "./pages/History";
 import FAQ from "./pages/FAQ";
 import Accont from "./pages/Accont";
+import Authentication from "./pages/Authentication";
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  const handleAuthentication = () => {
-    setIsAuthenticated(true);
-  };
-
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
+        <Route path="/home" element={<HomePage />} />
         <Route
-          path="/"
-          element={
-            !isAuthenticated ? (
-              <Authentication onAuthenticate={handleAuthentication} />
-            ) : (
-              <Navigate to="/home" replace />
-            )
-          }
+          path="/auth"
+          element={<Authentication onAuthenticate={() => {}} />}
         />
-
-        {/* Protected Routes - User must be authenticated */}
-        <Route
-          path="/home"
-          element={isAuthenticated ? <HomePage /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/generate"
-          element={isAuthenticated ? <Generate /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/projects"
-          element={isAuthenticated ? <Porjects /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/history"
-          element={isAuthenticated ? <History /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/faq"
-          element={isAuthenticated ? <FAQ /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/account"
-          element={isAuthenticated ? <Accont /> : <Navigate to="/" replace />}
-        />
-
-        {/* Catch-all redirect */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/generate" element={<Generate />} />
+        <Route path="/projects" element={<Porjects />} />
+        <Route path="/history" element={<History />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/account" element={<Accont />} />
       </Routes>
     </Router>
   );

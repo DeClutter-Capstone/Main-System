@@ -111,6 +111,8 @@ const styles = {
     width: "40px",
     borderRadius: "50%",
     cursor: "pointer",
+    marginTop: "5px",
+    marginBottom: "5px",
   } as React.CSSProperties,
 };
 

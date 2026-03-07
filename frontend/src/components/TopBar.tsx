@@ -1,7 +1,13 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
-function TopBar() {
+interface TopBarProps {
+  showSignIn?: boolean;
+  onSignIn?: () => void;
+}
+
+function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -22,20 +28,37 @@ function TopBar() {
           to="/home"
           style={{
             ...styles.navLink,
-            color: isActive("/home") ? "#4384E2" : "#333",
+            color: isActive("/") ? "#4384E2" : "#333",
           }}
         >
           Home
         </Link>
-        <a href="/#about" style={styles.navLink}>
+        <Link
+          to="/about"
+          style={{
+            ...styles.navLink,
+            color: isActive("/about") ? "#4384E2" : "#333",
+          }}
+        >
           About
-        </a>
+        </Link>
         <a href="/#api" style={styles.navLink}>
           API
         </a>
         <a href="/#blog" style={styles.navLink}>
           Blog
         </a>
+        {showSignIn && (
+          <button
+            style={styles.signInButton}
+            onClick={() => {
+              if (onSignIn) onSignIn();
+              navigate("/auth", { replace: true });
+            }}
+          >
+            Sign in
+          </button>
+        )}
       </nav>
     </div>
   );
@@ -72,6 +95,24 @@ const styles = {
     fontFamily: "'Alata', sans-serif",
     padding: "0.5rem 1rem",
     textDecoration: "none",
+    marginTop: "5px",
+    marginBottom: "5px",
+    marginRight: "15px",
+  } as React.CSSProperties,
+  signInButton: {
+    backgroundColor: "#87b6f8ff",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "24px",
+    padding: "0.5rem 1.5rem",
+    fontSize: "1.25rem",
+    fontWeight: "500",
+    cursor: "pointer",
+    fontFamily: "'Alata', sans-serif",
+    transition: "background-color 0.3s ease",
+    marginTop: "5px",
+    marginBottom: "5px",
+    marginRight: "5px",
   } as React.CSSProperties,
 };
 

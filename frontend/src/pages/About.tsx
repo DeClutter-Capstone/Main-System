@@ -1,21 +1,16 @@
 import TopBar from "../components/TopBar";
 import Footer from "../components/Footer";
-import { useNavigate } from "react-router-dom";
 
-function HomePage() {
-  const navigate = useNavigate();
-
+function About() {
   return (
     <div style={styles.container}>
       <TopBar showSignIn={true} />
       <main style={styles.mainContent}>
-        <h1>Home Page</h1>
-        <button
-          style={styles.generateButton}
-          onClick={() => navigate("/generate")}
-        >
-          Start Generating
-        </button>
+        <h1 style={styles.title}>About Page</h1>
+        <p style={styles.description}>
+          Welcome to the About page of DeClutter. Here you can learn more about
+          our mission and vision.
+        </p>
       </main>
       <Footer />
     </div>
@@ -36,18 +31,21 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     gap: "2rem",
+    padding: "2rem",
   } as React.CSSProperties,
-  generateButton: {
-    padding: "12px 32px",
-    fontSize: "1rem",
-    fontWeight: "600",
-    backgroundColor: "#000000",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-    transition: "background-color 0.3s ease",
+  title: {
+    fontSize: "2.5rem",
+    fontWeight: "bold",
+    color: "#333",
+    margin: "0",
+  } as React.CSSProperties,
+  description: {
+    fontSize: "1.1rem",
+    color: "#666",
+    maxWidth: "600px",
+    textAlign: "center",
+    margin: "0",
   } as React.CSSProperties,
 };
 
-export default HomePage;
+export default About;

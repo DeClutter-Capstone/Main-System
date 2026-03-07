@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import About from "./pages/About";
+import API from "./pages/API";
+import Blog from "./pages/Blog";
 import Generate from "./pages/Generate";
 import Porjects from "./pages/Porjects";
 import History from "./pages/History";
@@ -18,6 +20,8 @@ function App() {
           element={<Authentication onAuthenticate={() => {}} />}
         />
         <Route path="/about" element={<About />} />
+        <Route path="/api" element={<API />} />
+        <Route path="/blog" element={<Blog />} />
         <Route path="/generate" element={<Generate />} />
         <Route path="/projects" element={<Porjects />} />
         <Route path="/history" element={<History />} />

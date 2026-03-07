@@ -13,6 +13,15 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        a[style] {
+          cursor: pointer;
+          transition: color 0.3s ease;
+        }
+        a[style]:hover {
+          opacity: 0.8;
+        }
+      `}</style>
       {/* Logo on the left */}
       <div style={styles.logoSection}>
         <img
@@ -28,7 +37,7 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
           to="/home"
           style={{
             ...styles.navLink,
-            color: isActive("/") ? "#4384E2" : "#333",
+            color: isActive("/home") ? "#4384E2" : "#333",
           }}
         >
           Home
@@ -42,12 +51,24 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
         >
           About
         </Link>
-        <a href="/#api" style={styles.navLink}>
+        <Link
+          to="/api"
+          style={{
+            ...styles.navLink,
+            color: isActive("/api") ? "#4384E2" : "#333",
+          }}
+        >
           API
-        </a>
-        <a href="/#blog" style={styles.navLink}>
+        </Link>
+        <Link
+          to="/blog"
+          style={{
+            ...styles.navLink,
+            color: isActive("/blog") ? "#4384E2" : "#333",
+          }}
+        >
           Blog
-        </a>
+        </Link>
         {showSignIn && (
           <button
             style={styles.signInButton}

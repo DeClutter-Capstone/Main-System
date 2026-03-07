@@ -1,7 +1,8 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 function NavBar() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -58,7 +59,12 @@ function NavBar() {
 
       {/* Profile icon on the right */}
       <div style={styles.profileSection}>
-        <img src="/profile logo.png" alt="Profile" style={styles.profileIcon} />
+        <img
+          src="/profile logo.png"
+          alt="Profile"
+          style={styles.profileIcon}
+          onClick={() => navigate("/account")}
+        />
       </div>
     </nav>
   );
@@ -113,6 +119,7 @@ const styles = {
     cursor: "pointer",
     marginTop: "5px",
     marginBottom: "5px",
+    transition: "opacity 0.3s ease",
   } as React.CSSProperties,
 };
 

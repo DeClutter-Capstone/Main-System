@@ -1,12 +1,21 @@
 function Footer() {
   return (
     <footer style={styles.footer}>
+      <style>{`
+        a[style] {
+          cursor: pointer;
+          transition: color 0.3s ease;
+        }
+        a[style]:hover {
+          text-decoration: underline;
+        }
+      `}</style>
       <div style={styles.container}>
         {/* Company Column */}
         <div style={styles.column}>
           <h3 style={styles.columnTitle}>Company</h3>
           <nav style={styles.linksList}>
-            <a href="#about" style={styles.link}>
+            <a href="/about" style={styles.link}>
               About Us
             </a>
             <a href="#privacy" style={styles.link}>
@@ -15,7 +24,7 @@ function Footer() {
             <a href="#terms" style={styles.link}>
               Terms of Service
             </a>
-            <a href="#blog" style={styles.link}>
+            <a href="/blog" style={styles.link}>
               Blog
             </a>
           </nav>
@@ -25,7 +34,7 @@ function Footer() {
         <div style={styles.column}>
           <h3 style={styles.columnTitle}>Product</h3>
           <nav style={styles.linksList}>
-            <a href="#api" style={styles.link}>
+            <a href="/api" style={styles.link}>
               API
             </a>
           </nav>

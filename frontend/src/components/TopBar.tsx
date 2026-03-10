@@ -34,10 +34,10 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
       {/* Navigation links on the right */}
       <nav style={styles.navSection}>
         <Link
-          to="/home"
+          to="/"
           style={{
             ...styles.navLink,
-            color: isActive("/home") ? "#4384E2" : "#333",
+            color: isActive("/") ? "#4384E2" : "#333",
           }}
         >
           Home

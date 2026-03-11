@@ -13,13 +13,13 @@ function Authentication({ onAuthenticate }: AuthenticationProps) {
   const handleContinueWithEmail = () => {
     if (email) {
       onAuthenticate();
-      navigate("/home");
+      navigate("/");
     }
   };
 
   const handleContinueWithGoogle = () => {
     onAuthenticate();
-    navigate("/home");
+    navigate("/");
   };
 
   return (

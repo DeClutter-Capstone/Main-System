@@ -121,7 +121,7 @@ const styles = {
     marginRight: "15px",
   } as React.CSSProperties,
   signInButton: {
-    backgroundColor: "#87b6f8ff",
+    backgroundColor: "#99c0f8ff",
     color: "#ffffff",
     border: "none",
     borderRadius: "24px",

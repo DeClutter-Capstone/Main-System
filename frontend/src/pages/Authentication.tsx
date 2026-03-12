@@ -1,6 +1,6 @@
-import TopBar from "../components/TopBar";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import TopBar from "../components/TopBar";
 
 interface AuthenticationProps {
   onAuthenticate: () => void;
@@ -9,6 +9,19 @@ interface AuthenticationProps {
 function Authentication({ onAuthenticate }: AuthenticationProps) {
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem("darkMode") === "true";
+  });
+
+  useEffect(() => {
+    const handleDarkModeChange = () => {
+      const darkMode = localStorage.getItem("darkMode") === "true";
+      setIsDarkMode(darkMode);
+    };
+
+    const interval = setInterval(handleDarkModeChange, 100);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleContinueWithEmail = () => {
     if (email) {
@@ -28,12 +41,14 @@ function Authentication({ onAuthenticate }: AuthenticationProps) {
       <div style={styles.mainContent}>
         {/* Left side - Authentication area */}
         <div style={styles.leftSection}>
-          <div style={styles.card}>
+          <div style={styles.card} className="auth-card">
             {/* Title */}
-            <h1 style={styles.title}>Welcome to DeClutter</h1>
+            <h1 style={styles.title} className="auth-title">
+              Welcome to DeClutter
+            </h1>
 
             {/* Subtitle */}
-            <p style={styles.subtitle}>
+            <p style={styles.subtitle} className="auth-subtitle">
               log in or sign up to generate interior redesigns
             </p>
 
@@ -41,20 +56,29 @@ function Authentication({ onAuthenticate }: AuthenticationProps) {
             <button
               style={styles.googleButton}
               onClick={handleContinueWithGoogle}
+              className="auth-google-button"
             >
               <img
                 src="/google icon.png"
                 alt="Google"
                 style={styles.googleIcon}
               />
-              <span>Continue with Google</span>
+              <span className="auth-google-text">Continue with Google</span>
             </button>
 
             {/* Divider */}
             <div style={styles.divider}>
-              <div style={styles.dividerLine}></div>
-              <span style={styles.dividerText}>OR</span>
-              <div style={styles.dividerLine}></div>
+              <div
+                style={styles.dividerLine}
+                className="auth-divider-line"
+              ></div>
+              <span style={styles.dividerText} className="auth-divider-text">
+                OR
+              </span>
+              <div
+                style={styles.dividerLine}
+                className="auth-divider-line"
+              ></div>
             </div>
 
             {/* Email input field */}
@@ -64,12 +88,14 @@ function Authentication({ onAuthenticate }: AuthenticationProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               style={styles.emailInput}
+              className="auth-email-input"
             />
 
             {/* Continue with email button */}
             <button
               style={styles.emailButton}
               onClick={handleContinueWithEmail}
+              className="auth-email-button"
             >
               Continue with email
             </button>
@@ -79,7 +105,7 @@ function Authentication({ onAuthenticate }: AuthenticationProps) {
         {/* Right side - Visual section */}
         <div style={styles.rightSection}>
           <img
-            src="/auth.jpg"
+            src={isDarkMode ? "/dark auth.png" : "/auth.jpg"}
             alt="Authentication background"
             style={styles.authImage}
           />
@@ -202,5 +228,42 @@ const styles = {
     objectFit: "cover",
   } as React.CSSProperties,
 };
+
+const styleSheet = document.createElement("style");
+styleSheet.textContent = `
+  .auth-google-text {
+    color: #ffffff !important;
+  }
+  [data-theme="dark"] .auth-card {
+    background-color: #383838ff !important;
+    color: #ffffff !important;
+  }
+  [data-theme="dark"] .auth-card .auth-title {
+    color: #ffffff !important;
+  }
+  [data-theme="dark"] .auth-card .auth-subtitle {
+    color: #ffffff !important;
+  }
+  [data-theme="dark"] .auth-card .auth-divider-line {
+    background-color: #ffffff !important;
+  }
+  [data-theme="dark"] .auth-card .auth-divider-text {
+    color: #ffffff !important;
+  }
+  [data-theme="dark"] .auth-card .auth-email-input {
+    background-color: #383838ff !important;
+    color: #ffffff !important;
+    border-color: #555 !important;
+  }
+  [data-theme="dark"] .auth-card .auth-email-input::placeholder {
+    color: #ffffff !important;
+  }
+  [data-theme="dark"] .auth-card .auth-email-button {
+    background-color: #555555 !important;
+    color: #ffffff !important;
+    border-color: #555555 !important;
+  }
+`;
+document.head.appendChild(styleSheet);
 
 export default Authentication;

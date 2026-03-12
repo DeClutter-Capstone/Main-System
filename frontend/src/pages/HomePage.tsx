@@ -61,6 +61,10 @@ function HomePage() {
           box-shadow: 0 0 60px rgba(67, 132, 226, 1) !important;
           animation: none;
         }
+
+        [data-theme="dark"] .style-block {
+          background-color: #383838ff !important;
+        }
       `}</style>
       <TopBar showSignIn={true} />
       <main style={styles.mainContent}>
@@ -229,7 +233,7 @@ function HomePage() {
             <h2 style={styles.designStylesTitle}>Discover Design Styles</h2>
 
             {/* Minimalist Style Block */}
-            <div style={styles.styleBlock}>
+            <div style={styles.styleBlock} className="style-block">
               <div style={styles.styleBlockContent}>
                 {/* Left Side - Image */}
                 <div style={styles.styleImageContainer}>
@@ -256,7 +260,7 @@ function HomePage() {
             </div>
 
             {/* Modern Style Block */}
-            <div style={styles.styleBlock}>
+            <div style={styles.styleBlock} className="style-block">
               <div style={styles.styleBlockContent}>
                 {/* Left Side - Text */}
                 <div style={styles.styleTextContainer}>
@@ -283,7 +287,7 @@ function HomePage() {
             </div>
 
             {/* Scandinavian Style Block */}
-            <div style={styles.styleBlock}>
+            <div style={styles.styleBlock} className="style-block">
               <div style={styles.styleBlockContent}>
                 {/* Left Side - Image */}
                 <div style={styles.styleImageContainer}>

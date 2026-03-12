@@ -31,6 +31,23 @@ function Generate() {
 
   return (
     <Layout>
+      <style>{`
+        [data-theme="dark"] select,
+        [data-theme="dark"] textarea,
+        [data-theme="dark"] .style-card {
+          background-color: #383838ff !important;
+          color: #ffffff !important;
+          border-color: #555 !important;
+        }
+        [data-theme="dark"] .dark-mode-select,
+        [data-theme="dark"] .dark-mode-textarea {
+          background-color: #383838ff !important;
+          color: #ffffff !important;
+        }
+        [data-theme="dark"] textarea::placeholder {
+          color: #ffffffff !important;
+      
+      `}</style>
       <div style={styles.container}>
         {/* Top Section - Upload & Options */}
         <div style={styles.topSection}>
@@ -64,6 +81,7 @@ function Generate() {
                 value={roomType}
                 onChange={(e) => setRoomType(e.target.value)}
                 style={styles.selectInline}
+                className="dark-mode-select"
               >
                 <option value="Bedroom">Bedroom</option>
                 <option value="Living Room">Living Room</option>
@@ -80,6 +98,7 @@ function Generate() {
                 value={assignProject}
                 onChange={(e) => setAssignProject(e.target.value)}
                 style={styles.selectInline}
+                className="dark-mode-select"
               >
                 <option value="N/A">N/A</option>
                 <option value="Project 1">Project 1</option>
@@ -97,6 +116,7 @@ function Generate() {
                 value={customPrompt}
                 onChange={(e) => setCustomPrompt(e.target.value)}
                 style={styles.textarea}
+                className="dark-mode-textarea"
                 placeholder="Describe your design preferences..."
               />
             </div>
@@ -114,6 +134,7 @@ function Generate() {
               <div
                 key={style.id}
                 onClick={() => handleStyleCardClick(style.id)}
+                className="style-card"
                 style={{
                   ...styles.styleCard,
                   borderColor: selectedStyle === style.id ? "#4384E2" : "#ddd",

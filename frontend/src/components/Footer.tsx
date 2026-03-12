@@ -9,6 +9,10 @@ function Footer() {
         a[style]:hover {
           text-decoration: underline;
         }
+        [data-theme="dark"] footer {
+          background-color: #1a1a1a !important;
+          border-top-color: #333 !important;
+        }
       `}</style>
       <div style={styles.container}>
         {/* Company Column */}
@@ -64,6 +68,7 @@ const styles = {
     marginTop: "auto",
     fontFamily: "'Alata', sans-serif",
     borderTop: "1px solid black",
+    transition: "background-color 0.3s ease, border-color 0.3s ease",
   } as React.CSSProperties,
   container: {
     display: "flex",

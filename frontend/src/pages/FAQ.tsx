@@ -41,7 +41,7 @@ function FAQ() {
   const filteredItems = faqItems.filter(
     (item) =>
       item.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.answer.toLowerCase().includes(searchTerm.toLowerCase())
+      item.answer.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const toggleAccordion = (id: string) => {
@@ -121,6 +121,42 @@ function FAQ() {
             padding: 0 12px 16px 12px !important;
           }
         }
+
+        [data-theme="dark"] .faq-container {
+          background-color: #252525ff !important;
+          color: #ffffff !important;
+        }
+
+        [data-theme="dark"] .faq-container h1 {
+          color: #ffffff !important;
+        }
+
+        [data-theme="dark"] .faq-container input {
+          background-color: #383838ff !important;
+          color: #ffffff !important;
+          border-color: #555 !important;
+        }
+
+        [data-theme="dark"] .faq-container input::placeholder {
+          color: #999999 !important;
+        }
+
+        [data-theme="dark"] .faq-accordion {
+          background-color: #383838ff !important;
+          border-color: #555 !important;
+        }
+
+        [data-theme="dark"] .faq-item {
+          border-color: #555 !important;
+        }
+
+        [data-theme="dark"] .faq-question {
+          color: #ffffff !important;
+        }
+
+        [data-theme="dark"] .faq-answer-text {
+          color: #ffffff !important;
+        }
       `}</style>
 
       <div style={styles.container} className="faq-container">
@@ -154,7 +190,7 @@ function FAQ() {
         </div>
 
         {/* Accordion List */}
-        <div style={styles.accordion}>
+        <div style={styles.accordion} className="faq-accordion">
           {filteredItems.map((item, index) => (
             <div
               key={item.id}
@@ -175,9 +211,7 @@ function FAQ() {
                 <span style={styles.questionText}>{item.question}</span>
                 <span
                   style={
-                    expandedId === item.id
-                      ? styles.iconExpanded
-                      : styles.icon
+                    expandedId === item.id ? styles.iconExpanded : styles.icon
                   }
                   className="faq-icon"
                 >
@@ -187,7 +221,9 @@ function FAQ() {
 
               {expandedId === item.id && (
                 <div style={styles.answer} className="faq-answer">
-                  <p style={styles.answerText}>{item.answer}</p>
+                  <p style={styles.answerText} className="faq-answer-text">
+                    {item.answer}
+                  </p>
                 </div>
               )}
             </div>
@@ -200,11 +236,11 @@ function FAQ() {
 
 const styles = {
   container: {
-    maxWidth: "800px",
+    maxWidth: "1200px",
     margin: "0 auto",
     padding: "60px 24px",
     minHeight: "100vh",
-    background: "#ffffff",
+    background: "#f5f5f5ff",
     fontFamily:
       '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif',
   } as React.CSSProperties,
@@ -229,7 +265,7 @@ const styles = {
     padding: "16px 48px 16px 20px",
     fontSize: "16px",
     border: "1px solid #e0e0e0",
-    borderRadius: "12px",
+    borderRadius: "25px",
     backgroundColor: "#ffffff",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
     transition: "all 0.3s ease",
@@ -248,7 +284,7 @@ const styles = {
 
   accordion: {
     backgroundColor: "#ffffff",
-    borderRadius: "12px",
+    borderRadius: "15px",
     boxShadow: "0 2px 12px rgba(0, 0, 0, 0.04)",
     overflow: "hidden",
   } as React.CSSProperties,
@@ -282,7 +318,7 @@ const styles = {
 
   icon: {
     fontSize: "24px",
-    color: "#666666",
+    color: "#ffffff",
     fontWeight: 300,
     display: "flex",
     alignItems: "center",
@@ -290,14 +326,14 @@ const styles = {
     width: "32px",
     height: "32px",
     borderRadius: "6px",
-    backgroundColor: "#ffffff",
+    backgroundColor: "transparent",
     transition: "all 0.3s ease",
     flexShrink: 0,
   } as React.CSSProperties,
 
   iconExpanded: {
     fontSize: "24px",
-    color: "#1a1a1a",
+    color: "#ffffff",
     fontWeight: 300,
     display: "flex",
     alignItems: "center",
@@ -305,7 +341,7 @@ const styles = {
     width: "32px",
     height: "32px",
     borderRadius: "6px",
-    backgroundColor: "#ffffff",
+    backgroundColor: "transparent",
     transition: "all 0.3s ease",
     flexShrink: 0,
   } as React.CSSProperties,

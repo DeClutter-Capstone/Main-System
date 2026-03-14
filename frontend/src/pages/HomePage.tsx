@@ -42,7 +42,7 @@ function HomePage() {
   }, [isSlider1Active, isSlider2Active]);
 
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="home-container">
       <style>{`
         @keyframes pulse-glow {
           0%, 100% {
@@ -64,6 +64,10 @@ function HomePage() {
 
         [data-theme="dark"] .style-block {
           background-color: #383838ff !important;
+        }
+
+        [data-theme="dark"] .home-container {
+          background-color: #252525ff !important;
         }
       `}</style>
       <TopBar showSignIn={true} />

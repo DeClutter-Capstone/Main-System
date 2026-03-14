@@ -36,7 +36,7 @@ function Authentication({ onAuthenticate }: AuthenticationProps) {
   };
 
   return (
-    <div style={styles.pageContainer}>
+    <div style={styles.pageContainer} className="auth-container">
       <TopBar />
       <div style={styles.mainContent}>
         {/* Left side - Authentication area */}
@@ -233,6 +233,9 @@ const styleSheet = document.createElement("style");
 styleSheet.textContent = `
   .auth-google-text {
     color: #ffffff !important;
+  }
+  [data-theme="dark"] .auth-container {
+    background-color: #252525ff !important;
   }
   [data-theme="dark"] .auth-card {
     background-color: #383838ff !important;

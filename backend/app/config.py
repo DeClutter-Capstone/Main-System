@@ -17,3 +17,13 @@ API_TITLE = "DeClutter API"
 API_VERSION = "1.0"
 API_DESCRIPTION = "AI-powered interior redesign system"
 
+# Settings object for session.py
+class Settings:
+    db_host = DB_HOST
+    db_port = DB_PORT
+    db_user = DB_USER
+    db_password = DB_PASSWORD
+    db_name = DB_NAME
+
+settings = Settings()
+

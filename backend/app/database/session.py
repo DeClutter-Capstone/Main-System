@@ -1,11 +1,13 @@
-from typing import Generator
-from sqlmodel import Session
-from app.database.db import SessionLocal
+from sqlmodel import Session, create_engine
+from app.config import DATABASE_URL
 
-def get_db() -> Generator[Session, None, None]:
-    """
-    Dependency function to get database session for routes.
-    Usage: def my_route(session: Session = Depends(get_db)):
-    """
-    with SessionLocal() as session:
+# Create engine (PostgreSQL connection)
+engine = create_engine(
+    DATABASE_URL,
+    echo=True  # set to False in production
+)
+
+# Dependency to get DB session
+def get_session():
+    with Session(engine) as session:
         yield session

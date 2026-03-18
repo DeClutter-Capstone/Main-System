@@ -190,7 +190,7 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
             style={styles.signInButton}
             onClick={() => {
               if (onSignIn) onSignIn();
-              navigate("/auth", { replace: true });
+              navigate("/login", { replace: true });
             }}
           >
             Sign in

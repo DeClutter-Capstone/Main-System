@@ -9,6 +9,7 @@ import History from "./pages/History";
 import FAQ from "./pages/FAQ";
 import Accont from "./pages/Accont";
 import Authentication from "./pages/Authentication";
+import Signup from "./pages/Signup";
 
 function App() {
   return (
@@ -16,9 +17,10 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route
-          path="/auth"
+          path="/login"
           element={<Authentication onAuthenticate={() => {}} />}
         />
+        <Route path="/signup" element={<Signup onAuthenticate={() => {}} />} />
         <Route path="/about" element={<About />} />
         <Route path="/api" element={<API />} />
         <Route path="/blog" element={<Blog />} />

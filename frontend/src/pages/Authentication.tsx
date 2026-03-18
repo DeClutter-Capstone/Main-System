@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import TopBar from "../components/TopBar";
+import LoginForm from "../components/LoginForm";
 
 interface AuthenticationProps {
   onAuthenticate: () => void;
 }
 
 function Authentication({ onAuthenticate }: AuthenticationProps) {
-  const [email, setEmail] = useState("");
-  const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem("darkMode") === "true";
   });
@@ -23,85 +21,11 @@ function Authentication({ onAuthenticate }: AuthenticationProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const handleContinueWithEmail = () => {
-    if (email) {
-      onAuthenticate();
-      navigate("/");
-    }
-  };
-
-  const handleContinueWithGoogle = () => {
-    onAuthenticate();
-    navigate("/");
-  };
-
   return (
     <div style={styles.pageContainer} className="auth-container">
       <TopBar />
       <div style={styles.mainContent}>
-        {/* Left side - Authentication area */}
-        <div style={styles.leftSection}>
-          <div style={styles.card} className="auth-card">
-            {/* Title */}
-            <h1 style={styles.title} className="auth-title">
-              Welcome to DeClutter
-            </h1>
-
-            {/* Subtitle */}
-            <p style={styles.subtitle} className="auth-subtitle">
-              log in or sign up to generate interior redesigns
-            </p>
-
-            {/* Google Sign-in button */}
-            <button
-              style={styles.googleButton}
-              onClick={handleContinueWithGoogle}
-              className="auth-google-button"
-            >
-              <img
-                src="/google icon.png"
-                alt="Google"
-                style={styles.googleIcon}
-              />
-              <span className="auth-google-text">Continue with Google</span>
-            </button>
-
-            {/* Divider */}
-            <div style={styles.divider}>
-              <div
-                style={styles.dividerLine}
-                className="auth-divider-line"
-              ></div>
-              <span style={styles.dividerText} className="auth-divider-text">
-                OR
-              </span>
-              <div
-                style={styles.dividerLine}
-                className="auth-divider-line"
-              ></div>
-            </div>
-
-            {/* Email input field */}
-            <input
-              type="email"
-              placeholder="Type in your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={styles.emailInput}
-              className="auth-email-input"
-            />
-
-            {/* Continue with email button */}
-            <button
-              style={styles.emailButton}
-              onClick={handleContinueWithEmail}
-              className="auth-email-button"
-            >
-              Continue with email
-            </button>
-          </div>
-        </div>
-
+        <LoginForm onAuthenticate={onAuthenticate} />
         {/* Right side - Visual section */}
         <div style={styles.rightSection}>
           <img
@@ -262,9 +186,21 @@ styleSheet.textContent = `
     color: #ffffff !important;
   }
   [data-theme="dark"] .auth-card .auth-email-button {
-    background-color: #555555 !important;
+    background-color: #74a1e0be !important;
     color: #ffffff !important;
     border-color: #555555 !important;
+  }
+  [data-theme="dark"] .auth-signup-text {
+    color: #ffffff !important;
+  }
+  [data-theme="dark"] .auth-signup-link {
+    color: #3058b1ff !important;
+  }
+  [data-theme="dark"] .auth-login-text {
+    color: #ffffff !important;
+  }
+  [data-theme="dark"] .auth-login-link {
+    color: #3058b1ff !important;
   }
 `;
 document.head.appendChild(styleSheet);

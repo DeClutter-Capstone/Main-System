@@ -3,7 +3,7 @@ import TopBar from "../components/TopBar";
 import LoginForm from "../components/LoginForm";
 
 interface AuthenticationProps {
-  onAuthenticate: () => void;
+  onAuthenticate: (authenticated: boolean) => void;
 }
 
 function Authentication({ onAuthenticate }: AuthenticationProps) {

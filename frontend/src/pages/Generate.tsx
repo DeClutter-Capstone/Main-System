@@ -34,7 +34,8 @@ function Generate() {
       <style>{`
         [data-theme="dark"] select,
         [data-theme="dark"] textarea,
-        [data-theme="dark"] .style-card {
+        [data-theme="dark"] .style-card,
+        [data-theme="dark"] .uploadBox {
           background-color: #383838ff !important;
           color: #ffffff !important;
           border-color: #555 !important;
@@ -54,7 +55,7 @@ function Generate() {
           {/* Left - Upload Box */}
           <div style={styles.uploadColumn}>
             <h2 style={styles.uploadTitle}>Upload image</h2>
-            <div style={styles.uploadBox}>
+            <div style={styles.uploadBox} className="uploadBox">
               <button style={styles.uploadButton}>
                 <img
                   src="/public/upload icon.png"
@@ -195,7 +196,7 @@ const styles = {
     borderRadius: "12px",
     padding: "4.5rem 2rem",
     textAlign: "center",
-    backgroundColor: "#ffffffff",
+    backgroundColor: "#ffffff",
     cursor: "pointer",
     transition: "all 0.3s ease",
   } as React.CSSProperties,

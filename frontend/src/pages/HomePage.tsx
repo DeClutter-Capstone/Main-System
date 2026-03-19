@@ -103,7 +103,14 @@ function HomePage() {
           <button
             className="glow-button"
             style={styles.generateButton}
-            onClick={() => navigate("/generate")}
+            onClick={() => {
+              const authToken = localStorage.getItem("authToken");
+              if (authToken) {
+                navigate("/generate");
+              } else {
+                navigate("/login");
+              }
+            }}
           >
             Start Generating
           </button>

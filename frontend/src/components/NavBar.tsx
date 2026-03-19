@@ -1,5 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { auth } from "../Firebase/Firebase";
 
 function NavBar() {
   const location = useLocation();
@@ -7,6 +9,7 @@ function NavBar() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem("darkMode") === "true";
   });
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
 
   const applyDarkMode = () => {
     document.documentElement.setAttribute("data-theme", "dark");
@@ -102,6 +105,15 @@ function NavBar() {
     localStorage.setItem("darkMode", "false");
   };
 
+  // Fetch Firebase user data
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     // Apply/remove dark mode based on state
     if (isDarkMode) {
@@ -190,10 +202,13 @@ function NavBar() {
           />
         </button>
         <img
-          src="/profile logo.png"
+          src={firebaseUser?.photoURL || "/profile logo.png"}
           alt="Profile"
           style={styles.profileIcon}
           onClick={() => navigate("/account")}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "/profile logo.png";
+          }}
         />
       </div>
     </nav>

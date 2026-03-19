@@ -4,7 +4,7 @@ import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../Firebase/Firebase";
 
 interface LoginFormProps {
-  onAuthenticate: () => void;
+  onAuthenticate: (authenticated: boolean) => void;
 }
 
 function LoginForm({ onAuthenticate }: LoginFormProps) {
@@ -18,7 +18,9 @@ function LoginForm({ onAuthenticate }: LoginFormProps) {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       setMsg("Login successful!");
-      onAuthenticate();
+      onAuthenticate(true);
+      // Navigate to generate page after successful login
+      setTimeout(() => navigate("/generate"), 500);
     } catch (error) {
       if (error instanceof Error) {
         setMsg(error.message);
@@ -33,7 +35,9 @@ function LoginForm({ onAuthenticate }: LoginFormProps) {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       alert(`Welcome ${user.displayName}`);
-      onAuthenticate();
+      onAuthenticate(true);
+      // Navigate to generate page after successful login
+      setTimeout(() => navigate("/generate"), 500);
     } catch (error) {
       if (error instanceof Error) {
         alert(error.message);

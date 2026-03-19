@@ -3,7 +3,7 @@ import TopBar from "../components/TopBar";
 import SignupForm from "../components/SignupForm";
 
 interface SignupProps {
-  onAuthenticate: () => void;
+  onAuthenticate: (authenticated: boolean) => void;
 }
 
 function Signup({ onAuthenticate }: SignupProps) {

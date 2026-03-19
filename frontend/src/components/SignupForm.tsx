@@ -4,7 +4,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../Firebase/Firebase";
 
 interface SignupFormProps {
-  onAuthenticate: () => void;
+  onAuthenticate: (authenticated: boolean) => void;
 }
 
 function SignupForm({ onAuthenticate }: SignupFormProps) {
@@ -22,7 +22,9 @@ function SignupForm({ onAuthenticate }: SignupFormProps) {
         try {
           await createUserWithEmailAndPassword(auth, email, password);
           setMsg("Signup successfully!");
-          onAuthenticate();
+          onAuthenticate(true);
+          // Navigate to generate page after successful signup
+          setTimeout(() => navigate("/generate"), 500);
         } catch (error) {
           if (error instanceof Error) {
             setMsg(error.message);

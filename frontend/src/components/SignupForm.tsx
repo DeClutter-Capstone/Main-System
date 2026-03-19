@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../Firebase/Firebase";
 
 interface SignupFormProps {
   onAuthenticate: () => void;
@@ -10,15 +12,29 @@ function SignupForm({ onAuthenticate }: SignupFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [msg, setMsg] = useState("");
   const navigate = useNavigate();
 
-  const handleSignup = () => {
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (fullName && email && password && confirmPassword) {
       if (password === confirmPassword) {
-        onAuthenticate();
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+          setMsg("Signup successfully!");
+          onAuthenticate();
+        } catch (error) {
+          if (error instanceof Error) {
+            setMsg(error.message);
+          } else {
+            setMsg("An error occurred during signup");
+          }
+        }
       } else {
-        alert("Passwords do not match!");
+        setMsg("Passwords do not match!");
       }
+    } else {
+      setMsg("Please fill in all fields!");
     }
   };
 
@@ -90,11 +106,14 @@ function SignupForm({ onAuthenticate }: SignupFormProps) {
         {/* Sign up button */}
         <button
           style={styles.emailButton}
-          onClick={handleSignup}
+          onClick={(e) => handleSignup(e as React.FormEvent)}
           className="auth-email-button"
         >
           Sign up
         </button>
+
+        {/* Error/Success message */}
+        {msg && <p style={styles.messageText}>{msg}</p>}
 
         {/* Login link */}
         <p style={styles.loginText} className="auth-login-text">
@@ -147,50 +166,13 @@ const styles = {
     fontFamily: "'Lato', sans-serif",
     textAlign: "center",
   } as React.CSSProperties,
-  googleButton: {
-    width: "100%",
-    height: "44px",
-    backgroundColor: "#000000",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "20px",
-    fontSize: "14px",
-    fontWeight: "500",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "0.75rem",
-    fontFamily: "'Lato', sans-serif",
-    transition: "background-color 0.3s ease",
-    marginBottom: "1rem",
-  } as React.CSSProperties,
-  googleIcon: {
-    width: "20px",
-    height: "20px",
-  } as React.CSSProperties,
-  divider: {
-    display: "flex",
-    alignItems: "center",
-    gap: "1rem",
-    margin: "0.5rem 0",
-  } as React.CSSProperties,
-  dividerLine: {
-    flex: 1,
-    height: "1px",
-    backgroundColor: "#000000ff",
-  } as React.CSSProperties,
-  dividerText: {
-    fontSize: "12px",
-    color: "#000000ff",
-    fontFamily: "'Lato', sans-serif",
-  } as React.CSSProperties,
+
   emailInput: {
     width: "100%",
     height: "40px",
     padding: "0 16px",
-    borderRadius: "20px",
-    border: "1px solid #585858",
+    borderRadius: "7px",
+    border: "1px solid #585858b6",
     fontSize: "14px",
     fontFamily: "'Lato', sans-serif",
     boxSizing: "border-box",
@@ -200,11 +182,12 @@ const styles = {
     height: "40px",
     backgroundColor: "#9ac1f7ff",
     border: "1px solid #9ac1f7ff",
-    borderRadius: "20px",
+    borderRadius: "7px",
     fontSize: "14px",
     fontWeight: "500",
     cursor: "pointer",
     fontFamily: "'Lato', sans-serif",
+    marginTop: "0.7rem",
     transition: "background-color 0.3s ease",
   } as React.CSSProperties,
   loginText: {
@@ -232,6 +215,13 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "0.5rem",
+  } as React.CSSProperties,
+  messageText: {
+    fontSize: "14px",
+    color: "#dc2626",
+    margin: "0",
+    textAlign: "center",
+    fontFamily: "'Lato', sans-serif",
   } as React.CSSProperties,
 };
 

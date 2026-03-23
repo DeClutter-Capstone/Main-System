@@ -10,7 +10,7 @@ class Project(SQLModel, table=True):
     project_description: str 
     project_creation_time : datetime = Field(default_factory=datetime.now)
     project_last_updated : datetime = Field(default_factory=datetime.now)
-    
+    no_of_transformations : int
     # Relationships
     user: "User" = Relationship(back_populates="projects")
     input_images: list["InputImage"] = Relationship(back_populates="project")

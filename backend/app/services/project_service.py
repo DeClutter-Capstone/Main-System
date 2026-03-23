@@ -3,7 +3,7 @@ from app.models.project import Project
 from app.schemas.project_schema import ProjectCreate
 from datetime import datetime
 
-def create_proeject(db:Session , user_id: int , project_data: ProjectCreate): 
+def create_project(db:Session , user_id: int , project_data: ProjectCreate): 
     new_project = Project(
         user_id=user_id,
         project_name=project_data.project_name,

@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from uuid import UUID
-from models.transformation import RoomType
-import datetime
+from app.models.transformation import RoomType
+from datetime import datetime
 class TransformationCreate(BaseModel):
     project_id: UUID
     input_image_id: UUID

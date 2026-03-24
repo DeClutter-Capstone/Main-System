@@ -11,7 +11,7 @@ class User(SQLModel, table=True):
 
     
     # Relationships
-    projects: list["Project"] = Relationship(back_populates="user")
+
     input_images: list["InputImage"] = Relationship(back_populates="user")
     activity_logs: list["Activity"] = Relationship(back_populates="user")
     generated_images: list["GeneratedImage"] = Relationship(back_populates="user")

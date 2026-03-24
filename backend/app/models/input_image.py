@@ -1,4 +1,4 @@
-from typing import Optional 
+from typing import Optional, List
 from uuid import UUID , uuid4 
 from datetime import datetime 
 from sqlmodel import Field, SQLModel, Relationship 
@@ -16,3 +16,4 @@ class InputImage(SQLModel, table=True):
     project: "Project" = Relationship(back_populates="input_images")
     user: "User" = Relationship(back_populates="input_images")
     transformations: list["Transformation"] = Relationship(back_populates="input_image")
+    generated_images: List["GeneratedImage"] = Relationship(back_populates="input_image")

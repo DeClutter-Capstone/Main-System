@@ -9,7 +9,6 @@ class ProjectCreate(BaseModel):
 
 class ProjectResponse(BaseModel):
     project_id: UUID
-    user_id: int
     project_name: str
     project_description: str
     project_creation_time: datetime

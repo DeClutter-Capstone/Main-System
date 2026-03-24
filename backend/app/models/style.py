@@ -11,12 +11,9 @@ class StyleTypes(str, Enum):
     industrial = "industrial"
     bohemian = "bohemian"
     rustic = "rustic"
+    spa = "spa"
 
 class Style(SQLModel, table=True):
     style_id: UUID = Field(default_factory=uuid4, primary_key=True, index=True)
-    style_name : str
-    style_description: str
-    
-    # Relationships
-    transformations: list["Transformation"] = Relationship(back_populates="style")
-    generated_images: list["GeneratedImage"] = Relationship(back_populates="style")
+    style_name: StyleTypes
+    style_description: Optional[str] = None

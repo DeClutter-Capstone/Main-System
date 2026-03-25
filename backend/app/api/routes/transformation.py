@@ -17,7 +17,7 @@ def create_transformation(
 ):
     try:
         # Use a publicly accessible bedroom image URL
-        image_url = "https://images.woodenstreet.de/image/data%2FLooks%2F3.jpg"  # Modern bedroom
+        image_url = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=512"  # Modern bedroom
 
         transformation, output = generate_transformation(
             db=db,

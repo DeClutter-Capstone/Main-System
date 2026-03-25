@@ -5,6 +5,8 @@ import {
   Navigate,
 } from "react-router-dom";
 import { useState, useEffect, type ReactNode } from "react";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import HomePage from "./pages/HomePage";
 import About from "./pages/About";
 import API from "./pages/API";
@@ -57,65 +59,79 @@ function App() {
   }
 
   return (
-    <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route
-          path="/login"
-          element={<Authentication onAuthenticate={handleAuthenticate} />}
-        />
-        <Route
-          path="/signup"
-          element={<Signup onAuthenticate={handleAuthenticate} />}
-        />
-        <Route path="/about" element={<About />} />
-        <Route path="/api" element={<API />} />
-        <Route path="/blog" element={<Blog />} />
+    <>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route
+            path="/login"
+            element={<Authentication onAuthenticate={handleAuthenticate} />}
+          />
+          <Route
+            path="/signup"
+            element={<Signup onAuthenticate={handleAuthenticate} />}
+          />
+          <Route path="/about" element={<About />} />
+          <Route path="/api" element={<API />} />
+          <Route path="/blog" element={<Blog />} />
 
-        {/* Protected Routes */}
-        <Route
-          path="/generate"
-          element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <Generate />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/projects"
-          element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <Porjects />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/history"
-          element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <History />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/faq"
-          element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <FAQ />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/account"
-          element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <Accont />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </Router>
+          {/* Protected Routes */}
+          <Route
+            path="/generate"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <Generate />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <Porjects />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <History />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/faq"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <FAQ />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <Accont />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </>
   );
 }
 

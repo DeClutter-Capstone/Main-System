@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../Firebase/Firebase";
+import { toast, Bounce } from "react-toastify";
 
 interface LoginFormProps {
   onAuthenticate: (authenticated: boolean) => void;
@@ -10,22 +11,59 @@ interface LoginFormProps {
 function LoginForm({ onAuthenticate }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [msg, setMsg] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      setMsg("Login successful!");
+      toast.success("Login successful!");
       onAuthenticate(true);
       // Navigate to generate page after successful login
       setTimeout(() => navigate("/generate"), 500);
     } catch (error) {
       if (error instanceof Error) {
-        setMsg(error.message);
+        if (
+          error.message.includes("auth/invalid-email") ||
+          error.message.includes("auth/user-not-found") ||
+          error.message.includes("auth/invalid-credential")
+        ) {
+          toast.error(" Email or Password is incorrect!", {
+            position: "top-center",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: false,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "colored",
+            transition: Bounce,
+          });
+        } else {
+          toast.error(error.message, {
+            position: "top-center",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: false,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "colored",
+            transition: Bounce,
+          });
+        }
       } else {
-        setMsg("An error occurred during login");
+        toast.error("An error occurred during login", {
+          position: "top-center",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "colored",
+          transition: Bounce,
+        });
       }
     }
   };
@@ -34,15 +72,35 @@ function LoginForm({ onAuthenticate }: LoginFormProps) {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      alert(`Welcome ${user.displayName}`);
+      toast.success(`Welcome ${user.displayName}`);
       onAuthenticate(true);
       // Navigate to generate page after successful login
       setTimeout(() => navigate("/generate"), 500);
     } catch (error) {
       if (error instanceof Error) {
-        alert(error.message);
+        toast.error(error.message, {
+          position: "top-center",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "colored",
+          transition: Bounce,
+        });
       } else {
-        alert("An error occurred during Google login");
+        toast.error("An error occurred during Google login", {
+          position: "top-center",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "colored",
+          transition: Bounce,
+        });
       }
     }
   };
@@ -112,9 +170,6 @@ function LoginForm({ onAuthenticate }: LoginFormProps) {
           <img src="/google icon.png" alt="Google" style={styles.googleIcon} />
           <span className="auth-google-text">Continue with Google</span>
         </button>
-
-        {/* Error/Success message */}
-        {msg && <p style={styles.messageText}>{msg}</p>}
 
         {/* Sign up link */}
         <p style={styles.signupText} className="auth-signup-text">

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../Firebase/Firebase";
+import { toast, Bounce } from "react-toastify";
 
 interface SignupFormProps {
   onAuthenticate: (authenticated: boolean) => void;
@@ -12,7 +13,6 @@ function SignupForm({ onAuthenticate }: SignupFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [msg, setMsg] = useState("");
   const navigate = useNavigate();
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -21,22 +21,80 @@ function SignupForm({ onAuthenticate }: SignupFormProps) {
       if (password === confirmPassword) {
         try {
           await createUserWithEmailAndPassword(auth, email, password);
-          setMsg("Signup successfully!");
+          toast.success("Signup successful!");
           onAuthenticate(true);
           // Navigate to generate page after successful signup
           setTimeout(() => navigate("/generate"), 500);
         } catch (error) {
           if (error instanceof Error) {
-            setMsg(error.message);
+            if (
+              error.message.includes("auth/email-already-in-use") ||
+              error.message.includes("auth/weak-password") ||
+              error.message.includes("auth/invalid-email")
+            ) {
+              toast.error(" Email or Password is incorrect!", {
+                position: "top-center",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: false,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+                transition: Bounce,
+              });
+            } else {
+              toast.error(error.message, {
+                position: "top-center",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: false,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+                transition: Bounce,
+              });
+            }
           } else {
-            setMsg("An error occurred during signup");
+            toast.error("An error occurred during signup", {
+              position: "top-center",
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: false,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+              theme: "colored",
+              transition: Bounce,
+            });
           }
         }
       } else {
-        setMsg("Passwords do not match!");
+        toast.error("🔐 Passwords do not match!", {
+          position: "top-center",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "colored",
+          transition: Bounce,
+        });
       }
     } else {
-      setMsg("Please fill in all fields!");
+      toast.error("⚠️ Please fill in all fields!", {
+        position: "top-center",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "colored",
+        transition: Bounce,
+      });
     }
   };
 
@@ -113,9 +171,6 @@ function SignupForm({ onAuthenticate }: SignupFormProps) {
         >
           Sign up
         </button>
-
-        {/* Error/Success message */}
-        {msg && <p style={styles.messageText}>{msg}</p>}
 
         {/* Login link */}
         <p style={styles.loginText} className="auth-login-text">

@@ -1,11 +1,13 @@
 import Layout from "../components/Layout";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 function Generate() {
   const [roomType, setRoomType] = useState("Bedroom");
   const [assignProject, setAssignProject] = useState("N/A");
   const [customPrompt, setCustomPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("Minimalist");
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const styles_data = [
     {
@@ -27,6 +29,43 @@ function Generate() {
 
   const handleStyleCardClick = (styleId: string) => {
     setSelectedStyle(styleId);
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file type
+      const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+      if (!validTypes.includes(file.type)) {
+        alert("Please upload a JPG, JPEG, or PNG image");
+        return;
+      }
+
+      // Check file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert("File size must be less than 5MB");
+        return;
+      }
+
+      // Read and set the image
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setUploadedImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setUploadedImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -55,21 +94,66 @@ function Generate() {
           {/* Left - Upload Box */}
           <div style={styles.uploadColumn}>
             <h2 style={styles.uploadTitle}>Upload image</h2>
-            <div style={styles.uploadBox} className="uploadBox">
-              <button style={styles.uploadButton}>
-                <img
-                  src="/public/upload icon.png"
-                  alt="upload"
-                  style={styles.uploadIconImg}
-                />
-                Upload
-              </button>
-              <div style={styles.uploadText}>
-                Or drag & drop your media here
-              </div>
-              <div style={styles.supportedFormats}>
-                JPG, JPEG, PNG all supported
-              </div>
+            <div
+              style={{
+                ...styles.uploadBox,
+                padding: uploadedImage ? "0" : "4.5rem 2rem",
+                height: "300px",
+                position: "relative",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: uploadedImage ? "center" : "flex-start",
+              }}
+              className="uploadBox"
+            >
+              {uploadedImage ? (
+                <>
+                  <div style={styles.imageContainer}>
+                    <img
+                      src={uploadedImage}
+                      alt="Uploaded"
+                      style={styles.uploadedPreview}
+                    />
+                  </div>
+                  <button
+                    style={styles.removeButton}
+                    onClick={handleRemoveImage}
+                    type="button"
+                    title="Remove image"
+                  >
+                    ✕
+                  </button>
+                </>
+              ) : (
+                <div style={styles.uploadContentWrapper}>
+                  <button
+                    style={styles.uploadButton}
+                    onClick={handleUploadClick}
+                    type="button"
+                  >
+                    <img
+                      src="/public/upload icon.png"
+                      alt="upload"
+                      style={styles.uploadIconImg}
+                    />
+                    Upload
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png"
+                    onChange={handleFileChange}
+                    style={{ display: "none" }}
+                  />
+                  <div style={styles.uploadText}>
+                    Or drag & drop your media here
+                  </div>
+                  <div style={styles.supportedFormats}>
+                    JPG, JPEG, PNG all supported
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -169,7 +253,7 @@ const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
-    gap: "3rem",
+    gap: "1.5rem",
     padding: "2rem",
     maxWidth: "1260px",
     margin: "0 auto",
@@ -199,6 +283,10 @@ const styles = {
     backgroundColor: "#ffffff",
     cursor: "pointer",
     transition: "all 0.3s ease",
+    height: "300px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   } as React.CSSProperties,
   uploadIcon: {
     fontSize: "2.5rem",
@@ -243,12 +331,12 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     marginTop: "2.4rem",
-    gap: "1.5rem",
+    gap: "2rem",
   } as React.CSSProperties,
   formGroup: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.5rem",
+    gap: ".5rem",
   } as React.CSSProperties,
   formGroupRow: {
     display: "flex",
@@ -308,7 +396,7 @@ const styles = {
     border: "1px solid #ddd",
     fontFamily: "inherit",
     resize: "vertical",
-    minHeight: "100px",
+    minHeight: "133px",
     transition: "border-color 0.3s ease",
   } as React.CSSProperties,
   styleSection: {
@@ -384,6 +472,55 @@ const styles = {
     maxWidth: "1300px",
     margin: "2rem auto",
     transition: "background-color 0.3s ease",
+  } as React.CSSProperties,
+  uploadedPreview: {
+    width: "100%",
+    height: "100%",
+    borderRadius: "12px",
+    objectFit: "cover",
+    padding: "3px",
+    boxSizing: "border-box",
+  } as React.CSSProperties,
+  uploadedText: {
+    fontSize: "0.9rem",
+    color: "#4384E2",
+    fontWeight: "600",
+    textAlign: "center",
+  } as React.CSSProperties,
+  imageContainer: {
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "12px",
+    overflow: "hidden",
+  } as React.CSSProperties,
+  removeButton: {
+    position: "absolute",
+    top: "10px",
+    right: "10px",
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    color: "#ffffff",
+    border: "none",
+    fontSize: "24px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.3s ease",
+    zIndex: 10,
+  } as React.CSSProperties,
+  uploadContentWrapper: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "0.5rem",
+    width: "100%",
+    marginTop: "20px",
   } as React.CSSProperties,
 };
 

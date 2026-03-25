@@ -168,15 +168,6 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
           About
         </Link>
         <Link
-          to="/api"
-          style={{
-            ...styles.navLink,
-            color: isActive("/api") ? "#4384E2" : "#333",
-          }}
-        >
-          API
-        </Link>
-        <Link
           to="/blog"
           style={{
             ...styles.navLink,

@@ -9,7 +9,6 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import HomePage from "./pages/HomePage";
 import About from "./pages/About";
-import API from "./pages/API";
 import Blog from "./pages/Blog";
 import Generate from "./pages/Generate";
 import Porjects from "./pages/Porjects";
@@ -85,7 +84,6 @@ function App() {
             element={<Signup onAuthenticate={handleAuthenticate} />}
           />
           <Route path="/about" element={<About />} />
-          <Route path="/api" element={<API />} />
           <Route path="/blog" element={<Blog />} />
 
           {/* Protected Routes */}

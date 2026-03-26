@@ -1,5 +1,6 @@
 import Layout from "../components/Layout";
 import { useState, useRef } from "react";
+import { requestTransformation } from "../services/transformationAPI";
 
 function Generate() {
   const [roomType, setRoomType] = useState("Bedroom");
@@ -7,7 +8,11 @@ function Generate() {
   const [customPrompt, setCustomPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("Minimalist");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const styles_data = [
     {
@@ -52,7 +57,10 @@ function Generate() {
         return;
       }
 
-      // Read and set the image
+      // Store the file for later use
+      setUploadedFile(file);
+
+      // Read and set the preview image
       const reader = new FileReader();
       reader.onload = (e) => {
         setUploadedImage(e.target?.result as string);
@@ -63,8 +71,43 @@ function Generate() {
 
   const handleRemoveImage = () => {
     setUploadedImage(null);
+    setUploadedFile(null);
+    setGeneratedImage(null);
+    setError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const handleGenerate = async () => {
+    // Validate that user has uploaded an image
+    if (!uploadedFile) {
+      setError("Please upload an image first");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Call the backend API
+      const response = await requestTransformation(
+        uploadedFile,
+        roomType,
+        selectedStyle,
+      );
+
+      // Set the generated image from the response
+      setGeneratedImage(response.output_image_url);
+      setError(null);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An error occurred";
+      setError(errorMessage);
+      setGeneratedImage(null);
+      console.error("Transformation error:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -242,8 +285,39 @@ function Generate() {
           </div>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div style={styles.errorMessage}>
+            <p>{error}</p>
+          </div>
+        )}
+
         {/* Generate Button */}
-        <button style={styles.generateButton}>Generate</button>
+        <button
+          style={{
+            ...styles.generateButton,
+            opacity: isLoading ? 0.6 : 1,
+            cursor: isLoading ? "not-allowed" : "pointer",
+          }}
+          onClick={handleGenerate}
+          disabled={isLoading}
+        >
+          {isLoading ? "Generating..." : "Generate"}
+        </button>
+
+        {/* Generated Image Display */}
+        {generatedImage && (
+          <div style={styles.generatedImageSection}>
+            <h2 style={styles.generatedImageTitle}>Generated Image</h2>
+            <div style={styles.generatedImageContainer}>
+              <img
+                src={generatedImage}
+                alt="Generated"
+                style={styles.generatedImageDisplay}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
@@ -521,6 +595,40 @@ const styles = {
     gap: "0.5rem",
     width: "100%",
     marginTop: "20px",
+  } as React.CSSProperties,
+  errorMessage: {
+    padding: "12px 16px",
+    backgroundColor: "#ffebee",
+    color: "#c62828",
+    borderRadius: "8px",
+    marginTop: "1rem",
+    border: "1px solid #ef5350",
+    fontSize: "0.95rem",
+  } as React.CSSProperties,
+  generatedImageSection: {
+    marginTop: "3rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "1.5rem",
+  } as React.CSSProperties,
+  generatedImageTitle: {
+    fontSize: "1.5rem",
+    fontWeight: "700",
+    color: "#333",
+    margin: "0",
+  } as React.CSSProperties,
+  generatedImageContainer: {
+    width: "100%",
+    maxWidth: "800px",
+    margin: "0 auto",
+    borderRadius: "12px",
+    overflow: "hidden",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+  } as React.CSSProperties,
+  generatedImageDisplay: {
+    width: "100%",
+    height: "auto",
+    display: "block",
   } as React.CSSProperties,
 };
 

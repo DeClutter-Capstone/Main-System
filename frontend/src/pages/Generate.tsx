@@ -1,6 +1,7 @@
 import Layout from "../components/Layout";
 import { useState, useRef } from "react";
 import { requestTransformation } from "../services/transformationAPI";
+import { toast } from "react-toastify";
 
 function Generate() {
   const [roomType, setRoomType] = useState("Bedroom");
@@ -10,11 +11,11 @@ function Generate() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [showMoreStyles, setShowMoreStyles] = useState(false);
 
-  const styles_data = [
+  const all_styles_data = [
     {
       id: "Minimalist",
       name: "Minimalist",
@@ -30,7 +31,33 @@ function Generate() {
       name: "Scandinavian",
       image: "/public/HomePageImages/scandinavian.webp",
     },
+    {
+      id: "Industrial",
+      name: "Industrial",
+      image: "/public/HomePageImages/industrial.jpg",
+    },
+    {
+      id: "Bohemian",
+      name: "Bohemian",
+      image: "/public/HomePageImages/bohemian.webp",
+    },
+    {
+      id: "Rustic",
+      name: "Rustic",
+      image: "/public/HomePageImages/rustic.jpg",
+    },
+    {
+      id: "Spa",
+      name: "Spa",
+      image: "/public/HomePageImages/spa.jpg",
+    },
   ];
+
+  // Display only first 3 styles by default
+  const styles_data = all_styles_data.slice(0, 3);
+
+  // For "More" section - display remaining styles (Industrial, Bohemian, Rustic, Spa)
+  const moreStyles = all_styles_data.slice(3);
 
   const handleStyleCardClick = (styleId: string) => {
     setSelectedStyle(styleId);
@@ -73,7 +100,6 @@ function Generate() {
     setUploadedImage(null);
     setUploadedFile(null);
     setGeneratedImage(null);
-    setError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -82,12 +108,11 @@ function Generate() {
   const handleGenerate = async () => {
     // Validate that user has uploaded an image
     if (!uploadedFile) {
-      setError("Please upload an image first");
+      toast.error("Please upload an image first");
       return;
     }
 
     setIsLoading(true);
-    setError(null);
 
     try {
       // Call the backend API
@@ -99,11 +124,11 @@ function Generate() {
 
       // Set the generated image from the response
       setGeneratedImage(response.output_image_url);
-      setError(null);
+      toast.success("Image generated successfully!");
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "An error occurred";
-      setError(errorMessage);
+      toast.error(errorMessage);
       setGeneratedImage(null);
       console.error("Transformation error:", err);
     } finally {
@@ -114,13 +139,23 @@ function Generate() {
   return (
     <Layout>
       <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         [data-theme="dark"] select,
         [data-theme="dark"] textarea,
-        [data-theme="dark"] .style-card,
         [data-theme="dark"] .uploadBox {
           background-color: #383838ff !important;
           color: #ffffff !important;
           border-color: #555 !important;
+        }
+        [data-theme="dark"] .style-card {
+          background-color: #383838ff !important;
+          color: #ffffff !important;
+        }
+        [data-theme="dark"] .style-card > div {
+          color: #ffffff !important;
         }
         [data-theme="dark"] .dark-mode-select,
         [data-theme="dark"] .dark-mode-textarea {
@@ -129,6 +164,7 @@ function Generate() {
         }
         [data-theme="dark"] textarea::placeholder {
           color: #ffffffff !important;
+        }
       
       `}</style>
       <div style={styles.container}>
@@ -255,42 +291,122 @@ function Generate() {
         <div style={styles.styleSection}>
           <div style={styles.styleSectionHeader}>
             <h2 style={styles.styleTitle}>Select Style:</h2>
-            <a style={styles.moreLink}>More &gt;</a>
-          </div>
-          <div style={styles.styleCardsContainer}>
-            {styles_data.map((style) => (
+            <div style={styles.paginationContainer}>
               <div
-                key={style.id}
-                onClick={() => handleStyleCardClick(style.id)}
-                className="style-card"
                 style={{
-                  ...styles.styleCard,
-                  borderColor: selectedStyle === style.id ? "#4384E2" : "#ddd",
-                  backgroundColor:
-                    selectedStyle === style.id ? "#f0f4ff" : "white",
-                  boxShadow:
-                    selectedStyle === style.id
-                      ? "0 4px 12px rgba(67, 132, 226, 0.15)"
-                      : "none",
+                  ...styles.paginationCircle,
+                  backgroundColor: !showMoreStyles ? "#4384E2" : "#ddd",
+                  cursor: "pointer",
                 }}
+                onClick={() => setShowMoreStyles(false)}
+                title="Page 1"
+              />
+              <div
+                style={{
+                  ...styles.paginationCircle,
+                  backgroundColor: showMoreStyles ? "#4384E2" : "#ddd",
+                  cursor: "pointer",
+                }}
+                onClick={() => setShowMoreStyles(true)}
+                title="Page 2"
+              />
+              <a
+                style={{ ...styles.moreLink, cursor: "pointer" }}
+                onClick={() => setShowMoreStyles(!showMoreStyles)}
               >
-                <img
-                  src={style.image}
-                  alt={style.name}
-                  style={styles.styleCardImage}
-                />
-                <div style={styles.styleCardName}>{style.name}</div>
-              </div>
-            ))}
+                {showMoreStyles ? "< Back" : "More >"}
+              </a>
+            </div>
           </div>
-        </div>
 
-        {/* Error Message */}
-        {error && (
-          <div style={styles.errorMessage}>
-            <p>{error}</p>
-          </div>
-        )}
+          {!showMoreStyles ? (
+            <div style={styles.styleCardsContainer}>
+              {styles_data.map((style) => {
+                const isDarkMode =
+                  document.documentElement.getAttribute("data-theme") ===
+                  "dark";
+                return (
+                  <div
+                    key={style.id}
+                    onClick={() => handleStyleCardClick(style.id)}
+                    className="style-card"
+                    style={{
+                      ...styles.styleCard,
+                      borderColor:
+                        selectedStyle === style.id
+                          ? "#4384E2"
+                          : isDarkMode
+                            ? "#555"
+                            : "#ddd",
+                      backgroundColor:
+                        selectedStyle === style.id
+                          ? isDarkMode
+                            ? "#4384E2"
+                            : "#f0f4ff"
+                          : isDarkMode
+                            ? "#383838ff"
+                            : "white",
+                      boxShadow:
+                        selectedStyle === style.id
+                          ? "0 4px 12px rgba(67, 132, 226, 0.15)"
+                          : "none",
+                    }}
+                  >
+                    <img
+                      src={style.image}
+                      alt={style.name}
+                      style={styles.styleCardImage}
+                    />
+                    <div style={styles.styleCardName}>{style.name}</div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={styles.styleCardsContainer}>
+              {moreStyles.map((style) => {
+                const isDarkMode =
+                  document.documentElement.getAttribute("data-theme") ===
+                  "dark";
+                return (
+                  <div
+                    key={style.id}
+                    onClick={() => handleStyleCardClick(style.id)}
+                    className="style-card"
+                    style={{
+                      ...styles.styleCard,
+                      borderColor:
+                        selectedStyle === style.id
+                          ? "#4384E2"
+                          : isDarkMode
+                            ? "#555"
+                            : "#ddd",
+                      backgroundColor:
+                        selectedStyle === style.id
+                          ? isDarkMode
+                            ? "#4384E2"
+                            : "#f0f4ff"
+                          : isDarkMode
+                            ? "#383838ff"
+                            : "white",
+                      boxShadow:
+                        selectedStyle === style.id
+                          ? "0 4px 12px rgba(67, 132, 226, 0.15)"
+                          : "none",
+                    }}
+                  >
+                    <img
+                      src={style.image}
+                      alt={style.name}
+                      style={styles.styleCardImage}
+                    />
+                    <div style={styles.styleCardName}>{style.name}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Generate Button */}
         <button
@@ -305,16 +421,92 @@ function Generate() {
           {isLoading ? "Generating..." : "Generate"}
         </button>
 
-        {/* Generated Image Display */}
-        {generatedImage && (
-          <div style={styles.generatedImageSection}>
-            <h2 style={styles.generatedImageTitle}>Generated Image</h2>
-            <div style={styles.generatedImageContainer}>
-              <img
-                src={generatedImage}
-                alt="Generated"
-                style={styles.generatedImageDisplay}
-              />
+        {/* Loading State */}
+        {isLoading && (
+          <div style={styles.loadingSection}>
+            <div style={styles.spinner}></div>
+            <p style={styles.loadingText}>Processing your image...</p>
+          </div>
+        )}
+
+        {/* Before & After Comparison */}
+        {generatedImage && !isLoading && (
+          <div style={styles.comparisonSection}>
+            <h2 style={styles.comparisonTitle}>Transformation Result</h2>
+
+            <div style={styles.beforeAfterContainer}>
+              {/* Before Image */}
+              <div style={styles.imageSection}>
+                <div style={styles.imageLabel}>Before</div>
+                <div style={styles.imageWrapper}>
+                  <img
+                    src={uploadedImage || ""}
+                    alt="Before"
+                    style={styles.comparisonImage}
+                  />
+                </div>
+              </div>
+
+              {/* After Image */}
+              <div style={styles.imageSection}>
+                <div style={styles.imageLabel}>After</div>
+                <div style={styles.imageWrapper}>
+                  <img
+                    src={generatedImage}
+                    alt="After"
+                    style={styles.comparisonImage}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={styles.actionButtonsContainer}>
+              <button
+                style={styles.actionButton}
+                onClick={() => {
+                  const link = document.createElement("a");
+                  link.href = generatedImage;
+                  link.download = `transformed-${selectedStyle}-${Date.now()}.png`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+              >
+                📥 Download Transformation
+              </button>
+              <button
+                style={styles.actionButton}
+                onClick={() => {
+                  const reportContent = `
+Transformation Report
+====================
+Date: ${new Date().toLocaleString()}
+Room Type: ${roomType}
+Style: ${selectedStyle}
+${customPrompt ? `Custom Prompt: ${customPrompt}` : ""}
+
+Transformation completed successfully!
+                  `;
+                  const element = document.createElement("a");
+                  element.setAttribute(
+                    "href",
+                    "data:text/plain;charset=utf-8," +
+                      encodeURIComponent(reportContent),
+                  );
+                  element.setAttribute(
+                    "download",
+                    `transformation-report-${Date.now()}.txt`,
+                  );
+                  element.style.display = "none";
+                  document.body.appendChild(element);
+                  element.click();
+                  document.body.removeChild(element);
+                  toast.success("Report downloaded successfully!");
+                }}
+              >
+                📋 Generate Report
+              </button>
             </div>
           </div>
         )}
@@ -629,6 +821,117 @@ const styles = {
     width: "100%",
     height: "auto",
     display: "block",
+  } as React.CSSProperties,
+  pageIndicator: {
+    textAlign: "center",
+    fontSize: "0.9rem",
+    color: "#666",
+    marginTop: "1rem",
+    fontWeight: "500",
+  } as React.CSSProperties,
+  paginationContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  } as React.CSSProperties,
+  paginationCircle: {
+    width: "12px",
+    height: "12px",
+    borderRadius: "50%",
+    transition: "all 0.3s ease",
+  } as React.CSSProperties,
+  loadingSection: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "1.5rem",
+    padding: "3rem 2rem",
+    marginTop: "2rem",
+  } as React.CSSProperties,
+  spinner: {
+    width: "50px",
+    height: "50px",
+    border: "4px solid #e0e0e0",
+    borderTop: "4px solid #4384E2",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
+  } as React.CSSProperties,
+  loadingText: {
+    fontSize: "1.1rem",
+    color: "#666",
+    fontWeight: "500",
+  } as React.CSSProperties,
+  comparisonSection: {
+    marginTop: "3rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "2rem",
+  } as React.CSSProperties,
+  comparisonTitle: {
+    fontSize: "1.8rem",
+    fontWeight: "700",
+    color: "#333",
+    margin: "0",
+    textAlign: "center",
+  } as React.CSSProperties,
+  beforeAfterContainer: {
+    display: "flex",
+    gap: "2rem",
+    justifyContent: "center",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+  } as React.CSSProperties,
+  imageSection: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "1rem",
+    flex: "1",
+    minWidth: "300px",
+    maxWidth: "450px",
+  } as React.CSSProperties,
+  imageLabel: {
+    fontSize: "1.3rem",
+    fontWeight: "700",
+    color: "#4384E2",
+    textTransform: "uppercase",
+    letterSpacing: "1px",
+  } as React.CSSProperties,
+  imageWrapper: {
+    width: "100%",
+    aspectRatio: "1",
+    borderRadius: "16px",
+    overflow: "hidden",
+    boxShadow: "0 8px 24px rgba(67, 132, 226, 0.2)",
+    backgroundColor: "#f5f5f5",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  } as React.CSSProperties,
+  comparisonImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  } as React.CSSProperties,
+  actionButtonsContainer: {
+    display: "flex",
+    gap: "1.5rem",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    marginTop: "2rem",
+  } as React.CSSProperties,
+  actionButton: {
+    padding: "14px 32px",
+    fontSize: "1rem",
+    fontWeight: "600",
+    backgroundColor: "#4384E2",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "10px",
+    cursor: "pointer",
+    transition: "all 0.3s ease",
+    boxShadow: "0 4px 12px rgba(67, 132, 226, 0.3)",
   } as React.CSSProperties,
 };
 

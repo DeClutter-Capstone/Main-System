@@ -165,6 +165,9 @@ function Generate() {
         [data-theme="dark"] textarea::placeholder {
           color: #ffffffff !important;
         }
+        [data-theme="dark"] .images-container-box {
+          background-color: #3838389a !important;
+        }
       
       `}</style>
       <div style={styles.container}>
@@ -434,28 +437,33 @@ function Generate() {
           <div style={styles.comparisonSection}>
             <h2 style={styles.comparisonTitle}>Transformation Result</h2>
 
-            <div style={styles.beforeAfterContainer}>
-              {/* Before Image */}
-              <div style={styles.imageSection}>
-                <div style={styles.imageLabel}>Before</div>
-                <div style={styles.imageWrapper}>
-                  <img
-                    src={uploadedImage || ""}
-                    alt="Before"
-                    style={styles.comparisonImage}
-                  />
+            <div
+              style={styles.imagesContainerBox}
+              className="images-container-box"
+            >
+              <div style={styles.beforeAfterContainer}>
+                {/* Before Image */}
+                <div style={styles.imageSection}>
+                  <div style={styles.imageLabel}>Before</div>
+                  <div style={styles.imageWrapper}>
+                    <img
+                      src={uploadedImage || ""}
+                      alt="Before"
+                      style={styles.comparisonImage}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* After Image */}
-              <div style={styles.imageSection}>
-                <div style={styles.imageLabel}>After</div>
-                <div style={styles.imageWrapper}>
-                  <img
-                    src={generatedImage}
-                    alt="After"
-                    style={styles.comparisonImage}
-                  />
+                {/* After Image */}
+                <div style={styles.imageSection}>
+                  <div style={styles.imageLabel}>After</div>
+                  <div style={styles.imageWrapper}>
+                    <img
+                      src={generatedImage}
+                      alt="After"
+                      style={styles.comparisonImage}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -473,7 +481,7 @@ function Generate() {
                   document.body.removeChild(link);
                 }}
               >
-                📥 Download Transformation
+                Download Transformation
               </button>
               <button
                 style={styles.actionButton}
@@ -505,7 +513,7 @@ Transformation completed successfully!
                   toast.success("Report downloaded successfully!");
                 }}
               >
-                📋 Generate Report
+                Generate Report
               </button>
             </div>
           </div>
@@ -863,24 +871,34 @@ const styles = {
     fontWeight: "500",
   } as React.CSSProperties,
   comparisonSection: {
-    marginTop: "3rem",
+    marginTop: "0rem",
     display: "flex",
     flexDirection: "column",
-    gap: "2rem",
+    gap: "1rem",
   } as React.CSSProperties,
   comparisonTitle: {
-    fontSize: "1.8rem",
+    fontSize: "2rem",
     fontWeight: "700",
     color: "#333",
-    margin: "0",
+    marginBottom: ".3rem",
     textAlign: "center",
+  } as React.CSSProperties,
+  imagesContainerBox: {
+    backgroundColor: "#ffffff",
+    borderRadius: "16px",
+    padding: "1rem",
+    boxShadow: "none",
+    margin: "1rem 0",
+    display: "flex",
+    justifyContent: "center",
   } as React.CSSProperties,
   beforeAfterContainer: {
     display: "flex",
-    gap: "2rem",
+    gap: "3rem",
     justifyContent: "center",
     alignItems: "flex-start",
     flexWrap: "wrap",
+    width: "100%",
   } as React.CSSProperties,
   imageSection: {
     display: "flex",
@@ -888,13 +906,13 @@ const styles = {
     alignItems: "center",
     gap: "1rem",
     flex: "1",
-    minWidth: "300px",
-    maxWidth: "450px",
+    minWidth: "40px",
+    maxWidth: "650px",
   } as React.CSSProperties,
   imageLabel: {
     fontSize: "1.3rem",
     fontWeight: "700",
-    color: "#4384E2",
+    color: "#a1c8ffff",
     textTransform: "uppercase",
     letterSpacing: "1px",
   } as React.CSSProperties,
@@ -903,7 +921,7 @@ const styles = {
     aspectRatio: "1",
     borderRadius: "16px",
     overflow: "hidden",
-    boxShadow: "0 8px 24px rgba(67, 132, 226, 0.2)",
+    boxShadow: "none",
     backgroundColor: "#f5f5f5",
     display: "flex",
     alignItems: "center",
@@ -916,22 +934,30 @@ const styles = {
   } as React.CSSProperties,
   actionButtonsContainer: {
     display: "flex",
-    gap: "1.5rem",
+    gap: "2rem",
     justifyContent: "center",
+    alignItems: "center",
     flexWrap: "wrap",
-    marginTop: "2rem",
+    marginTop: ".5rem",
+    width: "100%",
   } as React.CSSProperties,
   actionButton: {
     padding: "14px 32px",
     fontSize: "1rem",
     fontWeight: "600",
-    backgroundColor: "#4384E2",
-    color: "#ffffff",
+    backgroundColor: "#c2d7f5ff",
+    color: "#5a5a5aff",
     border: "none",
     borderRadius: "10px",
     cursor: "pointer",
     transition: "all 0.3s ease",
-    boxShadow: "0 4px 12px rgba(67, 132, 226, 0.3)",
+    boxShadow: "0 4px 12px rgba(195, 215, 245, 0.3)",
+    flex: 1,
+    minWidth: "240px",
+    height: "48px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   } as React.CSSProperties,
 };
 

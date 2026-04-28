@@ -1,9 +1,30 @@
 import Layout from "../components/Layout";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { signOut, onAuthStateChanged, type User, updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInWithEmailAndPassword } from "firebase/auth";
+import {
+  signOut,
+  onAuthStateChanged,
+  type User,
+  updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { auth } from "../Firebase/Firebase";
 import { toast } from "react-toastify";
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
+} from "firebase/firestore";
+import { db } from "../Firebase/Firebase";
 
 interface SavedAccount {
   email: string;
@@ -11,15 +32,28 @@ interface SavedAccount {
   uid: string;
 }
 
+interface LoginActivity {
+  id: string;
+  uid: string;
+  email: string;
+  timestamp: number;
+  deviceInfo: string;
+  ipAddress?: string;
+  location?: string;
+  loginMethod: "google" | "email";
+}
+
 function Account() {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isChangeUsernameModalOpen, setIsChangeUsernameModalOpen] = useState(false);
+  const [isChangeUsernameModalOpen, setIsChangeUsernameModalOpen] =
+    useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
-  
+
   // Password change states
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
+    useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -29,24 +63,22 @@ function Account() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Switch account states
-  const [isSwitchAccountModalOpen, setIsSwitchAccountModalOpen] = useState(false);
+  const [isSwitchAccountModalOpen, setIsSwitchAccountModalOpen] =
+    useState(false);
   const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
-  const [isAddingAccount, setIsAddingAccount] = useState(false);
-  const [isAskingPasswordForSwitch, setIsAskingPasswordForSwitch] = useState(false);
-  const [selectedAccountForSwitch, setSelectedAccountForSwitch] = useState<SavedAccount | null>(null);
-  const [switchPassword, setSwitchPassword] = useState("");
-  const [showSwitchPassword, setShowSwitchPassword] = useState(false);
-  const [addAccountEmail, setAddAccountEmail] = useState("");
-  const [addAccountPassword, setAddAccountPassword] = useState("");
-  const [showAddAccountPassword, setShowAddAccountPassword] = useState(false);
-  const [isSigningInNewAccount, setIsSigningInNewAccount] = useState(false);
-  
-  // Current account caching
-  const [currentAccountPassword, setCurrentAccountPassword] = useState("");
-  const [isAskingForCurrentPassword, setIsAskingForCurrentPassword] = useState(false);
-  const [showCurrentAccountPassword, setShowCurrentAccountPassword] = useState(false);
-  
+  const [isSwitchEmailFormOpen, setIsSwitchEmailFormOpen] = useState(false);
+  const [switchEmailInput, setSwitchEmailInput] = useState("");
+  const [switchEmailPassword, setSwitchEmailPassword] = useState("");
+  const [showSwitchEmailPassword, setShowSwitchEmailPassword] = useState(false);
+  const [isSwitchingWithEmail, setIsSwitchingWithEmail] = useState(false);
+
+  // Login activity states
+  const [isLoginActivityModalOpen, setIsLoginActivityModalOpen] =
+    useState(false);
+  const [loginActivities, setLoginActivities] = useState<LoginActivity[]>([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+
   const navigate = useNavigate();
 
   // Fetch currently logged-in user from Firebase
@@ -57,6 +89,8 @@ function Account() {
         // Save current account and load other saved accounts
         saveSwitchedAccount(user.email || "", user.displayName || "", user.uid);
         loadSavedAccounts(user.uid);
+        // Track this login
+        trackLoginActivity(user.uid, user.email || "", "google");
       } else {
         // Redirect to login if user is not authenticated
         navigate("/login");
@@ -67,13 +101,106 @@ function Account() {
     return () => unsubscribe();
   }, [navigate]);
 
+  // Track login activity
+  const trackLoginActivity = async (
+    uid: string,
+    email: string,
+    method: "google" | "email",
+  ) => {
+    try {
+      const deviceInfo = navigator.userAgent;
+
+      // Try to get IP address (requires backend API or third-party service)
+      let ipAddress = "Unknown";
+      try {
+        const ipResponse = await fetch("https://api.ipify.org?format=json");
+        const ipData = await ipResponse.json();
+        ipAddress = ipData.ip;
+      } catch {
+        console.log("Could not fetch IP address");
+      }
+
+      await addDoc(collection(db, "loginActivity"), {
+        uid,
+        email,
+        timestamp: Date.now(),
+        deviceInfo,
+        ipAddress,
+        location: "Unknown", // Would need geolocation API or backend
+        loginMethod: method,
+      });
+    } catch (error) {
+      console.error("Error tracking login activity:", error);
+    }
+  };
+
+  // Load login activity
+  const loadLoginActivity = async (uid: string) => {
+    try {
+      setIsLoadingActivities(true);
+      const q = query(
+        collection(db, "loginActivity"),
+        where("uid", "==", uid),
+        orderBy("timestamp", "desc"),
+        limit(20),
+      );
+
+      const querySnapshot = await getDocs(q);
+      const activities: LoginActivity[] = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        activities.push({
+          id: doc.id,
+          uid: data.uid,
+          email: data.email,
+          timestamp: data.timestamp,
+          deviceInfo: data.deviceInfo,
+          ipAddress: data.ipAddress,
+          location: data.location,
+          loginMethod: data.loginMethod,
+        });
+      });
+
+      setLoginActivities(activities);
+    } catch (error) {
+      console.error("Error loading login activity:", error);
+      toast.error("Failed to load login activity");
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  };
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
+  const getDeviceName = (userAgent: string) => {
+    if (userAgent.includes("Windows")) return "Windows PC";
+    if (userAgent.includes("Mac")) return "Mac";
+    if (userAgent.includes("iPhone")) return "iPhone";
+    if (userAgent.includes("iPad")) return "iPad";
+    if (userAgent.includes("Android")) return "Android Device";
+    if (userAgent.includes("Linux")) return "Linux";
+    return "Unknown Device";
+  };
+
+  const getBrowserName = (userAgent: string) => {
+    if (userAgent.includes("Chrome")) return "Chrome";
+    if (userAgent.includes("Safari")) return "Safari";
+    if (userAgent.includes("Firefox")) return "Firefox";
+    if (userAgent.includes("Edge")) return "Edge";
+    return "Unknown Browser";
+  };
+
   const loadSavedAccounts = (currentUid: string) => {
     try {
       const saved = localStorage.getItem("allAccounts");
       if (saved) {
         const accounts: SavedAccount[] = JSON.parse(saved);
         // Filter out the current account, show only other accounts
-        const otherAccounts = accounts.filter(acc => acc.uid !== currentUid);
+        const otherAccounts = accounts.filter((acc) => acc.uid !== currentUid);
         setSavedAccounts(otherAccounts);
       } else {
         setSavedAccounts([]);
@@ -84,16 +211,20 @@ function Account() {
     }
   };
 
-  const saveSwitchedAccount = (email: string, displayName?: string, uid?: string) => {
+  const saveSwitchedAccount = (
+    email: string,
+    displayName?: string,
+    uid?: string,
+  ) => {
     try {
       if (!uid) return;
-      
+
       const saved = localStorage.getItem("allAccounts");
       let accounts: SavedAccount[] = saved ? JSON.parse(saved) : [];
-      
+
       // Check if account already exists
-      const existingIndex = accounts.findIndex(acc => acc.uid === uid);
-      
+      const existingIndex = accounts.findIndex((acc) => acc.uid === uid);
+
       if (existingIndex >= 0) {
         // Update existing account
         accounts[existingIndex] = { email, displayName, uid };
@@ -101,101 +232,43 @@ function Account() {
         // Add new account
         accounts.push({ email, displayName, uid });
       }
-      
+
       // Keep only last 5 accounts
       if (accounts.length > 5) {
         accounts = accounts.slice(-5);
       }
-      
+
       localStorage.setItem("allAccounts", JSON.stringify(accounts));
     } catch (error) {
       console.error("Error saving account:", error);
     }
   };
 
-  const cacheAccountCredentials = (email: string, password: string, uid: string) => {
-    try {
-      // Store in localStorage so credentials are remembered across sessions
-      const credentials = {
-        email,
-        password: btoa(password), // Simple encoding, not encryption
-        uid,
-        timestamp: Date.now(),
-      };
-      localStorage.setItem(`cred_${uid}`, JSON.stringify(credentials));
-      console.log("Credentials cached for", email);
-    } catch (error) {
-      console.error("Error caching credentials:", error);
-    }
+  const handleOpenSwitchAccount = () => {
+    loadSavedAccounts(firebaseUser?.uid || "");
+    setIsSwitchAccountModalOpen(true);
   };
 
-  const getCachedCredentials = (uid: string) => {
-    try {
-      const cached = localStorage.getItem(`cred_${uid}`);
-      if (!cached) {
-        console.log("No cached credentials for", uid);
-        return null;
-      }
-      
-      const credentials = JSON.parse(cached);
-      
-      return {
-        email: credentials.email,
-        password: atob(credentials.password),
-      };
-    } catch (error) {
-      console.error("Error getting cached credentials:", error);
-      return null;
-    }
-  };
-
-  const handleSwitchAccount = async () => {
-    if (!selectedAccountForSwitch) {
-      toast.error("Account not selected");
-      return;
-    }
-
+  const handleSwitchWithGoogle = async () => {
     try {
       setIsSwitchingAccount(true);
+      const googleProvider = new GoogleAuthProvider();
 
-      // Check if we have cached credentials for this account
-      const cachedCreds = getCachedCredentials(selectedAccountForSwitch.uid);
+      const result = await signInWithPopup(auth, googleProvider);
 
-      let password = switchPassword;
-
-      // If no password entered but we have cached credentials, use them
-      if (!password && cachedCreds) {
-        password = cachedCreds.password;
-      }
-
-      if (!password) {
-        toast.error("Please enter password");
-        setIsSwitchingAccount(false);
-        return;
-      }
-
-      // Sign in with the account credentials - no signOut before this!
-      await signInWithEmailAndPassword(auth, selectedAccountForSwitch.email, password);
-
-      // Cache the credentials for future switching
-      cacheAccountCredentials(
-        selectedAccountForSwitch.email,
-        password,
-        selectedAccountForSwitch.uid
+      // Save the account
+      saveSwitchedAccount(
+        result.user.email || "",
+        result.user.displayName || "",
+        result.user.uid,
       );
 
-      toast.success(`Switched to ${selectedAccountForSwitch.email}`);
-      
-      // Reset and close modal
+      toast.success(`Switched to ${result.user.email}`);
       setIsSwitchAccountModalOpen(false);
-      setIsAskingPasswordForSwitch(false);
-      setSelectedAccountForSwitch(null);
-      setSwitchPassword("");
-    } catch (error: any) {
-      console.error("Error switching account:", error);
-      if (error.code === "auth/wrong-password") {
-        toast.error("Incorrect password");
-      } else {
+    } catch (error: unknown) {
+      console.error("Error switching with Google:", error);
+      const firebaseError = error as { code?: string };
+      if (firebaseError.code !== "auth/popup-closed-by-user") {
         toast.error("Failed to switch account");
       }
     } finally {
@@ -203,144 +276,93 @@ function Account() {
     }
   };
 
-  const handleSelectAccountToSwitch = async (account: SavedAccount) => {
+  const handleSwitchWithEmail = async () => {
+    if (!switchEmailInput || !switchEmailPassword) {
+      toast.error("Please enter email and password");
+      return;
+    }
+    try {
+      setIsSwitchingWithEmail(true);
+      const result = await signInWithEmailAndPassword(
+        auth,
+        switchEmailInput,
+        switchEmailPassword,
+      );
+      saveSwitchedAccount(
+        result.user.email || "",
+        result.user.displayName || "",
+        result.user.uid,
+      );
+      toast.success(`Switched to ${result.user.email}`);
+      setIsSwitchAccountModalOpen(false);
+      setSwitchEmailInput("");
+      setSwitchEmailPassword("");
+      setIsSwitchEmailFormOpen(false);
+    } catch (error: unknown) {
+      const firebaseError = error as { code?: string };
+      if (
+        firebaseError.code === "auth/invalid-credential" ||
+        firebaseError.code === "auth/wrong-password"
+      ) {
+        toast.error("Invalid email or password");
+      } else if (firebaseError.code === "auth/user-not-found") {
+        toast.error("No account found with this email");
+      } else {
+        toast.error("Failed to sign in");
+      }
+    } finally {
+      setIsSwitchingWithEmail(false);
+    }
+  };
+
+  const handleSwitchToSavedAccount = async (account: SavedAccount) => {
     try {
       setIsSwitchingAccount(true);
-      
-      // Check if we have cached credentials for this account
-      const cachedCreds = getCachedCredentials(account.uid);
+      const googleProvider = new GoogleAuthProvider();
 
-      if (cachedCreds) {
-        // We have cached credentials - switch directly without modal!
-        await signInWithEmailAndPassword(auth, cachedCreds.email, cachedCreds.password);
+      // Set login hint to suggest the saved account email
+      googleProvider.setCustomParameters({ login_hint: account.email });
 
-        // Re-cache the credentials
-        cacheAccountCredentials(cachedCreds.email, cachedCreds.password, account.uid);
+      const result = await signInWithPopup(auth, googleProvider);
 
-        toast.success(`Switched to ${account.email}`);
-        setIsSwitchAccountModalOpen(false);
-      } else {
-        // No cached credentials - show password modal
-        setSelectedAccountForSwitch(account);
-        setIsAskingPasswordForSwitch(true);
-        setSwitchPassword("");
+      toast.success(`Switched to ${result.user.email}`);
+      setIsSwitchAccountModalOpen(false);
+    } catch (error: unknown) {
+      console.error("Error switching to saved account:", error);
+      const firebaseError = error as { code?: string };
+      if (firebaseError.code !== "auth/popup-closed-by-user") {
+        toast.error("Failed to switch account");
       }
-    } catch (error: any) {
-      console.error("Error switching with cached credentials:", error);
-      // If cached credentials fail, show password modal
-      setSelectedAccountForSwitch(account);
-      setIsAskingPasswordForSwitch(true);
-      setSwitchPassword("");
-      toast.info("Please enter password for this account");
     } finally {
       setIsSwitchingAccount(false);
     }
   };
 
-  const handleAddNewAccount = async () => {
-    if (!addAccountEmail) {
-      toast.error("Please enter email");
-      return;
-    }
-
-    if (!addAccountPassword) {
-      toast.error("Please enter password");
-      return;
-    }
-
+  const handleAddNewAccountWithGoogle = async () => {
     try {
-      setIsSigningInNewAccount(true);
+      setIsSwitchingAccount(true);
+      const googleProvider = new GoogleAuthProvider();
 
-      // Sign in with the new account
-      const result = await signInWithEmailAndPassword(
-        auth,
-        addAccountEmail,
-        addAccountPassword
-      );
+      const result = await signInWithPopup(auth, googleProvider);
 
       // Save the account
-      saveSwitchedAccount(result.user.email || "", result.user.displayName || "", result.user.uid);
-
-      // Cache the credentials for seamless future switching
-      cacheAccountCredentials(addAccountEmail, addAccountPassword, result.user.uid);
-
-      toast.success(`Added and switched to ${result.user.email}`);
-      
-      // Reset form and close modal
-      setAddAccountEmail("");
-      setAddAccountPassword("");
-      setIsAddingAccount(false);
-      setIsSwitchAccountModalOpen(false);
-    } catch (error: any) {
-      console.error("Error adding account:", error);
-      if (error.code === "auth/user-not-found") {
-        toast.error("Email not found. Please check and try again.");
-      } else if (error.code === "auth/wrong-password") {
-        toast.error("Incorrect password");
-      } else if (error.code === "auth/invalid-email") {
-        toast.error("Invalid email address");
-      } else {
-        toast.error("Failed to sign in. Please try again.");
-      }
-    } finally {
-      setIsSigningInNewAccount(false);
-    }
-  };
-
-  const handleOpenSwitchAccount = () => {
-    // Check if current account is cached
-    if (firebaseUser?.uid && !getCachedCredentials(firebaseUser.uid)) {
-      // Current account not cached - ask for password first
-      setIsAskingForCurrentPassword(true);
-      return;
-    }
-    
-    loadSavedAccounts(firebaseUser?.uid || "");
-    setIsAddingAccount(false);
-    setAddAccountEmail("");
-    setAddAccountPassword("");
-    setIsSwitchAccountModalOpen(true);
-  };
-
-  const handleCacheCurrentAccountPassword = () => {
-    if (!currentAccountPassword) {
-      toast.error("Please enter your password");
-      return;
-    }
-
-    if (firebaseUser?.email) {
-      // Cache the current account's password
-      cacheAccountCredentials(
-        firebaseUser.email,
-        currentAccountPassword,
-        firebaseUser.uid
+      saveSwitchedAccount(
+        result.user.email || "",
+        result.user.displayName || "",
+        result.user.uid,
       );
 
-      toast.success("Password cached for seamless switching!");
-      setCurrentAccountPassword("");
-      setShowCurrentAccountPassword(false);
-      setIsAskingForCurrentPassword(false);
-
-      // Now open the switch accounts modal
-      loadSavedAccounts(firebaseUser?.uid || "");
-      setIsAddingAccount(false);
-      setAddAccountEmail("");
-      setAddAccountPassword("");
-      setIsSwitchAccountModalOpen(true);
+      toast.success(`Added account ${result.user.email}`);
+      setIsSwitchAccountModalOpen(false);
+    } catch (error: unknown) {
+      console.error("Error adding account:", error);
+      const firebaseError = error as { code?: string };
+      if (firebaseError.code !== "auth/popup-closed-by-user") {
+        toast.error("Failed to add account");
+      }
+    } finally {
+      setIsSwitchingAccount(false);
     }
-  };
-
-  const handleSkipCachePassword = () => {
-    setIsAskingForCurrentPassword(false);
-    setCurrentAccountPassword("");
-    setShowCurrentAccountPassword(false);
-
-    // Still open the switch accounts modal
-    loadSavedAccounts(firebaseUser?.uid || "");
-    setIsAddingAccount(false);
-    setAddAccountEmail("");
-    setAddAccountPassword("");
-    setIsSwitchAccountModalOpen(true);
   };
 
   const handleChangeUsername = async () => {
@@ -423,7 +445,7 @@ function Account() {
         // Re-authenticate the user with current password
         const credential = EmailAuthProvider.credential(
           firebaseUser.email,
-          currentPassword
+          currentPassword,
         );
 
         await reauthenticateWithCredential(firebaseUser, credential);
@@ -436,11 +458,12 @@ function Account() {
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error updating password:", error);
-        if (error.code === "auth/wrong-password") {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === "auth/wrong-password") {
           toast.error("Current password is incorrect");
-        } else if (error.code === "auth/weak-password") {
+        } else if (firebaseError.code === "auth/weak-password") {
           toast.error("New password is too weak");
         } else {
           toast.error("Failed to update password. Please try again.");
@@ -469,6 +492,9 @@ function Account() {
       setIsChangePasswordModalOpen(true);
     } else if (action === "Switch accounts") {
       handleOpenSwitchAccount();
+    } else if (action === "Login activity") {
+      loadLoginActivity(firebaseUser?.uid || "");
+      setIsLoginActivityModalOpen(true);
     }
     // TODO: Implement other action handlers
   };
@@ -611,7 +637,10 @@ function Account() {
 
           {/* Change Username Modal */}
           {isChangeUsernameModalOpen && (
-            <div style={styles.modalOverlay} onClick={() => setIsChangeUsernameModalOpen(false)}>
+            <div
+              style={styles.modalOverlay}
+              onClick={() => setIsChangeUsernameModalOpen(false)}
+            >
               <div
                 style={styles.modalContent}
                 onClick={(e) => e.stopPropagation()}
@@ -663,7 +692,10 @@ function Account() {
 
           {/* Change Password Modal */}
           {isChangePasswordModalOpen && (
-            <div style={styles.modalOverlay} onClick={() => setIsChangePasswordModalOpen(false)}>
+            <div
+              style={styles.modalOverlay}
+              onClick={() => setIsChangePasswordModalOpen(false)}
+            >
               <div
                 style={styles.modalContent}
                 onClick={(e) => e.stopPropagation()}
@@ -682,7 +714,9 @@ function Account() {
                       />
                       <button
                         style={styles.togglePasswordButton}
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        onClick={() =>
+                          setShowCurrentPassword(!showCurrentPassword)
+                        }
                         type="button"
                       >
                         {showCurrentPassword ? "Hide" : "Show"}
@@ -728,7 +762,9 @@ function Account() {
                       />
                       <button
                         style={styles.togglePasswordButton}
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         type="button"
                       >
                         {showConfirmPassword ? "Hide" : "Show"}
@@ -763,55 +799,155 @@ function Account() {
           )}
 
           {/* Cache Current Account Password Modal */}
-          {isAskingForCurrentPassword && (
-            <div style={styles.modalOverlay} onClick={() => handleSkipCachePassword()}>
+          {/* REMOVED - No longer needed with Google Sign-In */}
+
+          {/* Switch Account Modal */}
+          {isSwitchAccountModalOpen && (
+            <div
+              style={styles.modalOverlay}
+              onClick={() => {
+                setIsSwitchAccountModalOpen(false);
+                setIsSwitchEmailFormOpen(false);
+                setSwitchEmailInput("");
+                setSwitchEmailPassword("");
+              }}
+            >
               <div
                 style={styles.modalContent}
                 onClick={(e) => e.stopPropagation()}
               >
-                <h3 style={styles.modalTitle}>Cache Your Password</h3>
+                <h3 style={styles.modalTitle}>Switch Account</h3>
                 <div style={styles.modalBody}>
-                  <p style={{ marginBottom: "15px", color: "var(--text-secondary)" }}>
-                    Enter your password once so you can switch accounts seamlessly without entering passwords again.
+                  <p style={styles.modalDescription}>
+                    Choose how to switch accounts:
                   </p>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Your Password</label>
-                    <div style={styles.passwordInputContainer}>
-                      <input
-                        type={showCurrentAccountPassword ? "text" : "password"}
-                        value={currentAccountPassword}
-                        onChange={(e) => setCurrentAccountPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        style={styles.input}
-                        autoFocus
-                        onKeyPress={(e) => {
-                          if (e.key === "Enter") {
-                            handleCacheCurrentAccountPassword();
-                          }
-                        }}
-                      />
-                      <button
-                        style={styles.togglePasswordButton}
-                        onClick={() => setShowCurrentAccountPassword(!showCurrentAccountPassword)}
-                        type="button"
-                      >
-                        {showCurrentAccountPassword ? "Hide" : "Show"}
-                      </button>
-                    </div>
+
+                  {/* Google Sign-In Section */}
+                  <div style={styles.methodSection}>
+                    <h4 style={styles.methodTitle}>Quick Switch with Google</h4>
+                    <button
+                      style={{
+                        ...styles.submitButton,
+                        width: "100%",
+                        marginBottom: "12px",
+                      }}
+                      onClick={handleSwitchWithGoogle}
+                      disabled={isSwitchingAccount || isSwitchingWithEmail}
+                    >
+                      {isSwitchingAccount
+                        ? "Switching..."
+                        : "Sign in with Google"}
+                    </button>
                   </div>
+
+                  {/* Email Sign-In Section */}
+                  <div style={styles.methodSection}>
+                    <h4 style={styles.methodTitle}>Or sign in with Email</h4>
+                    <button
+                      style={{
+                        ...styles.submitButton,
+                        width: "100%",
+                        marginBottom: isSwitchEmailFormOpen ? "12px" : "0",
+                      }}
+                      onClick={() =>
+                        setIsSwitchEmailFormOpen(!isSwitchEmailFormOpen)
+                      }
+                      disabled={isSwitchingAccount || isSwitchingWithEmail}
+                    >
+                      Sign in with Email
+                    </button>
+                    {isSwitchEmailFormOpen && (
+                      <div>
+                        <input
+                          type="email"
+                          placeholder="Email"
+                          value={switchEmailInput}
+                          onChange={(e) => setSwitchEmailInput(e.target.value)}
+                          style={{ ...styles.input, marginBottom: "8px" }}
+                        />
+                        <div style={styles.passwordInputContainer}>
+                          <input
+                            type={showSwitchEmailPassword ? "text" : "password"}
+                            placeholder="Password"
+                            value={switchEmailPassword}
+                            onChange={(e) =>
+                              setSwitchEmailPassword(e.target.value)
+                            }
+                            style={styles.input}
+                          />
+                          <button
+                            style={styles.togglePasswordButton}
+                            onClick={() =>
+                              setShowSwitchEmailPassword(!showSwitchEmailPassword)
+                            }
+                          >
+                            {showSwitchEmailPassword ? "Hide" : "Show"}
+                          </button>
+                        </div>
+                        <button
+                          style={{
+                            ...styles.submitButton,
+                            width: "100%",
+                            marginTop: "8px",
+                          }}
+                          onClick={handleSwitchWithEmail}
+                          disabled={isSwitchingWithEmail}
+                        >
+                          {isSwitchingWithEmail ? "Signing in..." : "Confirm"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Saved Accounts Section */}
+                  {savedAccounts.length > 0 && (
+                    <div style={styles.methodSection}>
+                      <h4 style={styles.methodTitle}>
+                        Or use an account signed in before:
+                      </h4>
+                      <div style={styles.accountList}>
+                        {savedAccounts.map((account) => (
+                          <button
+                            key={account.uid}
+                            style={styles.switchAccountButton}
+                            onClick={() => handleSwitchToSavedAccount(account)}
+                            disabled={isSwitchingAccount}
+                          >
+                            <div style={styles.accountButtonContent}>
+                              <span style={styles.accountEmail}>
+                                {account.email}
+                              </span>
+                              {account.displayName && (
+                                <span style={styles.accountName}>
+                                  {account.displayName}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div style={styles.modalActions}>
                     <button
                       style={styles.cancelButton}
-                      onClick={handleSkipCachePassword}
+                      onClick={() => {
+                        setIsSwitchAccountModalOpen(false);
+                        setIsSwitchEmailFormOpen(false);
+                        setSwitchEmailInput("");
+                        setSwitchEmailPassword("");
+                      }}
+                      disabled={isSwitchingAccount}
                     >
-                      Skip for now
+                      Close
                     </button>
                     <button
                       style={styles.submitButton}
-                      onClick={handleCacheCurrentAccountPassword}
+                      onClick={handleAddNewAccountWithGoogle}
+                      disabled={isSwitchingAccount}
                     >
-                      Cache Password
+                      {isSwitchingAccount ? "Adding..." : "Add New Account"}
                     </button>
                   </div>
                 </div>
@@ -819,176 +955,73 @@ function Account() {
             </div>
           )}
 
-          {/* Switch Account Modal */}
-          {isSwitchAccountModalOpen && (
-            <div style={styles.modalOverlay} onClick={() => setIsSwitchAccountModalOpen(false)}>
+          {/* Login Activity Modal */}
+          {isLoginActivityModalOpen && (
+            <div
+              style={styles.modalOverlay}
+              onClick={() => setIsLoginActivityModalOpen(false)}
+            >
               <div
-                style={styles.modalContent}
+                style={{
+                  ...styles.modalContent,
+                  maxWidth: "600px",
+                }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <h3 style={styles.modalTitle}>
-                  {isAskingPasswordForSwitch ? "Enter Password" : isAddingAccount ? "Add Account" : "Switch Account"}
-                </h3>
+                <h3 style={styles.modalTitle}>Login Activity</h3>
                 <div style={styles.modalBody}>
-                  {!isAddingAccount && !isAskingPasswordForSwitch ? (
-                    <>
-                      <p style={styles.modalDescription}>
-                        Click to switch to another account:
-                      </p>
-                      <div style={styles.accountList}>
-                        {savedAccounts.length > 0 ? (
-                          savedAccounts.map((account) => (
-                            <button
-                              key={account.uid}
-                              style={styles.switchAccountButton}
-                              onClick={() => handleSelectAccountToSwitch(account)}
-                              disabled={isSwitchingAccount}
-                            >
-                              <div style={styles.accountButtonContent}>
-                                <span style={styles.accountEmail}>{account.email}</span>
-                                {account.displayName && (
-                                  <span style={styles.accountName}>
-                                    {account.displayName}
-                                  </span>
-                                )}
-                              </div>
-                            </button>
-                          ))
-                        ) : (
-                          <p style={styles.noAccountsText}>
-                            No other logged-in accounts found.
-                          </p>
-                        )}
-                      </div>
-                      <div style={styles.modalActions}>
-                        <button
-                          style={styles.cancelButton}
-                          onClick={() => setIsSwitchAccountModalOpen(false)}
-                          disabled={isSwitchingAccount}
-                        >
-                          Close
-                        </button>
-                        <button
-                          style={styles.submitButton}
-                          onClick={() => setIsAddingAccount(true)}
-                        >
-                          Add Account
-                        </button>
-                      </div>
-                    </>
-                  ) : isAskingPasswordForSwitch ? (
-                    <>
-                      <p style={styles.modalDescription}>
-                        Enter password for {selectedAccountForSwitch?.email}
-                      </p>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Password</label>
-                        <div style={styles.passwordInputContainer}>
-                          <input
-                            type={showSwitchPassword ? "text" : "password"}
-                            value={switchPassword}
-                            onChange={(e) => setSwitchPassword(e.target.value)}
-                            placeholder="Enter password"
-                            style={styles.input}
-                            autoFocus
-                            onKeyPress={(e) => {
-                              if (e.key === "Enter") {
-                                handleSwitchAccount();
-                              }
-                            }}
-                          />
-                          <button
-                            style={styles.togglePasswordButton}
-                            onClick={() => setShowSwitchPassword(!showSwitchPassword)}
-                            type="button"
-                          >
-                            {showSwitchPassword ? "Hide" : "Show"}
-                          </button>
-                        </div>
-                      </div>
-                      <div style={styles.modalActions}>
-                        <button
-                          style={styles.cancelButton}
-                          onClick={() => {
-                            setIsAskingPasswordForSwitch(false);
-                            setSelectedAccountForSwitch(null);
-                            setSwitchPassword("");
-                          }}
-                          disabled={isSwitchingAccount}
-                        >
-                          Back
-                        </button>
-                        <button
-                          style={styles.submitButton}
-                          onClick={handleSwitchAccount}
-                          disabled={isSwitchingAccount}
-                        >
-                          {isSwitchingAccount ? "Switching..." : "Switch"}
-                        </button>
-                      </div>
-                    </>
+                  {isLoadingActivities ? (
+                    <p style={styles.loadingText}>Loading activities...</p>
+                  ) : loginActivities.length === 0 ? (
+                    <p style={styles.noActivitiesText}>
+                      No login activity found
+                    </p>
                   ) : (
-                    <>
-                      <p style={styles.modalDescription}>
-                        Sign in with another account:
-                      </p>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Email</label>
-                        <input
-                          type="email"
-                          value={addAccountEmail}
-                          onChange={(e) => setAddAccountEmail(e.target.value)}
-                          placeholder="Enter email"
-                          style={styles.input}
-                          autoFocus
-                        />
-                      </div>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Password</label>
-                        <div style={styles.passwordInputContainer}>
-                          <input
-                            type={showAddAccountPassword ? "text" : "password"}
-                            value={addAccountPassword}
-                            onChange={(e) => setAddAccountPassword(e.target.value)}
-                            placeholder="Enter password"
-                            style={styles.input}
-                            onKeyPress={(e) => {
-                              if (e.key === "Enter") {
-                                handleAddNewAccount();
-                              }
-                            }}
-                          />
-                          <button
-                            style={styles.togglePasswordButton}
-                            onClick={() => setShowAddAccountPassword(!showAddAccountPassword)}
-                            type="button"
-                          >
-                            {showAddAccountPassword ? "Hide" : "Show"}
-                          </button>
+                    <div style={styles.activityList}>
+                      {loginActivities.map((activity) => (
+                        <div key={activity.id} style={styles.activityItem}>
+                          <div style={styles.activityHeader}>
+                            <span style={styles.activityDevice}>
+                              {getDeviceName(activity.deviceInfo)} •{" "}
+                              {getBrowserName(activity.deviceInfo)}
+                            </span>
+                            <span style={styles.activityTime}>
+                              {formatDate(activity.timestamp)}
+                            </span>
+                          </div>
+                          <div style={styles.activityDetails}>
+                            <p style={styles.activityDetailItem}>
+                              <span style={styles.detailLabel}>Email:</span>
+                              <span>{activity.email}</span>
+                            </p>
+                            <p style={styles.activityDetailItem}>
+                              <span style={styles.detailLabel}>Method:</span>
+                              <span style={styles.methodBadge}>
+                                {activity.loginMethod === "google"
+                                  ? "Google Sign-In"
+                                  : "Email/Password"}
+                              </span>
+                            </p>
+                            {activity.ipAddress && (
+                              <p style={styles.activityDetailItem}>
+                                <span style={styles.detailLabel}>IP:</span>
+                                <span>{activity.ipAddress}</span>
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div style={styles.modalActions}>
-                        <button
-                          style={styles.cancelButton}
-                          onClick={() => {
-                            setIsAddingAccount(false);
-                            setAddAccountEmail("");
-                            setAddAccountPassword("");
-                          }}
-                          disabled={isSigningInNewAccount}
-                        >
-                          Back
-                        </button>
-                        <button
-                          style={styles.submitButton}
-                          onClick={handleAddNewAccount}
-                          disabled={isSigningInNewAccount}
-                        >
-                          {isSigningInNewAccount ? "Signing in..." : "Sign In"}
-                        </button>
-                      </div>
-                    </>
+                      ))}
+                    </div>
                   )}
+
+                  <div style={styles.modalActions}>
+                    <button
+                      style={styles.cancelButton}
+                      onClick={() => setIsLoginActivityModalOpen(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1131,6 +1164,9 @@ const styles = {
     width: "90%",
     padding: "0",
     zIndex: 1001,
+    maxHeight: "80vh",
+    display: "flex",
+    flexDirection: "column",
   } as React.CSSProperties,
   modalTitle: {
     fontSize: "18px",
@@ -1139,9 +1175,12 @@ const styles = {
     margin: "0",
     padding: "24px 24px 16px 24px",
     borderBottom: "1px solid #e0e0e0",
+    flexShrink: 0,
   } as React.CSSProperties,
   modalBody: {
     padding: "24px",
+    overflowY: "auto",
+    flex: 1,
   } as React.CSSProperties,
   formGroup: {
     marginBottom: "24px",
@@ -1173,6 +1212,10 @@ const styles = {
     display: "flex",
     gap: "12px",
     justifyContent: "flex-end",
+    marginTop: "24px",
+    paddingTop: "24px",
+    borderTop: "1px solid #e0e0e0",
+    flexShrink: 0,
   } as React.CSSProperties,
   cancelButton: {
     padding: "10px 24px",
@@ -1282,6 +1325,77 @@ const styles = {
     color: "#0066cc",
     marginLeft: "8px",
     fontWeight: "500",
+  } as React.CSSProperties,
+  methodSection: {
+    marginBottom: "24px",
+  } as React.CSSProperties,
+  methodTitle: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#1a1a1a",
+    margin: "0 0 12px 0",
+    letterSpacing: "0.3px",
+  } as React.CSSProperties,
+  // Login Activity Styles
+  activityList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  } as React.CSSProperties,
+  activityItem: {
+    backgroundColor: "#f8f8f8",
+    border: "1px solid #e0e0e0",
+    borderRadius: "8px",
+    padding: "16px",
+  } as React.CSSProperties,
+  activityHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "12px",
+  } as React.CSSProperties,
+  activityDevice: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#1a1a1a",
+  } as React.CSSProperties,
+  activityTime: {
+    fontSize: "12px",
+    color: "#999999",
+  } as React.CSSProperties,
+  activityDetails: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  } as React.CSSProperties,
+  activityDetailItem: {
+    fontSize: "13px",
+    color: "#666666",
+    margin: "0",
+    display: "flex",
+    gap: "8px",
+  } as React.CSSProperties,
+  methodBadge: {
+    fontSize: "12px",
+    backgroundColor: "#e3f2fd",
+    color: "#0066cc",
+    padding: "2px 8px",
+    borderRadius: "4px",
+    fontWeight: "500",
+  } as React.CSSProperties,
+  loadingText: {
+    fontSize: "14px",
+    color: "#666666",
+    textAlign: "center",
+    padding: "20px",
+    margin: "0",
+  } as React.CSSProperties,
+  noActivitiesText: {
+    fontSize: "14px",
+    color: "#999999",
+    textAlign: "center",
+    padding: "20px",
+    margin: "0",
   } as React.CSSProperties,
 } as const;
 

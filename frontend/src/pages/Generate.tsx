@@ -122,8 +122,15 @@ function Generate() {
         selectedStyle,
       );
 
+      const backendBase =
+        import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
+
+      const outputUrl = response.output_image_url?.startsWith("http")
+        ? response.output_image_url
+        : `${backendBase}${response.output_image_url}`;
+
       // Set the generated image from the response
-      setGeneratedImage(response.output_image_url);
+      setGeneratedImage(outputUrl);
       toast.success("Image generated successfully!");
     } catch (err) {
       const errorMessage =

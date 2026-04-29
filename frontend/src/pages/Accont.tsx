@@ -12,6 +12,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
+  deleteUser,
 } from "firebase/auth";
 import { auth } from "../Firebase/Firebase";
 import { toast } from "react-toastify";
@@ -30,6 +31,7 @@ interface SavedAccount {
   email: string;
   displayName?: string;
   uid: string;
+  provider: "google" | "email";
 }
 
 interface LoginActivity {
@@ -79,6 +81,11 @@ function Account() {
   const [loginActivities, setLoginActivities] = useState<LoginActivity[]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
 
+  // Delete account states
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] =
+    useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
   const navigate = useNavigate();
 
   // Fetch currently logged-in user from Firebase
@@ -87,10 +94,20 @@ function Account() {
       if (user) {
         setFirebaseUser(user);
         // Save current account and load other saved accounts
-        saveSwitchedAccount(user.email || "", user.displayName || "", user.uid);
+        const method = user.providerData.some(
+          (p) => p.providerId === "google.com",
+        )
+          ? "google"
+          : "email";
+        saveSwitchedAccount(
+          user.email || "",
+          user.displayName || "",
+          user.uid,
+          method,
+        );
         loadSavedAccounts(user.uid);
-        // Track this login
-        trackLoginActivity(user.uid, user.email || "", "google");
+        // Track this login with the correct method
+        trackLoginActivity(user.uid, user.email || "", method);
       } else {
         // Redirect to login if user is not authenticated
         navigate("/login");
@@ -199,8 +216,10 @@ function Account() {
       const saved = localStorage.getItem("allAccounts");
       if (saved) {
         const accounts: SavedAccount[] = JSON.parse(saved);
-        // Filter out the current account, show only other accounts
-        const otherAccounts = accounts.filter((acc) => acc.uid !== currentUid);
+        // Only show other non-email accounts (exclude email/password accounts)
+        const otherAccounts = accounts.filter(
+          (acc) => acc.uid !== currentUid && acc.provider !== "email",
+        );
         setSavedAccounts(otherAccounts);
       } else {
         setSavedAccounts([]);
@@ -215,6 +234,7 @@ function Account() {
     email: string,
     displayName?: string,
     uid?: string,
+    provider: "google" | "email" = "email",
   ) => {
     try {
       if (!uid) return;
@@ -227,10 +247,10 @@ function Account() {
 
       if (existingIndex >= 0) {
         // Update existing account
-        accounts[existingIndex] = { email, displayName, uid };
+        accounts[existingIndex] = { email, displayName, uid, provider };
       } else {
         // Add new account
-        accounts.push({ email, displayName, uid });
+        accounts.push({ email, displayName, uid, provider });
       }
 
       // Keep only last 5 accounts
@@ -261,6 +281,7 @@ function Account() {
         result.user.email || "",
         result.user.displayName || "",
         result.user.uid,
+        "google",
       );
 
       toast.success(`Switched to ${result.user.email}`);
@@ -292,6 +313,7 @@ function Account() {
         result.user.email || "",
         result.user.displayName || "",
         result.user.uid,
+        "email",
       );
       toast.success(`Switched to ${result.user.email}`);
       setIsSwitchAccountModalOpen(false);
@@ -350,6 +372,7 @@ function Account() {
         result.user.email || "",
         result.user.displayName || "",
         result.user.uid,
+        "google",
       );
 
       toast.success(`Added account ${result.user.email}`);
@@ -474,6 +497,45 @@ function Account() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!firebaseUser) {
+      toast.error("User not found");
+      return;
+    }
+
+    try {
+      setIsDeletingAccount(true);
+
+      // Delete the user from Firebase Authentication
+      await deleteUser(firebaseUser);
+
+      // Clear local storage
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("allAccounts");
+
+      toast.success("Account deleted successfully");
+
+      // Redirect to home page
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
+    } catch (error: unknown) {
+      console.error("Error deleting account:", error);
+      const firebaseError = error as { code?: string };
+
+      if (firebaseError.code === "auth/requires-recent-login") {
+        toast.error(
+          "For security reasons, please sign out and sign back in before deleting your account",
+        );
+      } else {
+        toast.error("Failed to delete account. Please try again.");
+      }
+    } finally {
+      setIsDeletingAccount(false);
+      setIsDeleteAccountModalOpen(false);
+    }
+  };
+
   const handleMenuClick = async (action: string) => {
     console.log(`${action} clicked`);
 
@@ -495,6 +557,8 @@ function Account() {
     } else if (action === "Login activity") {
       loadLoginActivity(firebaseUser?.uid || "");
       setIsLoginActivityModalOpen(true);
+    } else if (action === "Delete account") {
+      setIsDeleteAccountModalOpen(true);
     }
     // TODO: Implement other action handlers
   };
@@ -558,6 +622,24 @@ function Account() {
                       {firebaseUser.email || "No email set"}
                     </span>
                   </div>
+                  <div style={styles.detailRow}>
+                    <span style={styles.detailLabel}>Signed in with</span>
+                    <span
+                      style={
+                        firebaseUser.providerData.some(
+                          (p) => p.providerId === "google.com",
+                        )
+                          ? styles.signInBadgeGoogle
+                          : styles.signInBadgeEmail
+                      }
+                    >
+                      {firebaseUser.providerData.some(
+                        (p) => p.providerId === "google.com",
+                      )
+                        ? "Google"
+                        : "Email & Password"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -601,12 +683,16 @@ function Account() {
             <h2 style={styles.sectionTitle}>Privacy & Security</h2>
             <div style={styles.card} className="menu-card">
               <div style={styles.menuList}>
-                <button
-                  style={styles.menuItem}
-                  onClick={() => handleMenuClick("Change password")}
-                >
-                  Change password
-                </button>
+                {!firebaseUser.providerData.some(
+                  (p) => p.providerId === "google.com",
+                ) && (
+                  <button
+                    style={styles.menuItem}
+                    onClick={() => handleMenuClick("Change password")}
+                  >
+                    Change password
+                  </button>
+                )}
                 <button
                   style={styles.menuItem}
                   onClick={() => handleMenuClick("Enable / Disable 2FA")}
@@ -878,7 +964,9 @@ function Account() {
                           <button
                             style={styles.togglePasswordButton}
                             onClick={() =>
-                              setShowSwitchEmailPassword(!showSwitchEmailPassword)
+                              setShowSwitchEmailPassword(
+                                !showSwitchEmailPassword,
+                              )
                             }
                           >
                             {showSwitchEmailPassword ? "Hide" : "Show"}
@@ -1020,6 +1108,65 @@ function Account() {
                       onClick={() => setIsLoginActivityModalOpen(false)}
                     >
                       Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Account Confirmation Modal */}
+          {isDeleteAccountModalOpen && (
+            <div
+              style={styles.modalOverlay}
+              onClick={() => setIsDeleteAccountModalOpen(false)}
+            >
+              <div
+                style={styles.modalContent}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 style={styles.modalTitle}>Delete Account</h3>
+                <div style={styles.modalBody}>
+                  <p style={styles.deleteWarningText}>
+                    ⚠️ Are you sure you want to delete your account?
+                  </p>
+                  <p style={styles.deleteDescriptionText}>
+                    This action is permanent and cannot be undone. All your
+                    data, projects, and transformations will be permanently
+                    deleted from our servers.
+                  </p>
+
+                  <div style={styles.deleteInfoBox}>
+                    <p style={styles.deleteInfoItem}>
+                      • Your profile will be removed
+                    </p>
+                    <p style={styles.deleteInfoItem}>
+                      • All your projects will be deleted
+                    </p>
+                    <p style={styles.deleteInfoItem}>
+                      • Your saved accounts will be cleared
+                    </p>
+                    <p style={styles.deleteInfoItem}>
+                      • You will be signed out immediately
+                    </p>
+                  </div>
+
+                  <div style={styles.modalActions}>
+                    <button
+                      style={styles.cancelButton}
+                      onClick={() => setIsDeleteAccountModalOpen(false)}
+                      disabled={isDeletingAccount}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      style={styles.deleteButton}
+                      onClick={handleDeleteAccount}
+                      disabled={isDeletingAccount}
+                    >
+                      {isDeletingAccount
+                        ? "Deleting..."
+                        : "Yes, Delete My Account"}
                     </button>
                   </div>
                 </div>
@@ -1397,6 +1544,59 @@ const styles = {
     padding: "20px",
     margin: "0",
   } as React.CSSProperties,
+  signInBadgeGoogle: {
+    fontSize: "12px",
+    backgroundColor: "#e8f0fe",
+    color: "#1a73e8",
+    padding: "3px 10px",
+    borderRadius: "12px",
+    fontWeight: "600",
+  } as React.CSSProperties,
+  signInBadgeEmail: {
+    fontSize: "12px",
+    backgroundColor: "#e6f4ea",
+    color: "#1e7e34",
+    padding: "3px 10px",
+    borderRadius: "12px",
+    fontWeight: "600",
+  } as React.CSSProperties,
+  // Delete Account Styles
+  deleteWarningText: {
+    fontSize: "16px",
+    fontWeight: "600",
+    color: "#d32f2f",
+    margin: "0 0 16px 0",
+  } as React.CSSProperties,
+  deleteDescriptionText: {
+    fontSize: "14px",
+    color: "#666666",
+    margin: "0 0 16px 0",
+    lineHeight: "1.5",
+  } as React.CSSProperties,
+  deleteInfoBox: {
+    backgroundColor: "#fff3cd",
+    border: "1px solid #ffc107",
+    borderRadius: "6px",
+    padding: "12px 16px",
+    marginBottom: "20px",
+  } as React.CSSProperties,
+  deleteInfoItem: {
+    fontSize: "13px",
+    color: "#333333",
+    margin: "6px 0",
+  } as React.CSSProperties,
+  deleteButton: {
+    padding: "10px 24px",
+    fontSize: "14px",
+    fontWeight: "500",
+    border: "none",
+    borderRadius: "6px",
+    backgroundColor: "#d32f2f",
+    color: "#ffffff",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    outline: "none",
+  } as React.CSSProperties,
 } as const;
 
 // Add hover state
@@ -1529,6 +1729,28 @@ styleSheet.textContent = `
   [data-theme="dark"] input[type="email"]:focus,
   [data-theme="dark"] input[type="password"]:focus {
     border-color: #0066cc !important;
+  }
+
+  /* Delete Account Modal Styles */
+  [data-theme="dark"] p[style*="color: #d32f2f"] {
+    color: #ff5252 !important;
+  }
+
+  [data-theme="dark"] div[style*="backgroundColor: #fff3cd"] {
+    background-color: #5c4b2a !important;
+    border-color: #8b6d3e !important;
+  }
+
+  [data-theme="dark"] p[style*="color: #333333"] {
+    color: #e8e8e8 !important;
+  }
+
+  [data-theme="dark"] button[style*="backgroundColor: #d32f2f"] {
+    background-color: #b71c1c !important;
+  }
+
+  [data-theme="dark"] button[style*="backgroundColor: #d32f2f"]:hover {
+    background-color: #9a1414 !important;
   }
 `;
 document.head.appendChild(styleSheet);

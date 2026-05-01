@@ -217,6 +217,6 @@ __marimo__/
 
 
 
-backend/app/storage/*
+backend/storage
 .vscode
 node_modules/

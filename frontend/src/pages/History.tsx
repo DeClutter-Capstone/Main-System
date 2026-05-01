@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import HistoryCard from "../components/HistoryCard";
+import { fetchHistory, type HistoryItem } from "../services/historyAPI";
 
 function History() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,53 +28,48 @@ function History() {
   ];
   const sortOptions = ["Newest", "Oldest", "Most Popular", "A-Z"];
 
-  // Dummy data for history cards
-  const [historyCards] = useState([
-    {
-      id: 1,
-      image: "/public/HomePageImages/minimalist.jpg",
-      title: "Minimalist Living Space",
-      date: "1 April 2026 2:30 PM",
-      style: "Minimalist",
-    },
-    {
-      id: 2,
-      image: "/public/HomePageImages/modren.jpg",
-      title: "Modern Living Room",
-      date: "31 March 2026 11:15 AM",
-      style: "Modern",
-    },
+  const [historyCards, setHistoryCards] = useState<HistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-    {
-      id: 4,
-      image: "/HomePageImages/bohemian.webp",
-      title: "Scandinavian Comfort",
-      date: "28 March 2026 9:20 AM",
-      style: "Scandinavian",
-    },
-    {
-      id: 5,
-      image: "/HomePageImages/industrial.jpg",
-      title: "Industrial Modern",
-      date: "25 March 2026 3:00 PM",
-      style: "Industrial",
-    },
-    {
-      id: 6,
-      image: "/HomePageImages/rustic.jpg",
-      title: "Rustic Elegance",
-      date: "22 March 2026 10:30 AM",
-      style: "Rustic",
-    },
-  ]);
-
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     console.log(`Deleted card: ${id}`);
   };
 
-  const handleDownload = (id: number) => {
+  const handleDownload = (id: string) => {
     console.log(`Downloaded card: ${id}`);
   };
+
+  useEffect(() => {
+    const run = async () => {
+      setIsLoading(true);
+      try {
+        const sort = sortBy === "Oldest" ? "oldest" : "newest";
+        const data = await fetchHistory({
+          style: selectedStyle,
+          room: selectedRoom,
+          sort,
+        });
+        setHistoryCards(data);
+      } catch (e) {
+        console.error(e);
+        setHistoryCards([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    run();
+  }, [selectedStyle, selectedRoom, sortBy]);
+
+  const filteredCards = historyCards.filter((card) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      card.title.toLowerCase().includes(q) ||
+      card.style.toLowerCase().includes(q) ||
+      (card.room?.toLowerCase().includes(q) ?? false)
+    );
+  });
 
   return (
     <Layout>
@@ -159,17 +155,21 @@ function History() {
         {/* Content Area */}
         <div style={contentAreaStyle}>
           <div style={cardsGridStyle}>
-            {historyCards.map((card) => (
-              <HistoryCard
-                key={card.id}
-                image={card.image}
-                title={card.title}
-                date={card.date}
-                style={card.style}
-                onDelete={() => handleDelete(card.id)}
-                onDownload={() => handleDownload(card.id)}
-              />
-            ))}
+            {isLoading ? (
+              <div style={{ padding: 16 }}>Loading...</div>
+            ) : (
+              filteredCards.map((card) => (
+                <HistoryCard
+                  key={card.id}
+                  image={card.image}
+                  title={card.title}
+                  date={card.date}
+                  style={card.style}
+                  onDelete={() => handleDelete(card.id)}
+                  onDownload={() => handleDownload(card.id)}
+                />
+              ))
+            )}
           </div>
         </div>
       </div>

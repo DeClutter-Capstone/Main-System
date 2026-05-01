@@ -1,7 +1,12 @@
-from typing import Optional 
-from uuid import UUID , uuid4 
-from datetime import datetime 
-from sqlmodel import Field, SQLModel, Relationship 
+from typing import Optional, TYPE_CHECKING, List
+from uuid import UUID, uuid4
+from datetime import datetime
+from sqlmodel import Field, SQLModel, Relationship
+
+if TYPE_CHECKING:
+    from app.models.transformation import Transformation
+    from app.models.user import User
+    from app.models.input_image import InputImage
 
 class GeneratedImage(SQLModel, table=True):
     generated_image_id: UUID = Field(default_factory=uuid4, primary_key=True, index=True)
@@ -15,3 +20,4 @@ class GeneratedImage(SQLModel, table=True):
     transformation: "Transformation" = Relationship(back_populates="generated_images")
     user: "User" = Relationship(back_populates="generated_images")
     input_image: "InputImage" = Relationship(back_populates="generated_images")
+

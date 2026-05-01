@@ -86,72 +86,6 @@ def normalize_room_type(room_type: str) -> str:
     return room_type.lower().replace(" ", "_")
 
 
-# def generate_transformation(db: Session, project_id, input_image_id, room_type: str, style_name: str, image_url: str, hf_token: str, prompt: str = None):
-#     """
-#     Generate a transformation using Replicate API and save images locally
-#     """
-    
-#     # Normalize room_type to match enum (e.g., "living room" -> "living_room")
-#     normalized_room_type = normalize_room_type(room_type)
-#     normalized_style_name = normalize_room_type(style_name)
-    
-#     print(f"Room type: {room_type} -> {normalized_room_type}")
-#     print(f"Style name: {style_name} -> {normalized_style_name}")
-    
-#     # Create transformation record first to get the ID
-#     transformation = Transformation(
-#         #project_id=UUID(project_id) if isinstance(project_id, str) and project_id else None,
-#         input_image_id=UUID(input_image_id) if isinstance(input_image_id, str) and input_image_id else None,
-#         room_type=normalized_room_type,
-#         style_name=normalized_style_name,
-#         prompt=prompt
-#     )
-
-#     db.add(transformation)
-#     db.commit()
-#     db.refresh(transformation)
-    
-#     transformation_id = str(transformation.transformation_id)
-#     print(f"📝 Created transformation: {transformation_id}")
-    
-#     # Save input image
-#     input_image_path = INPUT_DIR / f"{transformation_id}.png"
-#     print(f"Saving input image to: {input_image_path}")
-    
-#     if image_url.startswith("data:"):
-#         save_image_from_base64(image_url, input_image_path)
-#     else:
-#         save_image_from_url(image_url, input_image_path)
-    
-#     # Call Replicate API
-#     replicate_input = {
-#         "image": image_url,
-#         "room_type": normalized_room_type,
-#         "style": normalized_style_name,
-#         "hf_token": hf_token
-#     }
-    
-#     # Add custom prompt if provided
-#     if prompt:
-#         replicate_input["extra_prompt"] = prompt
-    
-#     print(f"Calling Replicate with: {replicate_input}")
-#     output_url = replicate.run(
-#         MODEL_NAME,
-#         input=replicate_input
-#     )
-    
-#     print(f"Replicate output URL: {output_url}")
-    
-#     # Save output image from Replicate URL
-#     output_image_path = OUTPUT_DIR / f"{transformation_id}.png"
-#     print(f"Saving output image to: {output_image_path}")
-#     save_image_from_url(output_url, output_image_path)
-    
-#     return transformation, f"/storage/output/{transformation_id}.png"
-
-
-
 def generate_transformation(db: Session, project_id, input_image_id, room_type: str, style_name: str, image_url: str, hf_token: str, prompt: str = None):
     """
     Generate a transformation using Replicate API and save images locally
@@ -174,7 +108,8 @@ def generate_transformation(db: Session, project_id, input_image_id, room_type: 
         input_image_id=UUID(input_image_id) if isinstance(input_image_id, str) and input_image_id else None,
         room_type=normalized_room_type,
         style_name=normalized_style_name,
-        prompt=prompt
+        prompt=prompt,
+        file_key=base_name,
     )
 
     db.add(transformation)

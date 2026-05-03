@@ -5,6 +5,7 @@ sqlalchemy==2.0.23
 python-dotenv==1.0.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
-replicate
-pillow
+replicate==0.21.1
 python-multipart 
+Pillow
+psycopg2 

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../Firebase/Firebase";
 import { toast, Bounce } from "react-toastify";
 
@@ -20,15 +20,39 @@ function SignupForm({ onAuthenticate }: SignupFormProps) {
     if (fullName && email && password && confirmPassword) {
       if (password === confirmPassword) {
         try {
-          await createUserWithEmailAndPassword(auth, email, password);
+          const userCredential = await createUserWithEmailAndPassword(
+            auth,
+            email,
+            password,
+          );
+
+          // Update user profile with full name
+          await updateProfile(userCredential.user, {
+            displayName: fullName,
+          });
+
           toast.success("Signup successful!");
           onAuthenticate(true);
           // Navigate to generate page after successful signup
           setTimeout(() => navigate("/generate"), 500);
         } catch (error) {
           if (error instanceof Error) {
-            if (
-              error.message.includes("auth/email-already-in-use") ||
+            if (error.message.includes("auth/email-already-in-use")) {
+              toast.error(
+                "This email is already in use. Please use a different email .",
+                {
+                  position: "top-center",
+                  autoClose: 5000,
+                  hideProgressBar: false,
+                  closeOnClick: false,
+                  pauseOnHover: true,
+                  draggable: true,
+                  progress: undefined,
+                  theme: "colored",
+                  transition: Bounce,
+                },
+              );
+            } else if (
               error.message.includes("auth/weak-password") ||
               error.message.includes("auth/invalid-email")
             ) {

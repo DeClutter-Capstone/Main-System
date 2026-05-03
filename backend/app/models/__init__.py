@@ -7,7 +7,7 @@ from .input_image import InputImage
 from .transformation import Transformation
 from .transformed_image import GeneratedImage
 from .activity import Activity
-
+from .transformationsequence import TransformationSequence
 __all__ = [
     "User",
     "Project", 
@@ -16,4 +16,5 @@ __all__ = [
     "Transformation",
     "GeneratedImage",
     "Activity",
+    "TransformationSequence"
 ]

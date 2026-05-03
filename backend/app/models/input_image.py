@@ -1,7 +1,13 @@
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from uuid import UUID , uuid4 
 from datetime import datetime 
 from sqlmodel import Field, SQLModel, Relationship 
+
+if TYPE_CHECKING:
+    from app.models.project import Project
+    from app.models.user import User
+    from app.models.transformation import Transformation
+    from app.models.transformed_image import GeneratedImage
 
 class InputImage(SQLModel, table=True):
     input_image_id: UUID = Field(default_factory=uuid4, primary_key=True, index=True)
@@ -15,5 +21,5 @@ class InputImage(SQLModel, table=True):
     # Relationships
     project: "Project" = Relationship(back_populates="input_images")
     user: "User" = Relationship(back_populates="input_images")
-    transformations: list["Transformation"] = Relationship(back_populates="input_image")
+    transformations: List["Transformation"] = Relationship(back_populates="input_image")
     generated_images: List["GeneratedImage"] = Relationship(back_populates="input_image")

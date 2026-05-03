@@ -3,7 +3,7 @@ import base64
 import io
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlmodel import Session
-from app.database.session import get_session
+from app.database.db import get_session
 from app.schemas.transformation_schema import TransformationCreate, TransformationResponse
 from app.services.transformation_service import generate_transformation
 from dotenv import load_dotenv

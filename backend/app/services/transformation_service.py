@@ -86,7 +86,7 @@ def normalize_room_type(room_type: str) -> str:
     return room_type.lower().replace(" ", "_")
 
 
-def generate_transformation(db: Session, project_id, input_image_id, room_type: str, style_name: str, image_url: str, hf_token: str, prompt: str = None):
+def generate_transformation(db: Session, project_id, input_image_id, room_type: str, style_name: str, image_url: str, hf_token: str, prompt: str = ''):
     """
     Generate a transformation using Replicate API and save images locally
     """
@@ -99,7 +99,7 @@ def generate_transformation(db: Session, project_id, input_image_id, room_type: 
 
     # Allocate friendly filename (same for input/output)
     seq_num = _next_style_room_sequence(db, normalized_style_name, normalized_room_type)
-    base_name = f"{normalized_style_name}_{normalized_room_type}_{seq_num:05d}"
+    base_name = f"{normalized_style_name}_{normalized_room_type}_{seq_num:03d}"
     print(f"Using filename base: {base_name}")
 
     # Create transformation record first to get the ID
@@ -133,6 +133,7 @@ def generate_transformation(db: Session, project_id, input_image_id, room_type: 
         "image": image_url,
         "room_type": normalized_room_type,
         "style": normalized_style_name,
+        "extra_prompt" : prompt,
         "hf_token": hf_token
     }
 

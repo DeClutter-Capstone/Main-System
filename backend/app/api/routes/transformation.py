@@ -37,6 +37,7 @@ def create_transformation(
     image_file: UploadFile = File(...),
     project_id: str = Form(None),
     input_image_id: str = Form(None),
+    prompt: str = Form(None), 
     db: Session = Depends(get_session)
 ):
     """
@@ -57,7 +58,8 @@ def create_transformation(
             room_type=room_type,
             style_name=style_name,
             image_url=image_url,
-            hf_token=hf_token
+            hf_token=hf_token,
+            prompt=prompt or ''
         )
         
         # Add the output image URL to the response

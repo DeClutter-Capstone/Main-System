@@ -120,6 +120,7 @@ function Generate() {
         uploadedFile,
         roomType,
         selectedStyle,
+        customPrompt,
       );
 
       const backendBase =

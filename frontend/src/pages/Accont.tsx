@@ -695,12 +695,6 @@ function Account() {
                 )}
                 <button
                   style={styles.menuItem}
-                  onClick={() => handleMenuClick("Enable / Disable 2FA")}
-                >
-                  Enable / Disable 2FA
-                </button>
-                <button
-                  style={styles.menuItem}
                   onClick={() => handleMenuClick("Login activity")}
                 >
                   Login activity

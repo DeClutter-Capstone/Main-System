@@ -27,13 +27,17 @@ export async function requestTransformation(
   imageFile: File,
   roomType: string,
   styleName: string,
+  prompt?: string,
   projectId?: string,
 ): Promise<TransformationResponse> {
   const formData = new FormData();
   formData.append("image_file", imageFile);
   formData.append("room_type", roomType.toLowerCase());
   formData.append("style_name", styleName.toLowerCase());
-
+  if (prompt && prompt.trim()) {
+    formData.append("prompt", prompt.trim());
+  }
+  
   if (projectId) {
     formData.append("project_id", projectId);
   }

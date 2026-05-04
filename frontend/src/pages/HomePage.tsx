@@ -62,6 +62,61 @@ function HomePage() {
           animation: none;
         }
 
+        @keyframes slide-in-left {
+          0% {
+            opacity: 0;
+            transform: translateX(-50px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slide-in-right {
+          0% {
+            opacity: 0;
+            transform: translateX(50px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes float-smooth {
+          0% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-12px);
+          }
+          100% {
+            transform: translateY(0px);
+          }
+        }
+
+        .projects-left-animated {
+          animation: slide-in-left 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .projects-right-animated {
+          animation: slide-in-right 1s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s forwards;
+          opacity: 0;
+        }
+
+        .collection-image-animated {
+          animation: float-smooth 4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+        }
+
+        .projects-icon-animated {
+          transition: transform 0.3s ease;
+        }
+
+        .projects-icon-animated:hover {
+          transform: scale(1.1) rotate(5deg);
+        }
+
         [data-theme="dark"] .style-block {
           background-color: #383838ff !important;
         }
@@ -118,24 +173,29 @@ function HomePage() {
           {/* Projects Section */}
           <div style={styles.projectsSection}>
             {/* Left Side */}
-            <div style={styles.projectsLeft}>
+            <div style={styles.projectsLeft} className="projects-left-animated">
               <div style={styles.projectsHeader}>
                 <img
-                  src="\public\HomePageImages\projects icon.png"
+                  src="/public/HomePageImages/projects icon.png"
                   alt="Projects Icon"
                   style={styles.projectsIcon}
+                  className="projects-icon-animated"
                 />
                 <h3 style={styles.projectsHeading}>Projects</h3>
               </div>
               <img
-                src="public/HomePageImages/collection.png"
+                src="/public/HomePageImages/collection.png"
                 alt="Collection"
                 style={styles.collectionImage}
+                className="collection-image-animated"
               />
             </div>
 
             {/* Right Side */}
-            <div style={styles.projectsRight}>
+            <div
+              style={styles.projectsRight}
+              className="projects-right-animated"
+            >
               <h2 style={styles.projectsTitle}>A Collection of Spaces</h2>
               <p style={styles.projectsDescription}>
                 Each project represents a structured collection of spaces within

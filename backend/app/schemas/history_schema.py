@@ -1,0 +1,16 @@
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel
+
+
+class HistoryItem(BaseModel):
+    id: str
+    image: str
+    title: str
+    date: str
+    style: str
+    room: str
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

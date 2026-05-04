@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session
 from uuid import uuid4
 from datetime import datetime
-from app.database.session import get_session
+from app.database.db import get_session
 from app.schemas.projects_schema import ProjectCreate, ProjectResponse
 from app.services.project_service import create_project
 router = APIRouter(prefix="/projects", tags=["projects"])

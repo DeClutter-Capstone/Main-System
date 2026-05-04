@@ -6,22 +6,23 @@ import ProjectCard from "../components/ProjectCard";
 interface Project {
   id: string;
   title: string;
+  createdDate: string;
   updatedDate: string;
   thumbnail?: string;
 }
 
 // Mock data - replace with actual API calls
 const MOCK_PROJECTS: Project[] = [
-  { id: "project-1", title: "Taipei Tower Project 1", updatedDate: "9/8/2025", thumbnail: "/HomePageImages/minimalist.jpg" },
-  { id: "project-2", title: "Project 2", updatedDate: "7/7/2025", thumbnail: "/HomePageImages/industrial.jpg" },
-  { id: "project-3", title: "Tower Project 3", updatedDate: "8/10/2025", thumbnail: "/HomePageImages/bohemian.webp" },
-  { id: "project-4", title: "Project 4", updatedDate: "1/11/2025", thumbnail: "/HomePageImages/scandinavian.webp" },
-  { id: "project-5", title: "Karachi Project 5", updatedDate: "12/12/2025", thumbnail: "/HomePageImages/rustic.jpg" },
-  { id: "project-6", title: "Project 6", updatedDate: "7/4/2025", thumbnail: "/HomePageImages/spa.jpg" },
-  { id: "project-7", title: "Empire state Project 7", updatedDate: "1/1/2025", thumbnail: "/HomePageImages/modren.jpg" },
-  { id: "project-8", title: "Project 8", updatedDate: "9/10/2025", thumbnail: "/HomePageImages/home page 1.png" },
-  { id: "project-9", title: "Project 9", updatedDate: "5/10/2025", thumbnail: "/HomePageImages/home page 2.jpg" },
-  { id: "project-10", title: "Kingdom Tower", updatedDate: "5/1/2025", thumbnail: "/HomePageImages/after.png" },
+  { id: "project-1", title: "Taipei Tower Project 1", createdDate: "8/8/2025", updatedDate: "9/8/2025", thumbnail: "/HomePageImages/minimalist.jpg" },
+  { id: "project-2", title: "Project 2", createdDate: "6/7/2025", updatedDate: "7/7/2025", thumbnail: "/HomePageImages/industrial.jpg" },
+  { id: "project-3", title: "Tower Project 3", createdDate: "7/10/2025", updatedDate: "8/10/2025", thumbnail: "/HomePageImages/bohemian.webp" },
+  { id: "project-4", title: "Project 4", createdDate: "12/10/2025", updatedDate: "1/11/2025", thumbnail: "/HomePageImages/scandinavian.webp" },
+  { id: "project-5", title: "Karachi Project 5", createdDate: "11/12/2025", updatedDate: "12/12/2025", thumbnail: "/HomePageImages/rustic.jpg" },
+  { id: "project-6", title: "Project 6", createdDate: "6/4/2025", updatedDate: "7/4/2025", thumbnail: "/HomePageImages/spa.jpg" },
+  { id: "project-7", title: "Empire state Project 7", createdDate: "12/31/2024", updatedDate: "1/1/2025", thumbnail: "/HomePageImages/modren.jpg" },
+  { id: "project-8", title: "Project 8", createdDate: "8/10/2025", updatedDate: "9/10/2025", thumbnail: "/HomePageImages/home page 1.png" },
+  { id: "project-9", title: "Project 9", createdDate: "4/10/2025", updatedDate: "5/10/2025", thumbnail: "/HomePageImages/home page 2.jpg" },
+  { id: "project-10", title: "Kingdom Tower", createdDate: "4/1/2025", updatedDate: "5/1/2025", thumbnail: "/HomePageImages/after.png" },
 ];
 
 type SortOption = "recent" | "oldest" | "alphabetical";
@@ -82,7 +83,8 @@ function Projects() {
   };
 
   const handleProjectClick = (projectId: string) => {
-    navigate(`/project/${projectId}`);
+    const project = projects.find(p => p.id === projectId);
+    navigate(`/project/${projectId}`, { state: { project } });
   };
 
   const handleSortChange = (option: SortOption) => {

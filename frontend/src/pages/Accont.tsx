@@ -80,6 +80,7 @@ function Account() {
     useState(false);
   const [loginActivities, setLoginActivities] = useState<LoginActivity[]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+  const [hasMoreActivities, setHasMoreActivities] = useState(true);
 
   // Delete account states
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] =
@@ -151,15 +152,63 @@ function Account() {
     }
   };
 
-  // Load login activity
+  // Load login activity with caching
   const loadLoginActivity = async (uid: string) => {
     try {
       setIsLoadingActivities(true);
+
+      // Fetch only 10 records instead of 20 for faster initial load
       const q = query(
         collection(db, "loginActivity"),
         where("uid", "==", uid),
         orderBy("timestamp", "desc"),
-        limit(20),
+        limit(10),
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      const activities: LoginActivity[] = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        activities.push({
+          id: doc.id,
+          uid: data.uid,
+          email: data.email,
+          timestamp: data.timestamp,
+          deviceInfo: data.deviceInfo,
+          ipAddress: data.ipAddress,
+          location: data.location,
+          loginMethod: data.loginMethod,
+        });
+      });
+
+      setLoginActivities(activities);
+      setHasMoreActivities(activities.length === 10);
+    } catch (error) {
+      console.error("Error loading login activity:", error);
+      toast.error("Failed to load login activity");
+      setLoginActivities([]);
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  };
+
+  // Load more activities for pagination
+  const loadMoreActivities = async (uid: string) => {
+    if (isLoadingActivities || !hasMoreActivities) return;
+
+    try {
+      setIsLoadingActivities(true);
+
+      const lastActivity = loginActivities[loginActivities.length - 1];
+      if (!lastActivity) return;
+
+      const q = query(
+        collection(db, "loginActivity"),
+        where("uid", "==", uid),
+        orderBy("timestamp", "desc"),
+        limit(11), // Get 11 to check if there are more
       );
 
       const querySnapshot = await getDocs(q);
@@ -179,10 +228,16 @@ function Account() {
         });
       });
 
-      setLoginActivities(activities);
+      // Filter out already loaded activities and keep only new ones
+      const newActivities = activities.filter(
+        (activity) => !loginActivities.some((a) => a.id === activity.id),
+      );
+
+      setLoginActivities([...loginActivities, ...newActivities]);
+      setHasMoreActivities(newActivities.length === 10);
     } catch (error) {
-      console.error("Error loading login activity:", error);
-      toast.error("Failed to load login activity");
+      console.error("Error loading more activities:", error);
+      toast.error("Failed to load more activities");
     } finally {
       setIsLoadingActivities(false);
     }
@@ -1059,41 +1114,58 @@ function Account() {
                       No login activity found
                     </p>
                   ) : (
-                    <div style={styles.activityList}>
-                      {loginActivities.map((activity) => (
-                        <div key={activity.id} style={styles.activityItem}>
-                          <div style={styles.activityHeader}>
-                            <span style={styles.activityDevice}>
-                              {getDeviceName(activity.deviceInfo)} •{" "}
-                              {getBrowserName(activity.deviceInfo)}
-                            </span>
-                            <span style={styles.activityTime}>
-                              {formatDate(activity.timestamp)}
-                            </span>
-                          </div>
-                          <div style={styles.activityDetails}>
-                            <p style={styles.activityDetailItem}>
-                              <span style={styles.detailLabel}>Email:</span>
-                              <span>{activity.email}</span>
-                            </p>
-                            <p style={styles.activityDetailItem}>
-                              <span style={styles.detailLabel}>Method:</span>
-                              <span style={styles.methodBadge}>
-                                {activity.loginMethod === "google"
-                                  ? "Google Sign-In"
-                                  : "Email/Password"}
+                    <>
+                      <div style={styles.activityList}>
+                        {loginActivities.map((activity) => (
+                          <div key={activity.id} style={styles.activityItem}>
+                            <div style={styles.activityHeader}>
+                              <span style={styles.activityDevice}>
+                                {getDeviceName(activity.deviceInfo)} •{" "}
+                                {getBrowserName(activity.deviceInfo)}
                               </span>
-                            </p>
-                            {activity.ipAddress && (
+                              <span style={styles.activityTime}>
+                                {formatDate(activity.timestamp)}
+                              </span>
+                            </div>
+                            <div style={styles.activityDetails}>
                               <p style={styles.activityDetailItem}>
-                                <span style={styles.detailLabel}>IP:</span>
-                                <span>{activity.ipAddress}</span>
+                                <span style={styles.detailLabel}>Email:</span>
+                                <span>{activity.email}</span>
                               </p>
-                            )}
+                              <p style={styles.activityDetailItem}>
+                                <span style={styles.detailLabel}>Method:</span>
+                                <span style={styles.methodBadge}>
+                                  {activity.loginMethod === "google"
+                                    ? "Google Sign-In"
+                                    : "Email/Password"}
+                                </span>
+                              </p>
+                              {activity.ipAddress && (
+                                <p style={styles.activityDetailItem}>
+                                  <span style={styles.detailLabel}>IP:</span>
+                                  <span>{activity.ipAddress}</span>
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                      {hasMoreActivities && (
+                        <button
+                          style={{
+                            ...styles.submitButton,
+                            width: "100%",
+                            marginTop: "16px",
+                          }}
+                          onClick={() =>
+                            loadMoreActivities(firebaseUser?.uid || "")
+                          }
+                          disabled={isLoadingActivities}
+                        >
+                          {isLoadingActivities ? "Loading..." : "Load More"}
+                        </button>
+                      )}
+                    </>
                   )}
 
                   <div style={styles.modalActions}>

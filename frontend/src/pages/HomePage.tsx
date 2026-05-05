@@ -117,6 +117,18 @@ function HomePage() {
           transform: scale(1.1) rotate(5deg);
         }
 
+        .slider-container-wrapper {
+          user-select: none;
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+        }
+
+        .slider-container-wrapper img {
+          -webkit-user-drag: none;
+          user-drag: none;
+        }
+
         [data-theme="dark"] .style-block {
           background-color: #383838ff !important;
         }
@@ -212,7 +224,10 @@ function HomePage() {
             </h2>
 
             {/* Sliders Container */}
-            <div style={styles.slidersContainer}>
+            <div
+              style={styles.slidersContainer}
+              className="slider-container-wrapper"
+            >
               {/* Slider 1 */}
               <div ref={sliderContainerRef1} style={styles.sliderContainer}>
                 <img

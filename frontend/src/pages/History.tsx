@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import HistoryCard from "../components/HistoryCard";
-import { fetchHistory, type HistoryItem } from "../services/historyAPI";
+import { fetchHistory, deleteHistoryItem, type HistoryItem } from "../services/historyAPI";
 
 function History() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,9 +30,22 @@ function History() {
 
   const [historyCards, setHistoryCards] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
-  const handleDelete = (id: string) => {
-    console.log(`Deleted card: ${id}`);
+  const handleDelete = async (id: string, fileKey: string) => {
+    setDeletingIds((prev) => new Set(prev).add(id));
+    try {
+      await deleteHistoryItem(fileKey);
+      setHistoryCards((prev) => prev.filter((card) => card.id !== id));
+    } catch (e) {
+      console.error("Failed to delete:", e);
+    } finally {
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
   };
 
   const handleDownload = (id: string) => {
@@ -165,7 +178,8 @@ function History() {
                   title={card.title}
                   date={card.date}
                   style={card.style}
-                  onDelete={() => handleDelete(card.id)}
+                  isDeleting={deletingIds.has(card.id)}
+                  onDelete={() => handleDelete(card.id, card.title)}
                   onDownload={() => handleDownload(card.id)}
                 />
               ))

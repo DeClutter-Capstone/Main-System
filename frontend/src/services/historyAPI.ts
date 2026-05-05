@@ -47,3 +47,17 @@ export async function fetchHistory(params?: {
     image: item.image.startsWith("http") ? item.image : `${backendBase}${item.image}`,
   }));
 }
+
+export async function deleteHistoryItem(fileKey: string): Promise<void> {
+  const backendBase =
+    import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
+
+  const res = await fetch(`${backendBase}/api/history/${fileKey}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to delete transformation");
+  }
+}

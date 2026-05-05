@@ -5,6 +5,7 @@ interface HistoryCardProps {
   title: string;
   date: string;
   style: string;
+  isDeleting?: boolean;
   onDelete?: () => void;
   onDownload?: () => void;
 }

@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from typing import List, Optional
-
+from datetime import datetime
+from pathlib import Path
 from sqlalchemy import asc, desc
 from sqlmodel import Session, select
 
 from app.models import Transformation
 from app.schemas.history_schema import HistoryItem
 
+STORAGE_DIR = Path(__file__).parent.parent.parent / "storage"
+OUTPUT_DIR = STORAGE_DIR / "output"
+INPUT_DIR = STORAGE_DIR / "input"
 
 def get_history(
     db: Session,
@@ -49,3 +53,30 @@ def get_history(
         )
         for t in transformations
     ]
+
+
+def delete_transformation(db: Session, file_key: str) -> bool:
+    """Delete a transformation record and its associated files from storage."""
+    
+    # Find transformation by file_key
+    stmt = select(Transformation).where(Transformation.file_key == file_key)
+    transformation = db.exec(stmt).first()
+    
+    if not transformation:
+        return False
+    
+    # Delete files from storage
+    output_file = OUTPUT_DIR / f"{file_key}.png"
+    input_file = INPUT_DIR / f"{file_key}.png"
+    
+    if output_file.exists():
+        output_file.unlink()  # Delete output image
+    
+    if input_file.exists():
+        input_file.unlink()  # Delete input image
+    
+    # Delete database record
+    db.delete(transformation)
+    db.commit()
+    
+    return True

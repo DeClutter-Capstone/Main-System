@@ -6,24 +6,14 @@ import ProjectCard from "../components/ProjectCard";
 interface Project {
   id: string;
   title: string;
+  description?: string;
   createdDate: string;
   updatedDate: string;
   thumbnail?: string;
 }
 
 // Mock data - replace with actual API calls
-const MOCK_PROJECTS: Project[] = [
-  { id: "project-1", title: "Taipei Tower Project 1", createdDate: "8/8/2025", updatedDate: "9/8/2025", thumbnail: "/HomePageImages/minimalist.jpg" },
-  { id: "project-2", title: "Project 2", createdDate: "6/7/2025", updatedDate: "7/7/2025", thumbnail: "/HomePageImages/industrial.jpg" },
-  { id: "project-3", title: "Tower Project 3", createdDate: "7/10/2025", updatedDate: "8/10/2025", thumbnail: "/HomePageImages/bohemian.webp" },
-  { id: "project-4", title: "Project 4", createdDate: "12/10/2025", updatedDate: "1/11/2025", thumbnail: "/HomePageImages/scandinavian.webp" },
-  { id: "project-5", title: "Karachi Project 5", createdDate: "11/12/2025", updatedDate: "12/12/2025", thumbnail: "/HomePageImages/rustic.jpg" },
-  { id: "project-6", title: "Project 6", createdDate: "6/4/2025", updatedDate: "7/4/2025", thumbnail: "/HomePageImages/spa.jpg" },
-  { id: "project-7", title: "Empire state Project 7", createdDate: "12/31/2024", updatedDate: "1/1/2025", thumbnail: "/HomePageImages/modren.jpg" },
-  { id: "project-8", title: "Project 8", createdDate: "8/10/2025", updatedDate: "9/10/2025", thumbnail: "/HomePageImages/home page 1.png" },
-  { id: "project-9", title: "Project 9", createdDate: "4/10/2025", updatedDate: "5/10/2025", thumbnail: "/HomePageImages/home page 2.jpg" },
-  { id: "project-10", title: "Kingdom Tower", createdDate: "4/1/2025", updatedDate: "5/1/2025", thumbnail: "/HomePageImages/after.png" },
-];
+const MOCK_PROJECTS: Project[] = [];
 
 type SortOption = "recent" | "oldest" | "alphabetical";
 
@@ -33,10 +23,26 @@ function Projects() {
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [isLoading] = useState(false);
-  const [projects] = useState<Project[]>(MOCK_PROJECTS);
+  const [projects, setProjects] = useState<Project[]>(() => {
+    try {
+      const storedProjects = localStorage.getItem("projects");
+      return storedProjects ? JSON.parse(storedProjects) : MOCK_PROJECTS;
+    } catch {
+      return MOCK_PROJECTS;
+    }
+  });
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [searchFocused, setSearchFocused] = useState(false);
   const [filterButtonHovered, setFilterButtonHovered] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [projectThumbnail, setProjectThumbnail] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    // Save projects to localStorage whenever they change
+    localStorage.setItem("projects", JSON.stringify(projects));
+  }, [projects]);
 
   useEffect(() => {
     // Handle resize events
@@ -79,7 +85,48 @@ function Projects() {
   }, [projects, searchQuery, sortBy]);
 
   const handleNewProject = () => {
-    console.log("Create new project");
+    setShowCreateModal(true);
+  };
+
+  const handleCreateProject = () => {
+    if (!projectName.trim()) {
+      alert("Please enter a project name");
+      return;
+    }
+
+    const now = new Date().toLocaleDateString();
+    const newProject: Project = {
+      id: `project-${Date.now()}`,
+      title: projectName,
+      description: projectDescription || undefined,
+      createdDate: now,
+      updatedDate: now,
+      thumbnail: projectThumbnail,
+    };
+
+    setProjects([newProject, ...projects]);
+    setShowCreateModal(false);
+    setProjectName("");
+    setProjectDescription("");
+    setProjectThumbnail(undefined);
+  };
+
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProjectThumbnail(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const closeModal = () => {
+    setShowCreateModal(false);
+    setProjectName("");
+    setProjectDescription("");
+    setProjectThumbnail(undefined);
   };
 
   const handleProjectClick = (projectId: string) => {
@@ -105,12 +152,6 @@ function Projects() {
   };
 
   // Responsive padding
-  const getHeaderPadding = () => {
-    if (windowWidth <= 480) return "16px";
-    if (windowWidth <= 768) return "20px 24px";
-    return "24px 240px 24px 300px";
-  };
-
   const getMainPadding = () => {
     if (windowWidth <= 480) return "16px";
     if (windowWidth <= 768) return "20px 24px";
@@ -138,18 +179,10 @@ function Projects() {
     display: "flex",
     flexDirection: "column",
     minHeight: "100vh",
-    backgroundColor: "#fafafa",
+    backgroundColor: "#f0f0f0",
     width: "100%",
     margin: 0,
     padding: 0,
-  };
-
-  const headerStyle: React.CSSProperties = {
-    backgroundColor: "#ffffff",
-    borderBottom: "1px solid #efefef",
-    padding: getHeaderPadding(),
-    position: "relative",
-    zIndex: 1000,
   };
 
   const headerContainerStyle: React.CSSProperties = {
@@ -275,7 +308,7 @@ function Projects() {
     border: "1px solid #e0e0e0",
     borderRadius: "8px",
     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-    zIndex: 9999,
+    zIndex: 50000,
     minWidth: "200px",
     overflow: "hidden",
   };
@@ -297,7 +330,6 @@ function Projects() {
     flex: 1,
     padding: getMainPadding(),
     width: "100%",
-    overflow: "hidden",
   };
 
   const sectionStyle: React.CSSProperties = {
@@ -325,6 +357,7 @@ function Projects() {
     display: "grid",
     gridTemplateColumns: `repeat(${getGridColumns()}, 1fr)`,
     gap: windowWidth <= 768 ? "24px" : "28px",
+    zIndex: 1,
   };
 
   const emptyStyle: React.CSSProperties = {
@@ -394,6 +427,112 @@ function Projects() {
     width: "70%",
   };
 
+  // Modal styles
+  const modalOverlayStyle: React.CSSProperties = {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 100000,
+  };
+
+  const modalContainerStyle: React.CSSProperties = {
+    backgroundColor: "#ffffff",
+    borderRadius: "12px",
+    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+    padding: "32px",
+    maxWidth: "500px",
+    width: "90%",
+    maxHeight: "90vh",
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: "24px",
+  };
+
+  const modalTitleStyle: React.CSSProperties = {
+    fontSize: "24px",
+    fontWeight: 700,
+    color: "#1a1a1a",
+    margin: 0,
+  };
+
+  const formGroupStyle: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "#1a1a1a",
+  };
+
+  const inputStyle: React.CSSProperties = {
+    padding: "12px 16px",
+    border: "1px solid #e0e0e0",
+    borderRadius: "8px",
+    fontSize: "14px",
+    fontFamily: "inherit",
+    color: "#1a1a1a",
+    transition: "all 0.2s ease",
+    outline: "none",
+  };
+
+  const textareaStyle: React.CSSProperties = {
+    ...inputStyle,
+    minHeight: "100px",
+    resize: "vertical",
+    fontFamily: "inherit",
+  };
+
+  const thumbnailPreviewStyle: React.CSSProperties = {
+    width: "100%",
+    maxHeight: "150px",
+    borderRadius: "8px",
+    objectFit: "cover",
+    marginTop: "8px",
+  };
+
+  const modalButtonsStyle: React.CSSProperties = {
+    display: "flex",
+    gap: "12px",
+    justifyContent: "flex-end",
+    marginTop: "12px",
+  };
+
+  const cancelButtonStyle: React.CSSProperties = {
+    padding: "10px 24px",
+    border: "1px solid #e0e0e0",
+    borderRadius: "8px",
+    fontSize: "14px",
+    fontWeight: 500,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    backgroundColor: "#f5f5f5",
+    color: "#1a1a1a",
+    transition: "all 0.2s ease",
+  };
+
+  const createButtonStyle: React.CSSProperties = {
+    padding: "10px 24px",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "14px",
+    fontWeight: 500,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    backgroundColor: "#4384E2",
+    color: "#ffffff",
+    transition: "all 0.2s ease",
+  };
+
   // Render skeleton loaders
   const renderSkeletons = () => {
     return Array.from({ length: 5 }).map((_, i) => (
@@ -420,108 +559,116 @@ function Projects() {
         }
       `}</style>
       <div style={pageStyle}>
-        {/* Header */}
-        <header style={headerStyle}>
-          <div style={headerContainerStyle}>
-            {/* Title with Icon */}
-            <div style={titleGroupStyle}>
-              <h1 style={titleStyle}>My Projects</h1>
-            </div>
-
-            {/* Search and Controls */}
-            <div style={controlsStyle}>
-              {/* Search Bar */}
-              <div style={searchContainerStyle}>
-                <svg style={searchIconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <path d="m21 21-4.35-4.35"></path>
-                </svg>
-                <input
-                  type="text"
-                  style={searchInputStyle}
-                  placeholder="Search your previous project..."
-                  value={searchQuery}
-                  onChange={handleSearch}
-                  onFocus={() => setSearchFocused(true)}
-                  onBlur={() => setSearchFocused(false)}
-                  aria-label="Search projects"
-                />
-              </div>
-
-              {/* Filter Button */}
-              <div style={{ position: "relative" }}>
-                <button
-                  style={filterButtonStyle}
-                  onClick={() => setShowFilterMenu(!showFilterMenu)}
-                  onMouseEnter={() => setFilterButtonHovered(true)}
-                  onMouseLeave={() => setFilterButtonHovered(false)}
-                  aria-label="Filter projects"
-                  aria-expanded={showFilterMenu}
-                >
-                  <svg style={buttonIconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                  </svg>
-                  Filter
-                </button>
-
-                {/* Filter Dropdown */}
-                {showFilterMenu && (
-                  <div style={filterDropdownStyle}>
-                    <button
-                      style={{
-                        ...dropdownItemStyle,
-                        paddingTop: "8px",
-                        backgroundColor: sortBy === "recent" ? "#f5f5f5" : "transparent",
-                      }}
-                      onClick={() => handleSortChange("recent")}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "recent" ? "#f5f5f5" : "transparent")}
-                    >
-                      {sortBy === "recent" && "✓ "}Recently Updated
-                    </button>
-                    <button
-                      style={{
-                        ...dropdownItemStyle,
-                        backgroundColor: sortBy === "oldest" ? "#f5f5f5" : "transparent",
-                      }}
-                      onClick={() => handleSortChange("oldest")}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "oldest" ? "#f5f5f5" : "transparent")}
-                    >
-                      {sortBy === "oldest" && "✓ "}Oldest First
-                    </button>
-                    <button
-                      style={{
-                        ...dropdownItemStyle,
-                        paddingBottom: "8px",
-                        backgroundColor: sortBy === "alphabetical" ? "#f5f5f5" : "transparent",
-                      }}
-                      onClick={() => handleSortChange("alphabetical")}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "alphabetical" ? "#f5f5f5" : "transparent")}
-                    >
-                      {sortBy === "alphabetical" && "✓ "}A to Z
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* New Project Button */}
-              <button
-                style={primaryButtonStyle}
-                onClick={handleNewProject}
-                aria-label="Create new project"
-              >
-                <span style={buttonIconStyle}>+</span>
-                New Project
-              </button>
-            </div>
-          </div>
-        </header>
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+          }
+          input::placeholder {
+            color: #999999;
+          }
+        `}</style>
 
         {/* Main Content */}
         <main style={mainStyle}>
           <section style={sectionStyle}>
+            {/* Header Controls */}
+            <div style={headerContainerStyle}>
+              {/* Title with Icon */}
+              <div style={titleGroupStyle}>
+                <h1 style={titleStyle}>My Projects</h1>
+              </div>
+
+              {/* Search and Controls */}
+              <div style={controlsStyle}>
+                {/* Search Bar */}
+                <div style={searchContainerStyle}>
+                  <svg style={searchIconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                  </svg>
+                  <input
+                    type="text"
+                    style={searchInputStyle}
+                    placeholder="Search your previous project..."
+                    value={searchQuery}
+                    onChange={handleSearch}
+                    onFocus={() => setSearchFocused(true)}
+                    onBlur={() => setSearchFocused(false)}
+                    aria-label="Search projects"
+                  />
+                </div>
+
+                {/* Filter Button */}
+                <div style={{ position: "relative" }}>
+                  <button
+                    style={filterButtonStyle}
+                    onClick={() => setShowFilterMenu(!showFilterMenu)}
+                    onMouseEnter={() => setFilterButtonHovered(true)}
+                    onMouseLeave={() => setFilterButtonHovered(false)}
+                    aria-label="Filter projects"
+                    aria-expanded={showFilterMenu}
+                  >
+                    <svg style={buttonIconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                    Filter
+                  </button>
+
+                  {/* Filter Dropdown */}
+                  {showFilterMenu && (
+                    <div style={filterDropdownStyle}>
+                      <button
+                        style={{
+                          ...dropdownItemStyle,
+                          paddingTop: "8px",
+                          backgroundColor: sortBy === "recent" ? "#f5f5f5" : "transparent",
+                        }}
+                        onClick={() => handleSortChange("recent")}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "recent" ? "#f5f5f5" : "transparent")}
+                      >
+                        {sortBy === "recent" && "✓ "}Recently Updated
+                      </button>
+                      <button
+                        style={{
+                          ...dropdownItemStyle,
+                          backgroundColor: sortBy === "oldest" ? "#f5f5f5" : "transparent",
+                        }}
+                        onClick={() => handleSortChange("oldest")}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "oldest" ? "#f5f5f5" : "transparent")}
+                      >
+                        {sortBy === "oldest" && "✓ "}Oldest First
+                      </button>
+                      <button
+                        style={{
+                          ...dropdownItemStyle,
+                          paddingBottom: "8px",
+                          backgroundColor: sortBy === "alphabetical" ? "#f5f5f5" : "transparent",
+                        }}
+                        onClick={() => handleSortChange("alphabetical")}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "alphabetical" ? "#f5f5f5" : "transparent")}
+                      >
+                        {sortBy === "alphabetical" && "✓ "}A to Z
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* New Project Button */}
+                <button
+                  style={primaryButtonStyle}
+                  onClick={handleNewProject}
+                  aria-label="Create new project"
+                >
+                  <span style={buttonIconStyle}>+</span>
+                  New Project
+                </button>
+              </div>
+            </div>
+
             {/* Section Header */}
             <div style={sectionHeaderStyle}>
               <h2 style={sectionTitleStyle}>All Projects</h2>
@@ -553,6 +700,72 @@ function Projects() {
           </section>
         </main>
       </div>
+
+      {/* Create Project Modal */}
+      {showCreateModal && (
+        <div style={modalOverlayStyle} onClick={closeModal}>
+          <div style={modalContainerStyle} onClick={(e) => e.stopPropagation()}>
+            <h2 style={modalTitleStyle}>Create New Project</h2>
+
+            {/* Project Name Input */}
+            <div style={formGroupStyle}>
+              <label style={labelStyle} htmlFor="project-name">Project Name *</label>
+              <input
+                id="project-name"
+                type="text"
+                style={inputStyle}
+                placeholder="Enter project name"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleCreateProject()}
+              />
+            </div>
+
+            {/* Project Description Input */}
+            <div style={formGroupStyle}>
+              <label style={labelStyle} htmlFor="project-description">Description</label>
+              <textarea
+                id="project-description"
+                style={textareaStyle}
+                placeholder="Enter project description (optional)"
+                value={projectDescription}
+                onChange={(e) => setProjectDescription(e.target.value)}
+              />
+            </div>
+
+            {/* Thumbnail Upload */}
+            <div style={formGroupStyle}>
+              <label style={labelStyle} htmlFor="project-thumbnail">Thumbnail Image</label>
+              <input
+                id="project-thumbnail"
+                type="file"
+                accept="image/*"
+                style={{ ...inputStyle, cursor: "pointer" }}
+                onChange={handleThumbnailChange}
+              />
+              {projectThumbnail && (
+                <img src={projectThumbnail} alt="Project thumbnail preview" style={thumbnailPreviewStyle} />
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div style={modalButtonsStyle}>
+              <button
+                style={cancelButtonStyle}
+                onClick={closeModal}
+              >
+                Cancel
+              </button>
+              <button
+                style={createButtonStyle}
+                onClick={handleCreateProject}
+              >
+                Create Project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

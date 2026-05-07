@@ -399,6 +399,87 @@ function HomePage() {
                 </div>
               </div>
             </div>
+
+            {/* Industrial Style Block */}
+            <div style={styles.styleBlock} className="style-block">
+              <div style={styles.styleBlockContent}>
+                {/* Left Side - Text */}
+                <div style={styles.styleTextContainer}>
+                  <h3 style={styles.styleHeading}>Industrial Style</h3>
+                  <p style={styles.styleDescription}>
+                    Industrial design draws inspiration from warehouses and urban
+                    lofts, celebrating raw, unfinished materials such as exposed
+                    brick, concrete, and steel. Dark tones, weathered wood, and
+                    open structural elements combine to create spaces that feel
+                    bold, authentic, and unapologetically functional — turning
+                    every imperfection into a design statement.
+                  </p>
+                </div>
+
+                {/* Right Side - Image */}
+                <div style={styles.styleImageContainer}>
+                  <img
+                    src="/public/HomePageImages/industrial.jpg"
+                    alt="Industrial Style"
+                    style={styles.styleImage}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bohemian Style Block */}
+            <div style={styles.styleBlock} className="style-block">
+              <div style={styles.styleBlockContent}>
+                {/* Left Side - Image */}
+                <div style={styles.styleImageContainer}>
+                  <img
+                    src="/public/HomePageImages/bohemian.webp"
+                    alt="Bohemian Style"
+                    style={styles.styleImage}
+                  />
+                </div>
+
+                {/* Right Side - Text */}
+                <div style={styles.styleTextContainer}>
+                  <h3 style={styles.styleHeading}>Bohemian Style</h3>
+                  <p style={styles.styleDescription}>
+                    Bohemian design embraces a free-spirited, eclectic aesthetic
+                    that layers rich colors, global patterns, and mixed textures
+                    to create deeply personal and expressive spaces. Lush plants,
+                    vintage finds, handcrafted pieces, and layered textiles come
+                    together in a beautifully curated chaos that feels warm,
+                    vibrant, and full of character.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Spa Style Block */}
+            <div style={styles.styleBlock} className="style-block">
+              <div style={styles.styleBlockContent}>
+                {/* Left Side - Text */}
+                <div style={styles.styleTextContainer}>
+                  <h3 style={styles.styleHeading}>Spa Style</h3>
+                  <p style={styles.styleDescription}>
+                    Spa design transforms living spaces into sanctuaries of calm
+                    and restoration. Soft, earthy tones, natural stone, bamboo,
+                    and flowing water features create an atmosphere of pure
+                    tranquility. Every element is chosen to soothe the senses —
+                    from gentle lighting and plush textures to organic materials
+                    that bring the healing energy of nature indoors.
+                  </p>
+                </div>
+
+                {/* Right Side - Image */}
+                <div style={styles.styleImageContainer}>
+                  <img
+                    src="/public/HomePageImages/spa.jpg"
+                    alt="Spa Style"
+                    style={styles.styleImage}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </main>

@@ -92,28 +92,42 @@ function Account() {
   // Fetch currently logged-in user from Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setFirebaseUser(user);
-        // Save current account and load other saved accounts
-        const method = user.providerData.some(
-          (p) => p.providerId === "google.com",
-        )
-          ? "google"
-          : "email";
-        saveSwitchedAccount(
-          user.email || "",
-          user.displayName || "",
-          user.uid,
-          method,
-        );
-        loadSavedAccounts(user.uid);
-        // Track this login with the correct method
-        trackLoginActivity(user.uid, user.email || "", method);
-      } else {
-        // Redirect to login if user is not authenticated
+      if (!user) {
         navigate("/login");
+        setIsLoading(false);
+        return;
       }
+
+      // Set the cached user immediately — Firebase's local cache always contains
+      // photoURL from the original sign-in, so the avatar renders right away.
+      const method = user.providerData.some(
+        (p) => p.providerId === "google.com",
+      )
+        ? "google"
+        : "email";
+      saveSwitchedAccount(
+        user.email || "",
+        user.displayName || "",
+        user.uid,
+        method,
+      );
+      loadSavedAccounts(user.uid);
+      trackLoginActivity(user.uid, user.email || "", method);
+      setFirebaseUser(user);
       setIsLoading(false);
+
+      // Reload in the background so photoURL stays fresh (e.g. after Google
+      // account photo changes). Does not block the initial render.
+      user
+        .reload()
+        .then(() => {
+          if (auth.currentUser) {
+            setFirebaseUser(auth.currentUser);
+          }
+        })
+        .catch(() => {
+          // Keep the cached user object if the network reload fails
+        });
     });
 
     return () => unsubscribe();
@@ -466,11 +480,9 @@ function Account() {
           displayName: newUsername,
         });
 
-        // Refresh the user data
-        setFirebaseUser({
-          ...firebaseUser,
-          displayName: newUsername,
-        });
+        // Use auth.currentUser to avoid losing properties (e.g. photoURL) that
+        // are prototype getters on the Firebase User class and would be dropped by spread
+        setFirebaseUser(auth.currentUser);
 
         toast.success("Username updated successfully!");
         setIsChangeUsernameModalOpen(false);
@@ -656,11 +668,19 @@ function Account() {
               <div style={styles.accountContent}>
                 <div style={styles.avatarContainer}>
                   <img
-                    src={firebaseUser.photoURL || "/profile logo.png"}
+                    src={
+                      firebaseUser.photoURL ||
+                      firebaseUser.providerData.find(
+                        (p) => p.providerId === "google.com",
+                      )?.photoURL ||
+                      "/profile logo.png"
+                    }
                     alt="User Avatar"
                     style={styles.avatar}
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = "/profile logo.png";
+                      const img = e.target as HTMLImageElement;
+                      img.onerror = null; // prevent infinite loop if fallback also fails
+                      img.src = "/profile logo.png";
                     }}
                   />
                 </div>

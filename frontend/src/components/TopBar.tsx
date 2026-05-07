@@ -85,9 +85,11 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
       }
     });
 
-    // Reset all text colors to dark
+    // Reset all text colors to dark, but skip elements inside protected sections
     document.querySelectorAll('[style*="color"]').forEach((el) => {
       const element = el as HTMLElement;
+      if (element.closest("[data-hero-carousel]")) return;
+      if (element.closest("[data-static-colors]")) return;
       if (
         element.style.color === "#ffffff" ||
         element.style.color === "rgb(255, 255, 255)"
@@ -96,9 +98,11 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
       }
     });
 
-    // Reset all computed colors
+    // Reset all computed colors, but skip elements inside protected sections
     document.querySelectorAll("*").forEach((el) => {
       const element = el as HTMLElement;
+      if (element.closest("[data-hero-carousel]")) return;
+      if (element.closest("[data-static-colors]")) return;
       if (element.style.color === "#ffffff") {
         element.style.color = "#333";
       }

@@ -37,7 +37,17 @@ function Footer() {
         {/* Product Column */}
         <div style={styles.column}>
           <h3 style={styles.columnTitle}>Product</h3>
-          <nav style={styles.linksList}></nav>
+          <nav style={styles.linksList}>
+            <a href="/faq" style={styles.link}>
+              FAQ
+            </a>
+            <a href="/#design-styles" style={styles.link}>
+              Design Styles
+            </a>
+            <a href="/#before-after" style={styles.link}>
+              Before & After
+            </a>
+          </nav>
         </div>
 
         {/* Contact Column */}

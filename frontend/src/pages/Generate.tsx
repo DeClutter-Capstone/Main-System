@@ -42,11 +42,6 @@ function Generate() {
       image: "/public/HomePageImages/bohemian.webp",
     },
     {
-      id: "Rustic",
-      name: "Rustic",
-      image: "/public/HomePageImages/rustic.jpg",
-    },
-    {
       id: "Spa",
       name: "Spa",
       image: "/public/HomePageImages/spa.jpg",
@@ -158,9 +153,32 @@ function Generate() {
           color: #ffffff !important;
           border-color: #555 !important;
         }
+        [data-theme="dark"] .gen-label,
+        [data-theme="dark"] .gen-upload-title,
+        [data-theme="dark"] .gen-style-title,
+        [data-theme="dark"] .gen-upload-text,
+        [data-theme="dark"] .gen-supported-formats,
+        [data-theme="dark"] .gen-comparison-title {
+          color: #ffffff !important;
+        }
+        .style-card {
+          background-color: white;
+          border-color: #ddd;
+          transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .style-card.selected {
+          background-color: #f0f4ff;
+          border-color: #4384E2 !important;
+          box-shadow: 0 4px 12px rgba(67, 132, 226, 0.15);
+        }
         [data-theme="dark"] .style-card {
           background-color: #383838ff !important;
+          border-color: #555 !important;
           color: #ffffff !important;
+        }
+        [data-theme="dark"] .style-card.selected {
+          background-color: #2a4a7a !important;
+          border-color: #4384E2 !important;
         }
         [data-theme="dark"] .style-card > div {
           color: #ffffff !important;
@@ -171,7 +189,7 @@ function Generate() {
           color: #ffffff !important;
         }
         [data-theme="dark"] textarea::placeholder {
-          color: #ffffffff !important;
+          color: #999999 !important;
         }
         [data-theme="dark"] .images-container-box {
           background-color: #3838389a !important;
@@ -183,7 +201,9 @@ function Generate() {
         <div style={styles.topSection}>
           {/* Left - Upload Box */}
           <div style={styles.uploadColumn}>
-            <h2 style={styles.uploadTitle}>Upload image</h2>
+            <h2 style={styles.uploadTitle} className="gen-upload-title">
+              Upload image
+            </h2>
             <div
               style={{
                 ...styles.uploadBox,
@@ -236,10 +256,13 @@ function Generate() {
                     onChange={handleFileChange}
                     style={{ display: "none" }}
                   />
-                  <div style={styles.uploadText}>
+                  <div style={styles.uploadText} className="gen-upload-text">
                     Or drag & drop your media here
                   </div>
-                  <div style={styles.supportedFormats}>
+                  <div
+                    style={styles.supportedFormats}
+                    className="gen-supported-formats"
+                  >
                     JPG, JPEG, PNG all supported
                   </div>
                 </div>
@@ -251,7 +274,9 @@ function Generate() {
           <div style={styles.optionsColumn}>
             {/* Select Room Type */}
             <div style={styles.formGroupRow}>
-              <label style={styles.labelInline}>Select Room Type</label>
+              <label style={styles.labelInline} className="gen-label">
+                Select Room Type
+              </label>
               <select
                 value={roomType}
                 onChange={(e) => setRoomType(e.target.value)}
@@ -262,13 +287,14 @@ function Generate() {
                 <option value="Living Room">Living Room</option>
                 <option value="Kitchen">Kitchen</option>
                 <option value="Bathroom">Bathroom</option>
-                <option value="Office">Office</option>
               </select>
             </div>
 
             {/* Assign Project */}
             <div style={styles.formGroupRow}>
-              <label style={styles.labelInline}>Assign Project</label>
+              <label style={styles.labelInline} className="gen-label">
+                Assign Project
+              </label>
               <select
                 value={assignProject}
                 onChange={(e) => setAssignProject(e.target.value)}
@@ -284,7 +310,7 @@ function Generate() {
 
             {/* Custom Prompt */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>
+              <label style={styles.label} className="gen-label">
                 Enter Custom Prompt (optional) :
               </label>
               <textarea
@@ -301,7 +327,9 @@ function Generate() {
         {/* Style Selection Section */}
         <div style={styles.styleSection}>
           <div style={styles.styleSectionHeader}>
-            <h2 style={styles.styleTitle}>Select Style:</h2>
+            <h2 style={styles.styleTitle} className="gen-style-title">
+              Select Style:
+            </h2>
             <div style={styles.paginationContainer}>
               <div
                 style={{
@@ -332,89 +360,39 @@ function Generate() {
 
           {!showMoreStyles ? (
             <div style={styles.styleCardsContainer}>
-              {styles_data.map((style) => {
-                const isDarkMode =
-                  document.documentElement.getAttribute("data-theme") ===
-                  "dark";
-                return (
-                  <div
-                    key={style.id}
-                    onClick={() => handleStyleCardClick(style.id)}
-                    className="style-card"
-                    style={{
-                      ...styles.styleCard,
-                      borderColor:
-                        selectedStyle === style.id
-                          ? "#4384E2"
-                          : isDarkMode
-                            ? "#555"
-                            : "#ddd",
-                      backgroundColor:
-                        selectedStyle === style.id
-                          ? isDarkMode
-                            ? "#4384E2"
-                            : "#f0f4ff"
-                          : isDarkMode
-                            ? "#383838ff"
-                            : "white",
-                      boxShadow:
-                        selectedStyle === style.id
-                          ? "0 4px 12px rgba(67, 132, 226, 0.15)"
-                          : "none",
-                    }}
-                  >
-                    <img
-                      src={style.image}
-                      alt={style.name}
-                      style={styles.styleCardImage}
-                    />
-                    <div style={styles.styleCardName}>{style.name}</div>
-                  </div>
-                );
-              })}
+              {styles_data.map((style) => (
+                <div
+                  key={style.id}
+                  onClick={() => handleStyleCardClick(style.id)}
+                  className={`style-card${selectedStyle === style.id ? " selected" : ""}`}
+                  style={styles.styleCard}
+                >
+                  <img
+                    src={style.image}
+                    alt={style.name}
+                    style={styles.styleCardImage}
+                  />
+                  <div style={styles.styleCardName}>{style.name}</div>
+                </div>
+              ))}
             </div>
           ) : (
             <div style={styles.styleCardsContainer}>
-              {moreStyles.map((style) => {
-                const isDarkMode =
-                  document.documentElement.getAttribute("data-theme") ===
-                  "dark";
-                return (
-                  <div
-                    key={style.id}
-                    onClick={() => handleStyleCardClick(style.id)}
-                    className="style-card"
-                    style={{
-                      ...styles.styleCard,
-                      borderColor:
-                        selectedStyle === style.id
-                          ? "#4384E2"
-                          : isDarkMode
-                            ? "#555"
-                            : "#ddd",
-                      backgroundColor:
-                        selectedStyle === style.id
-                          ? isDarkMode
-                            ? "#4384E2"
-                            : "#f0f4ff"
-                          : isDarkMode
-                            ? "#383838ff"
-                            : "white",
-                      boxShadow:
-                        selectedStyle === style.id
-                          ? "0 4px 12px rgba(67, 132, 226, 0.15)"
-                          : "none",
-                    }}
-                  >
-                    <img
-                      src={style.image}
-                      alt={style.name}
-                      style={styles.styleCardImage}
-                    />
-                    <div style={styles.styleCardName}>{style.name}</div>
-                  </div>
-                );
-              })}
+              {moreStyles.map((style) => (
+                <div
+                  key={style.id}
+                  onClick={() => handleStyleCardClick(style.id)}
+                  className={`style-card${selectedStyle === style.id ? " selected" : ""}`}
+                  style={styles.styleCard}
+                >
+                  <img
+                    src={style.image}
+                    alt={style.name}
+                    style={styles.styleCardImage}
+                  />
+                  <div style={styles.styleCardName}>{style.name}</div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -443,7 +421,9 @@ function Generate() {
         {/* Before & After Comparison */}
         {generatedImage && !isLoading && (
           <div style={styles.comparisonSection}>
-            <h2 style={styles.comparisonTitle}>Transformation Result</h2>
+            <h2 style={styles.comparisonTitle} className="gen-comparison-title">
+              Transformation Result
+            </h2>
 
             <div
               style={styles.imagesContainerBox}
@@ -720,8 +700,6 @@ const styles = {
     borderRadius: "12px",
     border: "2px solid #ddd",
     cursor: "pointer",
-    transition: "all 0.3s ease",
-    backgroundColor: "white",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
     overflow: "hidden",
   } as React.CSSProperties,

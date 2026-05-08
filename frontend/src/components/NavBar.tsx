@@ -11,188 +11,93 @@ function NavBar() {
   });
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
 
-  const applyDarkMode = () => {
-    document.documentElement.setAttribute("data-theme", "dark");
-    document.documentElement.style.backgroundColor = "#1a1a1a";
-    document.documentElement.style.color = "#ffffff";
-    document.body.style.backgroundColor = "#1a1a1a";
-    document.body.style.color = "#ffffff";
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+    localStorage.setItem("darkMode", String(isDarkMode));
+  }, [isDarkMode]);
 
-    // Apply dark theme to all elements with specific styles
-    document.querySelectorAll('[style*="background-color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      const bgColor = element.style.backgroundColor;
-      if (
-        bgColor === "rgb(245, 245, 245)" ||
-        bgColor === "#f5f5f5" ||
-        bgColor === "rgba(245, 245, 245, 1)"
-      ) {
-        element.style.backgroundColor = "#2a2a2a";
-      } else if (
-        bgColor === "rgb(255, 255, 255)" ||
-        bgColor === "#ffffff" ||
-        bgColor === "rgba(255, 255, 255, 1)"
-      ) {
-        element.style.backgroundColor = "#1a1a1a";
-      }
-    });
+  // Apply on first mount without waiting for state change
+  useEffect(() => {
+    if (localStorage.getItem("darkMode") === "true") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  }, []);
 
-    // Change all text colors to white
-    document.querySelectorAll('[style*="color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      if (
-        element.style.color === "rgb(51, 51, 51)" ||
-        element.style.color === "#333" ||
-        element.style.color === "rgb(102, 102, 102)" ||
-        element.style.color === "#666"
-      ) {
-        element.style.color = "#ffffff";
-      }
-    });
-
-    // Also apply to all elements without style attribute
-    document.querySelectorAll("*").forEach((el) => {
-      const element = el as HTMLElement;
-      const computedStyle = window.getComputedStyle(element);
-      if (
-        computedStyle.color === "rgb(51, 51, 51)" ||
-        computedStyle.color === "rgb(0, 0, 0)"
-      ) {
-        element.style.color = "#ffffff";
-      }
-    });
-
-    localStorage.setItem("darkMode", "true");
-  };
-
-  const applyLightMode = () => {
-    document.documentElement.removeAttribute("data-theme");
-    document.documentElement.style.backgroundColor = "#ffffff";
-    document.documentElement.style.color = "#000000";
-    document.body.style.backgroundColor = "#ffffff";
-    document.body.style.color = "#000000";
-
-    // Reset all background colors
-    document.querySelectorAll('[style*="background-color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      const bgColor = element.style.backgroundColor;
-      if (bgColor === "rgb(42, 42, 42)" || bgColor === "#2a2a2a") {
-        element.style.backgroundColor = "#f5f5f5";
-      } else if (bgColor === "rgb(26, 26, 26)" || bgColor === "#1a1a1a") {
-        element.style.backgroundColor = "#ffffff";
-      }
-    });
-
-    // Reset all text colors to dark
-    document.querySelectorAll('[style*="color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      if (
-        element.style.color === "#ffffff" ||
-        element.style.color === "rgb(255, 255, 255)"
-      ) {
-        element.style.color = "#333";
-      }
-    });
-
-    // Reset all computed colors
-    document.querySelectorAll("*").forEach((el) => {
-      const element = el as HTMLElement;
-      if (element.style.color === "#ffffff") {
-        element.style.color = "#333";
-      }
-    });
-
-    localStorage.setItem("darkMode", "false");
-  };
-
-  // Fetch Firebase user data
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
     });
-
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    // Apply/remove dark mode based on state
-    if (isDarkMode) {
-      // Use setTimeout to ensure DOM is ready
-      setTimeout(() => {
-        applyDarkMode();
-      }, 0);
-    } else {
-      setTimeout(() => {
-        applyLightMode();
-      }, 0);
-    }
-  }, [isDarkMode]);
-
   const isActive = (path: string) => location.pathname === path;
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
 
   return (
     <nav style={styles.navbar}>
-      {/* Logo on the left */}
+      <style>{`
+        .nav-link {
+          color: #333;
+          text-decoration: none;
+          font-size: 1.25rem;
+          font-weight: 500;
+          font-family: 'Alata', sans-serif;
+          cursor: pointer;
+          padding: 0.5rem 1rem;
+          transition: color 0.2s ease;
+        }
+        .nav-link:hover {
+          color: #4384E2;
+        }
+        .nav-link.active {
+          color: #4384E2;
+        }
+        [data-theme="dark"] .nav-link {
+          color: #ffffff;
+        }
+        [data-theme="dark"] .nav-link:hover {
+          color: #82b6ff;
+        }
+        [data-theme="dark"] .nav-link.active {
+          color: #82b6ff;
+        }
+        [data-theme="dark"] nav {
+          background-color: #1a1a1a !important;
+        }
+      `}</style>
+
+      {/* Logo */}
       <div style={styles.logoSection}>
-        <img
-          src="/Declutter logo.png"
-          alt="DeClutter Logo"
-          style={styles.logo}
-        />
+        <img src="/Declutter logo.png" alt="DeClutter Logo" style={styles.logo} />
       </div>
 
-      {/* Navigation items in the middle */}
+      {/* Nav links */}
       <div style={styles.navItems}>
-        <Link
-          to="/generate"
-          style={{
-            ...styles.navLink,
-            color: isActive("/generate") ? "#4384E2" : "#333",
-          }}
-        >
+        <Link to="/generate" className={`nav-link${isActive("/generate") ? " active" : ""}`}>
           Generate
         </Link>
-        <Link
-          to="/projects"
-          style={{
-            ...styles.navLink,
-            color: isActive("/projects") ? "#4384E2" : "#333",
-          }}
-        >
+        <Link to="/projects" className={`nav-link${isActive("/projects") ? " active" : ""}`}>
           My Projects
         </Link>
-        <Link
-          to="/history"
-          style={{
-            ...styles.navLink,
-            color: isActive("/history") ? "#4384E2" : "#333",
-          }}
-        >
+        <Link to="/history" className={`nav-link${isActive("/history") ? " active" : ""}`}>
           History
         </Link>
-        <Link
-          to="/faq"
-          style={{
-            ...styles.navLink,
-            color: isActive("/faq") ? "#4384E2" : "#333",
-          }}
-        >
+        <Link to="/faq" className={`nav-link${isActive("/faq") ? " active" : ""}`}>
           FAQ
         </Link>
       </div>
 
-      {/* Profile icon on the right */}
+      {/* Right side */}
       <div style={styles.profileSection}>
         <button
           style={{
             ...styles.toggleButton,
             backgroundColor: isDarkMode ? "#333" : "#ddd",
           }}
-          onClick={toggleDarkMode}
+          onClick={() => setIsDarkMode(!isDarkMode)}
           title="Toggle dark mode"
         >
           <img
@@ -223,6 +128,7 @@ const styles = {
     padding: "0",
     backgroundColor: "#ffffff",
     fontFamily: "'Alata', sans-serif",
+    transition: "background-color 0.3s ease",
   } as React.CSSProperties,
   logoSection: {
     display: "flex",
@@ -239,18 +145,6 @@ const styles = {
     justifyContent: "center",
     flex: "1 1 auto",
   } as React.CSSProperties,
-  navLink: {
-    background: "none",
-    border: "none",
-    textDecoration: "none",
-    color: "#333",
-    fontSize: "1.25rem",
-    fontWeight: "500",
-    fontFamily: "'Alata', sans-serif",
-    cursor: "pointer",
-    transition: "color 0.3s ease",
-    padding: "0.5rem 1rem",
-  } as React.CSSProperties,
   profileSection: {
     display: "flex",
     alignItems: "center",
@@ -264,7 +158,6 @@ const styles = {
     borderRadius: "50%",
     border: "none",
     cursor: "pointer",
-    fontSize: "20px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -282,7 +175,6 @@ const styles = {
     cursor: "pointer",
     marginTop: "5px",
     marginBottom: "5px",
-    transition: "opacity 0.3s ease",
   } as React.CSSProperties,
 };
 

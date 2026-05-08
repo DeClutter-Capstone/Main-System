@@ -31,8 +31,8 @@ function HistoryCard({
           <h3 style={titleStyle} className="history-card-title">
             {title}
           </h3>
-          <p style={dateStyle}>{date}</p>
-          <p style={styleTextStyle}>{style}</p>
+          <p style={dateStyle} className="history-card-date">{date}</p>
+          <p style={styleTextStyle} className="history-card-style">{style}</p>
         </div>
 
         {/* Bottom Right: Action Icons */}
@@ -94,6 +94,10 @@ function HistoryCard({
         
         [data-theme="dark"] .history-card-title {
           color: #ffffff !important;
+        }
+
+        [data-theme="dark"] .history-card-date {
+          color: #cccccc !important;
         }
         
         [data-theme="dark"] .history-card-button {

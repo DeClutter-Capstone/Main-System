@@ -239,7 +239,6 @@ const styles = {
     maxWidth: "1200px",
     margin: "0 auto",
     padding: "60px 24px",
-    minHeight: "100vh",
     background: "#f5f5f5ff",
     fontFamily:
       '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif',

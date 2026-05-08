@@ -1268,7 +1268,6 @@ function Account() {
 const styles = {
   pageContainer: {
     width: "100%",
-    minHeight: "100vh",
     padding: "40px 20px",
     backgroundColor: "inherit",
   } as React.CSSProperties,

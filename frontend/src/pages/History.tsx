@@ -5,6 +5,20 @@ import { fetchHistory, deleteHistoryItem, type HistoryItem } from "../services/h
 
 function History() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDark, setIsDark] = useState(
+    document.documentElement.getAttribute("data-theme") === "dark"
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute("data-theme") === "dark");
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
   const [selectedStyle, setSelectedStyle] = useState("All Styles");
   const [selectedRoom, setSelectedRoom] = useState("All Rooms");
   const [sortBy, setSortBy] = useState("Newest");
@@ -91,7 +105,7 @@ function History() {
         <div style={headerStyle}>
           <div style={titleSectionStyle}>
             <img
-              src="/HomePageImages/projects icon.png"
+              src={isDark ? "/HomePageImages/gridlight.png" : "/HomePageImages/griddark.png"}
               alt="Projects"
               style={iconStyle}
             />
@@ -200,7 +214,7 @@ function History() {
         [data-theme="dark"] .history-search-input {
           background-color: #383838ff !important;
           color: #fff !important;
-          border-color: #3a3a3aff !important;
+          border-color: #555 !important;
         }
         
         [data-theme="dark"] .history-search-input::placeholder {
@@ -210,9 +224,9 @@ function History() {
         [data-theme="dark"] .history-dropdown {
           background-color: #383838ff !important;
           color: #fff !important;
-          border-color: #3a3a3aff !important;
+          border-color: #555 !important;
         }
-        
+
         [data-theme="dark"] .history-dropdown option {
           background-color: #2a2a2aff !important;
           color: #fff !important;
@@ -271,15 +285,14 @@ const toolbarStyle: React.CSSProperties = {
 const searchInputStyle: React.CSSProperties = {
   flex: "1",
   minWidth: "300px",
-  padding: "12px 18px",
-  fontSize: "14px",
+  padding: "10px 16px",
+  fontSize: "13px",
   border: "1px solid #e0e0e0",
   borderRadius: "24px",
   outline: "none",
   backgroundColor: "#ffffff",
   color: "#1a1a1a",
   transition: "all 0.2s ease",
-  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
 };
 
 const dropdownsContainerStyle: React.CSSProperties = {

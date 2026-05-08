@@ -9,8 +9,22 @@ function HomePage() {
   const [slider2Position, setSlider2Position] = useState(50);
   const [isSlider1Active, setIsSlider1Active] = useState(false);
   const [isSlider2Active, setIsSlider2Active] = useState(false);
+  const [isDark, setIsDark] = useState(
+    document.documentElement.getAttribute("data-theme") === "dark",
+  );
   const sliderContainerRef1 = useRef<HTMLDivElement>(null);
   const sliderContainerRef2 = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute("data-theme") === "dark");
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -184,11 +198,15 @@ function HomePage() {
 
           {/* Projects Section */}
           <div style={styles.projectsSection}>
-            {/* Left Side */}
+            {/* Left: label + card image */}
             <div style={styles.projectsLeft} className="projects-left-animated">
               <div style={styles.projectsHeader}>
                 <img
-                  src="/public/HomePageImages/projects icon.png"
+                  src={
+                    isDark
+                      ? "/public/HomePageImages/gridlight.png"
+                      : "/public/HomePageImages/griddark.png"
+                  }
                   alt="Projects Icon"
                   style={styles.projectsIcon}
                   className="projects-icon-animated"
@@ -203,7 +221,7 @@ function HomePage() {
               />
             </div>
 
-            {/* Right Side */}
+            {/* Right: text */}
             <div
               style={styles.projectsRight}
               className="projects-right-animated"
@@ -407,12 +425,12 @@ function HomePage() {
                 <div style={styles.styleTextContainer}>
                   <h3 style={styles.styleHeading}>Industrial Style</h3>
                   <p style={styles.styleDescription}>
-                    Industrial design draws inspiration from warehouses and urban
-                    lofts, celebrating raw, unfinished materials such as exposed
-                    brick, concrete, and steel. Dark tones, weathered wood, and
-                    open structural elements combine to create spaces that feel
-                    bold, authentic, and unapologetically functional — turning
-                    every imperfection into a design statement.
+                    Industrial design draws inspiration from warehouses and
+                    urban lofts, celebrating raw, unfinished materials such as
+                    exposed brick, concrete, and steel. Dark tones, weathered
+                    wood, and open structural elements combine to create spaces
+                    that feel bold, authentic, and unapologetically functional —
+                    turning every imperfection into a design statement.
                   </p>
                 </div>
 
@@ -445,10 +463,10 @@ function HomePage() {
                   <p style={styles.styleDescription}>
                     Bohemian design embraces a free-spirited, eclectic aesthetic
                     that layers rich colors, global patterns, and mixed textures
-                    to create deeply personal and expressive spaces. Lush plants,
-                    vintage finds, handcrafted pieces, and layered textiles come
-                    together in a beautifully curated chaos that feels warm,
-                    vibrant, and full of character.
+                    to create deeply personal and expressive spaces. Lush
+                    plants, vintage finds, handcrafted pieces, and layered
+                    textiles come together in a beautifully curated chaos that
+                    feels warm, vibrant, and full of character.
                   </p>
                 </div>
               </div>
@@ -558,53 +576,47 @@ const styles = {
   } as React.CSSProperties,
   projectsSection: {
     display: "flex",
-    gap: "3rem",
-    justifyContent: "center",
-    alignItems: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: "5rem",
     width: "100%",
-    marginTop: "3rem",
-    flexWrap: "wrap",
-    padding: "2rem",
+    maxWidth: "1100px",
+    marginTop: "4rem",
+    padding: "0 2rem",
   } as React.CSSProperties,
   projectsLeft: {
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-start",
-    gap: "1.5rem",
-    flex: "1",
-    minWidth: "280px",
-    marginLeft: "119px",
+    gap: "1.2rem",
+    flexShrink: 0,
   } as React.CSSProperties,
   projectsHeader: {
     display: "flex",
     alignItems: "center",
-    gap: "1rem",
+    gap: "0.75rem",
+    marginLeft: "10px",
   } as React.CSSProperties,
   projectsIcon: {
-    width: "40px",
-    height: "40px",
+    width: "36px",
+    height: "36px",
   } as React.CSSProperties,
   projectsHeading: {
-    fontSize: "1.8rem",
+    fontSize: "1.6rem",
     fontWeight: "600",
     color: "#333",
     margin: "0",
   } as React.CSSProperties,
   collectionImage: {
-    width: "100%",
-    maxWidth: "330px",
-    height: "330px",
-    borderRadius: "0",
-    objectFit: "cover",
+    width: "250px",
+    height: "auto",
+    display: "block",
   } as React.CSSProperties,
   projectsRight: {
-    flex: "1",
-    minWidth: "300px",
+    flex: 1,
     display: "flex",
     flexDirection: "column",
     gap: "1.5rem",
-    marginLeft: "-500px",
-    marginTop: "80px",
   } as React.CSSProperties,
   projectsTitle: {
     fontSize: "2.2rem",
@@ -613,10 +625,9 @@ const styles = {
     margin: "0",
   } as React.CSSProperties,
   projectsDescription: {
-    fontSize: "1.5rem",
+    fontSize: "1.2rem",
     color: "#666",
-    lineHeight: "1.6",
-    maxWidth: "800px",
+    lineHeight: "1.8",
     margin: "0",
   } as React.CSSProperties,
   transformationSection: {

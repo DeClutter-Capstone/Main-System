@@ -14,18 +14,9 @@ import {
   signInWithEmailAndPassword,
   deleteUser,
 } from "firebase/auth";
-import { auth } from "../Firebase/Firebase";
+import { auth, storage } from "../Firebase/Firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { toast } from "react-toastify";
-import {
-  collection,
-  addDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-} from "firebase/firestore";
-import { db } from "../Firebase/Firebase";
 
 interface SavedAccount {
   email: string;
@@ -35,14 +26,12 @@ interface SavedAccount {
 }
 
 interface LoginActivity {
-  id: string;
-  uid: string;
-  email: string;
-  timestamp: number;
-  deviceInfo: string;
-  ipAddress?: string;
-  location?: string;
-  loginMethod: "google" | "email";
+  activity_id: string;
+  action_type: string;
+  timestamp: string;
+  device_info: string | null;
+  login_method: string | null;
+  ip_address: string | null;
 }
 
 function Account() {
@@ -82,6 +71,12 @@ function Account() {
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   const [hasMoreActivities, setHasMoreActivities] = useState(true);
 
+  // Profile photo states
+  const [isEditPhotoModalOpen, setIsEditPhotoModalOpen] = useState(false);
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
   // Delete account states
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] =
     useState(false);
@@ -112,7 +107,9 @@ function Account() {
         method,
       );
       loadSavedAccounts(user.uid);
-      trackLoginActivity(user.uid, user.email || "", method);
+      syncUser(user.uid, user.displayName || user.email || "", user.email || "").then(() =>
+        trackLoginActivity(user.uid, navigator.userAgent, method)
+      );
       setFirebaseUser(user);
       setIsLoading(false);
 
@@ -133,72 +130,48 @@ function Account() {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Track login activity
-  const trackLoginActivity = async (
-    uid: string,
-    email: string,
-    method: "google" | "email",
-  ) => {
+  // Sync user into PostgreSQL
+  const syncUser = async (uid: string, user_name: string, email: string) => {
     try {
-      const deviceInfo = navigator.userAgent;
+      await fetch("http://localhost:8000/api/users/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-firebase-uid": uid,
+        },
+        body: JSON.stringify({ user_name, email }),
+      });
+    } catch (error) {
+      console.error("Error syncing user:", error);
+    }
+  };
 
-      // Try to get IP address (requires backend API or third-party service)
-      let ipAddress = "Unknown";
-      try {
-        const ipResponse = await fetch("https://api.ipify.org?format=json");
-        const ipData = await ipResponse.json();
-        ipAddress = ipData.ip;
-      } catch {
-        console.log("Could not fetch IP address");
-      }
-
-      await addDoc(collection(db, "loginActivity"), {
-        uid,
-        email,
-        timestamp: Date.now(),
-        deviceInfo,
-        ipAddress,
-        location: "Unknown", // Would need geolocation API or backend
-        loginMethod: method,
+  // Track login activity
+  const trackLoginActivity = async (uid: string, deviceInfo: string, loginMethod: string) => {
+    try {
+      await fetch("http://localhost:8000/api/activity/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-firebase-uid": uid,
+        },
+        body: JSON.stringify({ device_info: deviceInfo, login_method: loginMethod }),
       });
     } catch (error) {
       console.error("Error tracking login activity:", error);
     }
   };
 
-  // Load login activity with caching
+  // Load login activity
   const loadLoginActivity = async (uid: string) => {
     try {
       setIsLoadingActivities(true);
-
-      // Fetch only 10 records instead of 20 for faster initial load
-      const q = query(
-        collection(db, "loginActivity"),
-        where("uid", "==", uid),
-        orderBy("timestamp", "desc"),
-        limit(10),
-      );
-
-      const querySnapshot = await getDocs(q);
-
-      const activities: LoginActivity[] = [];
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        activities.push({
-          id: doc.id,
-          uid: data.uid,
-          email: data.email,
-          timestamp: data.timestamp,
-          deviceInfo: data.deviceInfo,
-          ipAddress: data.ipAddress,
-          location: data.location,
-          loginMethod: data.loginMethod,
-        });
+      const res = await fetch("http://localhost:8000/api/activity/?limit=50", {
+        headers: { "x-firebase-uid": uid },
       });
-
-      setLoginActivities(activities);
-      setHasMoreActivities(activities.length === 10);
+      const data: LoginActivity[] = await res.json();
+      setLoginActivities(data);
+      setHasMoreActivities(data.length === 50);
     } catch (error) {
       console.error("Error loading login activity:", error);
       toast.error("Failed to load login activity");
@@ -211,42 +184,15 @@ function Account() {
   // Load more activities for pagination
   const loadMoreActivities = async (uid: string) => {
     if (isLoadingActivities || !hasMoreActivities) return;
-
     try {
       setIsLoadingActivities(true);
-
-      const lastActivity = loginActivities[loginActivities.length - 1];
-      if (!lastActivity) return;
-
-      const q = query(
-        collection(db, "loginActivity"),
-        where("uid", "==", uid),
-        orderBy("timestamp", "desc"),
-        limit(11), // Get 11 to check if there are more
-      );
-
-      const querySnapshot = await getDocs(q);
-      const activities: LoginActivity[] = [];
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        activities.push({
-          id: doc.id,
-          uid: data.uid,
-          email: data.email,
-          timestamp: data.timestamp,
-          deviceInfo: data.deviceInfo,
-          ipAddress: data.ipAddress,
-          location: data.location,
-          loginMethod: data.loginMethod,
-        });
+      const res = await fetch("http://localhost:8000/api/activity/?limit=10", {
+        headers: { "x-firebase-uid": uid },
       });
-
-      // Filter out already loaded activities and keep only new ones
-      const newActivities = activities.filter(
-        (activity) => !loginActivities.some((a) => a.id === activity.id),
+      const data: LoginActivity[] = await res.json();
+      const newActivities = data.filter(
+        (a) => !loginActivities.some((x) => x.activity_id === a.activity_id),
       );
-
       setLoginActivities([...loginActivities, ...newActivities]);
       setHasMoreActivities(newActivities.length === 10);
     } catch (error) {
@@ -257,9 +203,8 @@ function Account() {
     }
   };
 
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString();
+  const formatDate = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString();
   };
 
   const getDeviceName = (userAgent: string) => {
@@ -273,12 +218,13 @@ function Account() {
   };
 
   const getBrowserName = (userAgent: string) => {
+    if (userAgent.includes("Edg")) return "Edge";
     if (userAgent.includes("Chrome")) return "Chrome";
-    if (userAgent.includes("Safari")) return "Safari";
     if (userAgent.includes("Firefox")) return "Firefox";
-    if (userAgent.includes("Edge")) return "Edge";
+    if (userAgent.includes("Safari")) return "Safari";
     return "Unknown Browser";
   };
+
 
   const loadSavedAccounts = (currentUid: string) => {
     try {
@@ -573,6 +519,12 @@ function Account() {
     try {
       setIsDeletingAccount(true);
 
+      // Delete user and all activity from PostgreSQL first
+      await fetch("http://localhost:8000/api/users/me", {
+        method: "DELETE",
+        headers: { "x-firebase-uid": firebaseUser.uid },
+      });
+
       // Delete the user from Firebase Authentication
       await deleteUser(firebaseUser);
 
@@ -603,10 +555,63 @@ function Account() {
     }
   };
 
+  const handlePhotoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be smaller than 5MB");
+      return;
+    }
+
+    setSelectedPhotoFile(file);
+    setPhotoPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleUploadPhoto = async () => {
+    if (!selectedPhotoFile || !firebaseUser) return;
+
+    try {
+      setIsUploadingPhoto(true);
+      const storageRef = ref(storage, `profilePhotos/${firebaseUser.uid}`);
+      await uploadBytes(storageRef, selectedPhotoFile);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      await updateProfile(firebaseUser, { photoURL: downloadURL });
+      setFirebaseUser(auth.currentUser);
+
+      toast.success("Profile photo updated!");
+      setIsEditPhotoModalOpen(false);
+      setSelectedPhotoFile(null);
+      setPhotoPreviewUrl(null);
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      toast.error("Failed to upload photo. Please try again.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleClosePhotoModal = () => {
+    setIsEditPhotoModalOpen(false);
+    setSelectedPhotoFile(null);
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl);
+      setPhotoPreviewUrl(null);
+    }
+  };
+
   const handleMenuClick = async (action: string) => {
     console.log(`${action} clicked`);
 
-    if (action === "Sign out") {
+    if (action === "Edit profile photo") {
+      setIsEditPhotoModalOpen(true);
+    } else if (action === "Sign out") {
       try {
         await signOut(auth);
         localStorage.removeItem("authToken");
@@ -1137,33 +1142,28 @@ function Account() {
                     <>
                       <div style={styles.activityList}>
                         {loginActivities.map((activity) => (
-                          <div key={activity.id} style={styles.activityItem}>
+                          <div key={activity.activity_id} style={styles.activityItem}>
                             <div style={styles.activityHeader}>
                               <span style={styles.activityDevice}>
-                                {getDeviceName(activity.deviceInfo)} •{" "}
-                                {getBrowserName(activity.deviceInfo)}
+                                {getDeviceName(activity.device_info || "")} • {getBrowserName(activity.device_info || "")}
                               </span>
                               <span style={styles.activityTime}>
                                 {formatDate(activity.timestamp)}
                               </span>
                             </div>
                             <div style={styles.activityDetails}>
-                              <p style={styles.activityDetailItem}>
-                                <span style={styles.detailLabel}>Email:</span>
-                                <span>{activity.email}</span>
-                              </p>
-                              <p style={styles.activityDetailItem}>
-                                <span style={styles.detailLabel}>Method:</span>
-                                <span style={styles.methodBadge}>
-                                  {activity.loginMethod === "google"
-                                    ? "Google Sign-In"
-                                    : "Email/Password"}
-                                </span>
-                              </p>
-                              {activity.ipAddress && (
+                              {activity.login_method && (
+                                <p style={styles.activityDetailItem}>
+                                  <span style={styles.detailLabel}>Method:</span>
+                                  <span style={styles.methodBadge}>
+                                    {activity.login_method === "google" ? "Google Sign-In" : "Email/Password"}
+                                  </span>
+                                </p>
+                              )}
+                              {activity.ip_address && (
                                 <p style={styles.activityDetailItem}>
                                   <span style={styles.detailLabel}>IP:</span>
-                                  <span>{activity.ipAddress}</span>
+                                  <span>{activity.ip_address}</span>
                                 </p>
                               )}
                             </div>
@@ -1194,6 +1194,64 @@ function Account() {
                       onClick={() => setIsLoginActivityModalOpen(false)}
                     >
                       Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Profile Photo Modal */}
+          {isEditPhotoModalOpen && (
+            <div style={styles.modalOverlay} onClick={handleClosePhotoModal}>
+              <div
+                style={styles.modalContent}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 style={styles.modalTitle}>Edit Profile Photo</h3>
+                <div style={styles.modalBody}>
+                  <div style={styles.photoPreviewContainer}>
+                    <img
+                      src={
+                        photoPreviewUrl ||
+                        firebaseUser.photoURL ||
+                        "/profile logo.png"
+                      }
+                      alt="Profile preview"
+                      style={styles.photoPreview}
+                    />
+                  </div>
+                  <label style={styles.photoUploadLabel}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handlePhotoFileSelect}
+                    />
+                    <span style={styles.chooseFileButton}>
+                      {selectedPhotoFile ? "Change photo" : "Choose photo"}
+                    </span>
+                  </label>
+                  {selectedPhotoFile && (
+                    <p style={styles.selectedFileName}>
+                      {selectedPhotoFile.name}
+                    </p>
+                  )}
+                  <p style={styles.helpText}>Max size: 5MB. JPG, PNG, GIF.</p>
+                  <div style={styles.modalActions}>
+                    <button
+                      style={styles.cancelButton}
+                      onClick={handleClosePhotoModal}
+                      disabled={isUploadingPhoto}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      style={styles.submitButton}
+                      onClick={handleUploadPhoto}
+                      disabled={!selectedPhotoFile || isUploadingPhoto}
+                    >
+                      {isUploadingPhoto ? "Uploading..." : "Save Photo"}
                     </button>
                   </div>
                 </div>
@@ -1681,6 +1739,43 @@ const styles = {
     cursor: "pointer",
     transition: "all 0.2s ease",
     outline: "none",
+  } as React.CSSProperties,
+  photoPreviewContainer: {
+    display: "flex",
+    justifyContent: "center",
+    marginBottom: "20px",
+  } as React.CSSProperties,
+  photoPreview: {
+    width: "120px",
+    height: "120px",
+    borderRadius: "50%",
+    objectFit: "cover",
+    border: "2px solid #999999",
+    backgroundColor: "#f0f0f0",
+  } as React.CSSProperties,
+  photoUploadLabel: {
+    display: "flex",
+    justifyContent: "center",
+    marginBottom: "12px",
+    cursor: "pointer",
+  } as React.CSSProperties,
+  chooseFileButton: {
+    padding: "10px 24px",
+    fontSize: "14px",
+    fontWeight: "500",
+    border: "1px solid #0066cc",
+    borderRadius: "6px",
+    backgroundColor: "#ffffff",
+    color: "#0066cc",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  } as React.CSSProperties,
+  selectedFileName: {
+    fontSize: "13px",
+    color: "#666666",
+    textAlign: "center",
+    margin: "0 0 4px 0",
+    wordBreak: "break-all",
   } as React.CSSProperties,
 } as const;
 

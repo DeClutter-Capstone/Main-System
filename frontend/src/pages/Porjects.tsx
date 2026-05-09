@@ -308,7 +308,7 @@ function Projects() {
     border: "1px solid #e0e0e0",
     borderRadius: "8px",
     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-    zIndex: 50000,
+    zIndex: -1,
     minWidth: "200px",
     overflow: "hidden",
   };

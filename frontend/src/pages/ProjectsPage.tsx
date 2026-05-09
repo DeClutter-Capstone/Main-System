@@ -238,7 +238,7 @@ const ProjectsPage: React.FC = () => {
     border: "none",
     borderRadius: "8px",
     fontSize: "14px",
-    fontWeight: 600,
+    fontWeight: 400,
     cursor: "pointer",
     transition: "all 0.2s ease",
     whiteSpace: "nowrap",
@@ -251,12 +251,12 @@ const ProjectsPage: React.FC = () => {
     justifyContent: "center",
     gap: "8px",
     padding: "10px 16px",
-    backgroundColor: "#ff4444",
-    color: "#ffffff",
-    border: "none",
+    backgroundColor: "#ffffff",
+    color: "#000000",
+    border: "2px solid #000000",
     borderRadius: "8px",
     fontSize: "14px",
-    fontWeight: 600,
+    fontWeight: 400,
     cursor: "pointer",
     transition: "all 0.2s ease",
     whiteSpace: "nowrap",
@@ -273,7 +273,7 @@ const ProjectsPage: React.FC = () => {
     border: "none",
     borderRadius: "8px",
     fontSize: "14px",
-    fontWeight: 600,
+    fontWeight: 400,
     cursor: "pointer",
     transition: "all 0.2s ease",
     whiteSpace: "nowrap",
@@ -364,7 +364,7 @@ const ProjectsPage: React.FC = () => {
     border: "1px solid #e0e0e0",
     borderRadius: "8px",
     fontSize: "14px",
-    fontWeight: 500,
+    fontWeight: 400,
     cursor: "pointer",
     fontFamily: "inherit",
     backgroundColor: "#f5f5f5",
@@ -377,7 +377,7 @@ const ProjectsPage: React.FC = () => {
     border: "none",
     borderRadius: "8px",
     fontSize: "14px",
-    fontWeight: 500,
+    fontWeight: 400,
     cursor: "pointer",
     fontFamily: "inherit",
     backgroundColor: "#4384E2",
@@ -390,9 +390,11 @@ const ProjectsPage: React.FC = () => {
     backgroundColor: "#ffffff",
     borderRadius: "12px",
     border: "2px solid #1a1a1a",
-    overflow: "hidden",
+    overflow: "visible",
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
+    gap: "24px",
+    padding: "12px",
     maxWidth: "800px",
     width: "100%",
   };
@@ -465,8 +467,11 @@ const ProjectsPage: React.FC = () => {
               <div style={projectInfoStyle}>
                 {/* Description */}
                 {currentProject.description && (
-                  <div style={projectDescriptionStyle}>
-                    {currentProject.description}
+                  <div>
+                    <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#1a1a1a", margin: "0 0 12px 0" }}>Project Description</h3>
+                    <div style={projectDescriptionStyle}>
+                      {currentProject.description}
+                    </div>
                   </div>
                 )}
 
@@ -488,7 +493,7 @@ const ProjectsPage: React.FC = () => {
                       onClick={handleAddTransformation}
                       aria-label="Add new transformation"
                     >
-                      + Add New Transformation
+                      +  Add New Transformation
                     </button>
                     <button
                       style={editButtonStyle}
@@ -497,16 +502,16 @@ const ProjectsPage: React.FC = () => {
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#4384E2")}
                       aria-label="Edit project"
                     >
-                      ✏ Edit Project
+                      Edit Project
                     </button>
                     <button
                       style={deleteButtonStyle}
                       onClick={handleDeleteProject}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#dd0000")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ff4444")}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ffffff")}
                       aria-label="Delete project"
                     >
-                      🗑 Delete Project
+                      Delete Project
                     </button>
                   </div>
                 </div>
@@ -535,7 +540,7 @@ const ProjectsPage: React.FC = () => {
 
                   {/* Generation Comparison Display */}
                   {selectedGeneration && (
-                    <div style={{ marginTop: "32px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div style={{ marginTop: "32px", display: "flex", flexDirection: "column", gap: "16px", alignItems: "center" }}>
                       <h3 style={{ fontSize: "18px", fontWeight: 600, color: "#1a1a1a", margin: "0 0 16px 0" }}>
                         {selectedGeneration.title}
                       </h3>

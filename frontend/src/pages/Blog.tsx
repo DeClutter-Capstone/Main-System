@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
+import { useNavigate } from "react-router-dom";
 import TopBar from "../components/TopBar";
 import Footer from "../components/Footer";
+import { blogPosts } from "../data/blogData";
 
 // ============ HERO SLIDES ============
 const heroSlides = [
@@ -34,119 +36,15 @@ const heroSlides = [
 const getSlideIndex = (index: number) =>
   ((index % heroSlides.length) + heroSlides.length) % heroSlides.length;
 
-// ============ BLOG POSTS ============
-const blogPosts = [
-  {
-    id: 1,
-    title: "AI Bedroom Design Ideas for Small Spaces",
-    description:
-      "Limited square footage doesn't mean limited style. Discover how AI analyses your bedroom dimensions and recommends space-saving furniture, strategic mirrors, and light palettes that make any small room feel open and luxurious.",
-    tag: "AI Tools",
-    roomType: "Bedroom",
-    category: "AI Design Tools",
-    readTime: "5 min read",
-  },
-  {
-    id: 2,
-    title: "Minimalist Living Room Trends in 2026",
-    description:
-      "Clean lines, intentional objects, and breathing room define 2026's living room aesthetic. We break down the key pieces, colour stories, and layout principles that define today's most serene interiors.",
-    tag: "Minimalist",
-    roomType: "Living Room",
-    category: "Minimalist Design",
-    readTime: "4 min read",
-  },
-  {
-    id: 3,
-    title: "Scandinavian Kitchen Designs That Feel Warm & Modern",
-    description:
-      "Nordic kitchens have mastered the art of warmth through restraint. Explore pale wood tones, integrated appliances, and simple hardware choices that make a Scandinavian kitchen both timeless and deeply inviting.",
-    tag: "Scandinavian",
-    roomType: "Kitchen",
-    category: "Scandinavian Style",
-    readTime: "6 min read",
-  },
-  {
-    id: 4,
-    title: "Spa-Inspired Bathroom Ideas Using AI",
-    description:
-      "Your bathroom can be a daily sanctuary. See how AI maps your existing layout and suggests stone textures, rainfall fixtures, and ambient lighting schemes that recreate a five-star spa experience at home.",
-    tag: "Wellness",
-    roomType: "Bathroom",
-    category: "Wellness Design",
-    readTime: "5 min read",
-  },
-  {
-    id: 5,
-    title: "How AI Can Transform Empty Rooms Into Luxury Spaces",
-    description:
-      "A blank room is a canvas. AI-powered rendering fills it with curated furniture clusters, art placement, and accent lighting before you spend a single dollar — eliminating costly trial and error.",
-    tag: "AI Tools",
-    roomType: "Living Room",
-    category: "AI Design Tools",
-    readTime: "7 min read",
-  },
-  {
-    id: 6,
-    title: "Best Color Palettes for Modern Interiors",
-    description:
-      "From warm greiges to deep forest greens, colour sets the emotional tone of every room. We share the palettes dominating modern interiors this year and explain how AI picks the right one for your light conditions.",
-    tag: "Modern",
-    roomType: "Living Room",
-    category: "Modern Design",
-    readTime: "4 min read",
-  },
-  {
-    id: 7,
-    title: "AI Furniture Placement Tips for Better Space Optimization",
-    description:
-      "Furniture arrangement is a science. AI calculates traffic flow, focal points, and natural light paths to suggest layouts that make rooms feel larger, more functional, and visually balanced.",
-    tag: "AI Tools",
-    roomType: "Living Room",
-    category: "AI Design Tools",
-    readTime: "6 min read",
-  },
-  {
-    id: 8,
-    title: "Bohemian Living Room Ideas With Natural Textures",
-    description:
-      "Rattan, jute, linen, and terracotta — bohemian design thrives on layered natural materials. Learn how to build an eclectic yet cohesive living room that feels well-travelled and deeply personal.",
-    tag: "Bohemian",
-    roomType: "Living Room",
-    category: "Bohemian Vibes",
-    readTime: "5 min read",
-  },
-  {
-    id: 9,
-    title: "Industrial Kitchen Designs With Modern Elegance",
-    description:
-      "Raw concrete, exposed steel, and warm Edison bulbs meet sleek cabinetry in the industrial-modern kitchen. Discover how to balance rugged character with refined finish for a space that's tough and beautiful.",
-    tag: "Industrial",
-    roomType: "Kitchen",
-    category: "Industrial Design",
-    readTime: "5 min read",
-  },
-  {
-    id: 10,
-    title: "Top Interior Design Mistakes AI Can Help Avoid",
-    description:
-      "From scale errors to lighting oversights, even experienced decorators make predictable mistakes. See the ten most common design pitfalls and how AI catches them before they become expensive regrets.",
-    tag: "AI Tools",
-    roomType: "Living Room",
-    category: "AI Design Tools",
-    readTime: "8 min read",
-  },
-];
 
 // ============ ROOM TYPES ============
-const roomTypes = [
+const roomTypeDefs = [
   {
     id: 1,
     label: "Bedroom",
     icon: "🛏",
     description:
       "Your personal retreat. Explore layouts, lighting, and style guides to craft a bedroom that restores and inspires.",
-    postCount: 3,
     imageUrl: "/BlogPageImages/bedrom.jpg",
   },
   {
@@ -155,7 +53,6 @@ const roomTypes = [
     icon: "🛋",
     description:
       "The heart of the home. Discover furniture arrangements, colour palettes, and AI-driven ideas to elevate every gathering.",
-    postCount: 3,
     imageUrl: "/BlogPageImages/livingroom.jpg",
   },
   {
@@ -164,7 +61,6 @@ const roomTypes = [
     icon: "🍳",
     description:
       "Where function meets beauty. Unlock smart storage, layout optimisation, and Nordic-inspired culinary spaces.",
-    postCount: 2,
     imageUrl: "/BlogPageImages/kitchen.jpg",
   },
   {
@@ -173,10 +69,14 @@ const roomTypes = [
     icon: "🚿",
     description:
       "Turn your daily routine into a spa ritual. Browse calming materials, soft lighting, and wellness-first design.",
-    postCount: 2,
     imageUrl: "/BlogPageImages/bathroom.jpg",
   },
 ];
+
+const roomTypes = roomTypeDefs.map((r) => ({
+  ...r,
+  postCount: blogPosts.filter((p) => p.roomType === r.label).length,
+}));
 
 // ============ CATEGORIES ============
 const categories = [
@@ -192,8 +92,11 @@ const categories = [
 
 // ============ BLOG COMPONENT ============
 function Blog() {
+  const navigate = useNavigate();
+  const postsRef = useRef<HTMLDivElement>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedRoom, setSelectedRoom] = useState("All");
   const [isHovering, setIsHovering] = useState(false);
 
   // Auto-slide effect
@@ -207,10 +110,17 @@ function Blog() {
     return () => clearInterval(interval);
   }, [isHovering]);
 
-  const filteredPosts =
-    selectedCategory === "All"
-      ? blogPosts
-      : blogPosts.filter((post) => post.category === selectedCategory);
+  const filteredPosts = blogPosts.filter((post) => {
+    const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
+    const matchesRoom = selectedRoom === "All" || post.roomType === selectedRoom;
+    return matchesCategory && matchesRoom;
+  });
+
+  const handleRoomClick = (label: string) => {
+    setSelectedRoom((prev) => (prev === label ? "All" : label));
+    setSelectedCategory("All");
+    postsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const goToSlide = (index: number) => setCurrentSlide(index);
   const goPrev = () => setCurrentSlide(getSlideIndex(currentSlide - 1));
@@ -430,43 +340,53 @@ function Blog() {
             </p>
           </div>
           <div style={styles.roomTypesGrid}>
-            {roomTypes.map((room) => (
-              <div
-                key={room.id}
-                style={styles.roomCard}
-                className="room-card"
-                onMouseEnter={(e) => {
-                  const card = e.currentTarget;
-                  card.style.transform = "translateY(-8px)";
-                  card.style.boxShadow = "0 20px 48px rgba(0,0,0,0.28)";
-                }}
-                onMouseLeave={(e) => {
-                  const card = e.currentTarget;
-                  card.style.transform = "translateY(0)";
-                  card.style.boxShadow = "0 4px 20px rgba(0,0,0,0.08)";
-                }}
-              >
+            {roomTypes.map((room) => {
+              const isActive = selectedRoom === room.label;
+              return (
                 <div
+                  key={room.id}
                   style={{
-                    ...styles.roomCardImage,
-                    backgroundImage: `url(${room.imageUrl})`,
+                    ...styles.roomCard,
+                    outline: isActive ? "2px solid #c9a882" : "none",
+                    outlineOffset: "2px",
+                  }}
+                  className="room-card"
+                  onClick={() => handleRoomClick(room.label)}
+                  onMouseEnter={(e) => {
+                    const card = e.currentTarget;
+                    card.style.transform = "translateY(-8px)";
+                    card.style.boxShadow = "0 20px 48px rgba(0,0,0,0.28)";
+                  }}
+                  onMouseLeave={(e) => {
+                    const card = e.currentTarget;
+                    card.style.transform = "translateY(0)";
+                    card.style.boxShadow = "0 4px 20px rgba(0,0,0,0.08)";
                   }}
                 >
-                  <div style={styles.roomCardOverlay} />
-                  <span style={styles.roomCardIcon}>{room.icon}</span>
-                </div>
-                <div style={styles.roomCardBody}>
-                  <h3 style={styles.roomCardTitle} className="room-card-title">{room.label}</h3>
-                  <p style={styles.roomCardDesc} className="room-card-desc">{room.description}</p>
-                  <div style={styles.roomCardFooter} className="room-card-footer">
-                    <span style={styles.roomCardCount} className="room-card-count">
-                      {room.postCount} articles
-                    </span>
-                    <span style={styles.roomCardArrow} className="room-card-arrow">→</span>
+                  <div
+                    style={{
+                      ...styles.roomCardImage,
+                      backgroundImage: `url(${room.imageUrl})`,
+                    }}
+                  >
+                    <div style={styles.roomCardOverlay} />
+                    <span style={styles.roomCardIcon}>{room.icon}</span>
+                  </div>
+                  <div style={styles.roomCardBody}>
+                    <h3 style={styles.roomCardTitle} className="room-card-title">{room.label}</h3>
+                    <p style={styles.roomCardDesc} className="room-card-desc">{room.description}</p>
+                    <div style={styles.roomCardFooter} className="room-card-footer">
+                      <span style={styles.roomCardCount} className="room-card-count">
+                        {room.postCount} articles
+                      </span>
+                      <span style={styles.roomCardArrow} className="room-card-arrow">
+                        {isActive ? "✕ Clear" : "→"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -507,7 +427,7 @@ function Blog() {
         </section>
 
         {/* BLOG POSTS GRID */}
-        <section style={styles.postsSection} className="blog-posts-section" data-static-colors>
+        <section ref={postsRef} style={styles.postsSection} className="blog-posts-section" data-static-colors>
           <div style={styles.postsGrid}>
             {filteredPosts.map((post) => (
               <article
@@ -523,28 +443,26 @@ function Blog() {
                   (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 12px rgba(0,0,0,0.07)";
                 }}
               >
-                {/* Placeholder image area */}
                 <div style={styles.postImageWrapper}>
-                  <div style={styles.postImagePlaceholder} className="post-img-placeholder">
-                    <span style={styles.postImageIcon}>
-                      {post.roomType === "Bedroom" ? "🛏" :
-                       post.roomType === "Living Room" ? "🛋" :
-                       post.roomType === "Kitchen" ? "🍳" :
-                       post.roomType === "Bathroom" ? "🚿" : "🏠"}
-                    </span>
-                  </div>
+                  <img
+                    src={post.imageUrl}
+                    alt={post.title}
+                    style={styles.postImage}
+                  />
                   <span style={styles.tagBadge}>{post.tag}</span>
                 </div>
 
                 <div style={styles.postContent}>
                   <div style={styles.postMeta}>
                     <span style={styles.postRoomType} className="post-room-type">{post.roomType}</span>
-                    <span style={styles.postDot} className="post-dot">·</span>
-                    <span style={styles.postReadTime} className="post-read-time">{post.readTime}</span>
                   </div>
                   <h3 style={styles.postTitle} className="post-title-text">{post.title}</h3>
                   <p style={styles.postDescription} className="post-desc-text">{post.description}</p>
-                  <button style={styles.readMoreButton} className="post-read-more">
+                  <button
+                    style={styles.readMoreButton}
+                    className="post-read-more"
+                    onClick={() => navigate(`/blog/${post.id}`)}
+                  >
                     Read Article <span style={styles.readMoreArrow}>→</span>
                   </button>
                 </div>
@@ -589,7 +507,7 @@ const styles = {
   carouselContainer: {
     position: "relative",
     width: "100%",
-    height: "580px",
+    height: "680px",
     overflow: "hidden",
   } as CSSProperties,
   overlay: {

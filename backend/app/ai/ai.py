@@ -99,12 +99,11 @@ def generate_image(input_image_path: Path, room_type: str, style_name: str, extr
 
     with open(input_image_path, "rb") as image_file:
         response = client.images.edit(
-            model="gpt-image-1",
+            model="gpt-image-11",
             image=image_file,
             prompt=prompt,
             n=1,
-            size="512x512",
-            quality="low",
+            size="1024x1024",
         )
 
     return response.data[0].b64_json

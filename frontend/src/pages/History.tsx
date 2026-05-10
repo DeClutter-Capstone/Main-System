@@ -66,6 +66,12 @@ function History() {
     console.log(`Downloaded card: ${id}`);
   };
 
+  const handleRename = (id: string, newName: string) => {
+    setHistoryCards((prev) =>
+      prev.map((card) => (card.id === id ? { ...card, title: newName } : card))
+    );
+  };
+
   useEffect(() => {
     const run = async () => {
       setIsLoading(true);
@@ -195,6 +201,7 @@ function History() {
                   isDeleting={deletingIds.has(card.id)}
                   onDelete={() => handleDelete(card.id, card.title)}
                   onDownload={() => handleDownload(card.id)}
+                  onRename={(newName) => handleRename(card.id, newName)}
                 />
               ))
             )}

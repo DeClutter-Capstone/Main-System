@@ -1,41 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import TopBar from "../components/TopBar";
 import Footer from "../components/Footer";
 import { blogPosts } from "../data/blogData";
-
-// ============ HERO SLIDES ============
-const heroSlides = [
-  {
-    id: 1,
-    title: "Minimalist Living Redefined",
-    subtitle:
-      "Discover how AI transforms your spaces into serene, decluttered havens of tranquility",
-    style: "Minimalist",
-    imageUrl: "/HomePageImages/minimalist.jpg",
-  },
-  {
-    id: 2,
-    title: "Modern Design Meets AI Intelligence",
-    subtitle:
-      "Experience cutting-edge interior transformation powered by artificial intelligence",
-    style: "Modern",
-    imageUrl: "/HomePageImages/modren.jpg",
-  },
-  {
-    id: 3,
-    title: "Scandinavian Simplicity & Elegance",
-    subtitle:
-      "Create functional, beautiful spaces inspired by Nordic design principles",
-    style: "Scandinavian",
-    imageUrl: "/HomePageImages/scandinavian.webp",
-  },
-];
-
-const getSlideIndex = (index: number) =>
-  ((index % heroSlides.length) + heroSlides.length) % heroSlides.length;
-
 
 // ============ ROOM TYPES ============
 const roomTypeDefs = [
@@ -94,21 +62,8 @@ const categories = [
 function Blog() {
   const navigate = useNavigate();
   const postsRef = useRef<HTMLDivElement>(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedRoom, setSelectedRoom] = useState("All");
-  const [isHovering, setIsHovering] = useState(false);
-
-  // Auto-slide effect
-  useEffect(() => {
-    if (isHovering) return;
-
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 4500);
-
-    return () => clearInterval(interval);
-  }, [isHovering]);
 
   const filteredPosts = blogPosts.filter((post) => {
     const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
@@ -122,10 +77,6 @@ function Blog() {
     postsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const goToSlide = (index: number) => setCurrentSlide(index);
-  const goPrev = () => setCurrentSlide(getSlideIndex(currentSlide - 1));
-  const goNext = () => setCurrentSlide(getSlideIndex(currentSlide + 1));
-
   return (
     <div style={styles.container} className="blog-container">
       <style>{`
@@ -138,13 +89,13 @@ function Blog() {
         .blog-separator {
           width: 60px;
           height: 3px;
-          background: linear-gradient(90deg, #c9a882, #e8d5c0);
+          background: linear-gradient(90deg, #4384e2, #82b6ff);
           border-radius: 999px;
           margin: 0 auto;
           opacity: 0.7;
         }
         [data-theme="dark"] .blog-separator {
-          background: linear-gradient(90deg, #c9a882, #8a6a4e) !important;
+          background: linear-gradient(90deg, #4384e2, #2a5cb5) !important;
           opacity: 0.5 !important;
         }
 
@@ -153,7 +104,7 @@ function Blog() {
           background-color: transparent !important;
         }
         [data-theme="dark"] .blog-room-eyebrow {
-          color: #c9a882 !important;
+          color: #82b6ff !important;
         }
         [data-theme="dark"] .blog-room-title,
         [data-theme="dark"] .blog-room-subtitle {
@@ -174,7 +125,7 @@ function Blog() {
         }
         [data-theme="dark"] .room-card-count,
         [data-theme="dark"] .room-card-arrow {
-          color: #c9a882 !important;
+          color: #82b6ff !important;
         }
 
         /* Blog header */
@@ -182,7 +133,7 @@ function Blog() {
           background-color: transparent !important;
         }
         [data-theme="dark"] .blog-eyebrow {
-          color: #c9a882 !important;
+          color: #82b6ff !important;
         }
         [data-theme="dark"] .blog-heading {
           color: #ffffff !important;
@@ -224,7 +175,7 @@ function Blog() {
 
         /* Post body text */
         [data-theme="dark"] .post-room-type {
-          color: #c9a882 !important;
+          color: #82b6ff !important;
         }
         [data-theme="dark"] .post-dot {
           color: #555 !important;
@@ -250,85 +201,6 @@ function Blog() {
       <TopBar showSignIn={true} />
 
       <main style={styles.mainContent}>
-        {/* HERO CAROUSEL */}
-        <section style={styles.heroSection}>
-          <div
-            style={styles.carouselContainer}
-            data-hero-carousel
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-          >
-            {/* Stacked slides — fade via opacity */}
-            {heroSlides.map((slide, index) => (
-              <div
-                key={slide.id}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  backgroundImage: `url(${slide.imageUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  opacity: index === currentSlide ? 1 : 0,
-                  transition: "opacity 0.9s ease",
-                }}
-              />
-            ))}
-
-            {/* Gradient overlay */}
-            <div style={styles.overlay} />
-
-            {/* Slide content */}
-            <div style={styles.slideContent}>
-              <span style={styles.heroStyle}>
-                {heroSlides[currentSlide].style}
-              </span>
-              <h1 style={styles.heroTitle}>{heroSlides[currentSlide].title}</h1>
-              <p style={styles.heroSubtitle}>
-                {heroSlides[currentSlide].subtitle}
-              </p>
-            </div>
-
-            {/* Prev arrow */}
-            <button
-              style={{ ...styles.arrowButton, left: "24px" }}
-              onClick={goPrev}
-              aria-label="Previous slide"
-            >
-              ‹
-            </button>
-
-            {/* Next arrow */}
-            <button
-              style={{ ...styles.arrowButton, right: "24px" }}
-              onClick={goNext}
-              aria-label="Next slide"
-            >
-              ›
-            </button>
-
-            {/* Dot indicators */}
-            <div style={styles.dotsContainer}>
-              {heroSlides.map((_, index) => (
-                <button
-                  key={index}
-                  style={{
-                    ...styles.dot,
-                    width: index === currentSlide ? "28px" : "10px",
-                    borderRadius: index === currentSlide ? "5px" : "50%",
-                    backgroundColor:
-                      index === currentSlide ? "#fff" : "rgba(255,255,255,0.5)",
-                  }}
-                  onClick={() => goToSlide(index)}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* SEPARATOR */}
-        <div className="blog-separator" />
-
         {/* ROOM TYPES SECTION */}
         <section style={styles.roomTypesSection} className="blog-room-section">
           <div style={styles.roomTypesHeader}>
@@ -347,7 +219,7 @@ function Blog() {
                   key={room.id}
                   style={{
                     ...styles.roomCard,
-                    outline: isActive ? "2px solid #c9a882" : "none",
+                    outline: isActive ? "2px solid #4384e2" : "none",
                     outlineOffset: "2px",
                   }}
                   className="room-card"
@@ -609,7 +481,7 @@ const styles = {
     fontWeight: "700",
     letterSpacing: "3px",
     textTransform: "uppercase",
-    color: "#a0856c",
+    color: "#4384e2",
     margin: "0 0 0.75rem",
   } as CSSProperties,
   blogTitle: {
@@ -725,7 +597,7 @@ const styles = {
   postRoomType: {
     fontSize: "0.78rem",
     fontWeight: "600",
-    color: "#a0856c",
+    color: "#4384e2",
     textTransform: "uppercase",
     letterSpacing: "0.8px",
   } as CSSProperties,
@@ -787,7 +659,7 @@ const styles = {
     fontWeight: "700",
     letterSpacing: "3px",
     textTransform: "uppercase",
-    color: "#a0856c",
+    color: "#4384e2",
     margin: "0 0 0.75rem",
   } as CSSProperties,
   roomTypesTitle: {
@@ -874,12 +746,12 @@ const styles = {
   roomCardCount: {
     fontSize: "0.8rem",
     fontWeight: "600",
-    color: "#a0856c",
+    color: "#4384e2",
     letterSpacing: "0.5px",
   } as CSSProperties,
   roomCardArrow: {
     fontSize: "1.1rem",
-    color: "#a0856c",
+    color: "#4384e2",
     fontWeight: "700",
     transition: "transform 0.2s ease",
   } as CSSProperties,

@@ -2,9 +2,67 @@ import TopBar from "../components/TopBar";
 import Footer from "../components/Footer";
 import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
+import type { CSSProperties } from "react";
+
+// ============ HERO SLIDES ============
+const heroSlides = [
+  {
+    id: 1,
+    title: "Minimalist Living Redefined",
+    subtitle:
+      "Discover how AI transforms your spaces into serene, decluttered havens of tranquility",
+    style: "Minimalist",
+    imageUrl: "/HomePageImages/minimalist.jpg",
+  },
+  {
+    id: 2,
+    title: "Modern Design Meets AI Intelligence",
+    subtitle:
+      "Experience cutting-edge interior transformation powered by artificial intelligence",
+    style: "Modern",
+    imageUrl: "/HomePageImages/modren.jpg",
+  },
+  {
+    id: 3,
+    title: "Scandinavian Simplicity & Elegance",
+    subtitle:
+      "Create functional, beautiful spaces inspired by Nordic design principles",
+    style: "Scandinavian",
+    imageUrl: "/HomePageImages/scandinavian.webp",
+  },
+  {
+    id: 4,
+    title: "Industrial Design, Raw & Unapologetic",
+    subtitle:
+      "Exposed brick, steel, and weathered wood turn every imperfection into a bold statement",
+    style: "Industrial",
+    imageUrl: "/HomePageImages/industrial.jpg",
+  },
+  {
+    id: 5,
+    title: "Bohemian Spirit, Layered & Alive",
+    subtitle:
+      "Rich colours, global patterns, and handcrafted pieces that tell your unique story",
+    style: "Bohemian",
+    imageUrl: "/HomePageImages/bohemian.webp",
+  },
+  {
+    id: 6,
+    title: "Spa Serenity, Your Personal Sanctuary",
+    subtitle:
+      "Soft earthy tones and natural materials that bring the healing energy of nature indoors",
+    style: "Spa",
+    imageUrl: "/HomePageImages/spa.jpg",
+  },
+];
+
+const getSlideIndex = (index: number) =>
+  ((index % heroSlides.length) + heroSlides.length) % heroSlides.length;
 
 function HomePage() {
   const navigate = useNavigate();
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
   const [slider1Position, setSlider1Position] = useState(50);
   const [slider2Position, setSlider2Position] = useState(50);
   const [isSlider1Active, setIsSlider1Active] = useState(false);
@@ -25,6 +83,18 @@ function HomePage() {
     });
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (isHovering) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [isHovering]);
+
+  const goToSlide = (index: number) => setCurrentSlide(index);
+  const goPrev = () => setCurrentSlide(getSlideIndex(currentSlide - 1));
+  const goNext = () => setCurrentSlide(getSlideIndex(currentSlide + 1));
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -66,11 +136,11 @@ function HomePage() {
             box-shadow: 0 0 40px rgba(67, 132, 226, 0.8);
           }
         }
-        
+
         .glow-button {
           animation: pulse-glow 2s ease-in-out infinite;
         }
-        
+
         .glow-button:hover {
           box-shadow: 0 0 60px rgba(67, 132, 226, 1) !important;
           animation: none;
@@ -159,28 +229,76 @@ function HomePage() {
         }
       `}</style>
       <TopBar showSignIn={true} />
+
+      {/* HERO CAROUSEL */}
+      <section style={carouselStyles.heroSection}>
+        <div
+          style={carouselStyles.carouselContainer}
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+        >
+          {heroSlides.map((slide, index) => (
+            <div
+              key={slide.id}
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: `url(${slide.imageUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                opacity: index === currentSlide ? 1 : 0,
+                transition: "opacity 0.9s ease",
+              }}
+            />
+          ))}
+          <div style={carouselStyles.overlay} />
+          <div style={carouselStyles.slideContent}>
+            <span style={carouselStyles.heroStyle}>
+              {heroSlides[currentSlide].style}
+            </span>
+            <h1 style={carouselStyles.heroTitle}>
+              {heroSlides[currentSlide].title}
+            </h1>
+            <p style={carouselStyles.heroSubtitle}>
+              {heroSlides[currentSlide].subtitle}
+            </p>
+          </div>
+          <button
+            style={{ ...carouselStyles.arrowButton, left: "24px" }}
+            onClick={goPrev}
+            aria-label="Previous slide"
+          >
+            ‹
+          </button>
+          <button
+            style={{ ...carouselStyles.arrowButton, right: "24px" }}
+            onClick={goNext}
+            aria-label="Next slide"
+          >
+            ›
+          </button>
+          <div style={carouselStyles.dotsContainer}>
+            {heroSlides.map((_, index) => (
+              <button
+                key={index}
+                style={{
+                  ...carouselStyles.dot,
+                  width: index === currentSlide ? "28px" : "10px",
+                  borderRadius: index === currentSlide ? "5px" : "50%",
+                  backgroundColor:
+                    index === currentSlide ? "#fff" : "rgba(255,255,255,0.5)",
+                }}
+                onClick={() => goToSlide(index)}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
       <main style={styles.mainContent}>
         {/* Hero Section */}
         <div style={styles.heroSection}>
-          {/* Title */}
-          <h1 style={styles.heroTitle}>
-            Redefining Interior Spaces with Artificial Intelligence
-          </h1>
-
-          {/* Images Container */}
-          <div style={styles.imagesContainer}>
-            <img
-              src="public/HomePageImages/home page 1.png"
-              alt="Home Page 1"
-              style={styles.heroImage}
-            />
-            <img
-              src="public\HomePageImages\home page 2.jpg"
-              alt="Home Page 2"
-              style={styles.heroImage}
-            />
-          </div>
-
           {/* Subtitle */}
           <h2 style={styles.heroSubtitle}>
             Where Artificial Intelligence Meets Aesthetic and Functional
@@ -537,30 +655,6 @@ const styles = {
     maxWidth: "1500px",
     width: "100%",
   } as React.CSSProperties,
-  heroTitle: {
-    fontSize: "3.0rem",
-    fontWeight: "700",
-    color: "#333",
-    textAlign: "center",
-    marginTop: "55px",
-    lineHeight: "1.2",
-  } as React.CSSProperties,
-  imagesContainer: {
-    display: "flex",
-    gap: "2rem",
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
-    flexWrap: "wrap",
-  } as React.CSSProperties,
-  heroImage: {
-    width: "calc(50% - 1rem)",
-    maxWidth: "600px",
-    height: "500px",
-    borderRadius: "16px",
-    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.15)",
-    objectFit: "cover",
-  } as React.CSSProperties,
   heroSubtitle: {
     fontSize: "1.5rem",
     color: "#666",
@@ -573,7 +667,7 @@ const styles = {
     padding: "16px 48px",
     fontSize: "1.1rem",
     fontWeight: "600",
-    backgroundColor: "#82b6ffff",
+    backgroundColor: "#4790fdff",
     color: "#ffffffff",
     border: "none",
     borderRadius: "50px",
@@ -782,6 +876,102 @@ const styles = {
     lineHeight: "1.8",
     margin: "0",
   } as React.CSSProperties,
+};
+
+const carouselStyles = {
+  heroSection: {
+    width: "100%",
+  } as CSSProperties,
+  carouselContainer: {
+    position: "relative",
+    width: "100%",
+    height: "630px",
+    overflow: "hidden",
+  } as CSSProperties,
+  overlay: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.1) 100%)",
+    zIndex: 1,
+  } as CSSProperties,
+  slideContent: {
+    position: "absolute",
+    inset: 0,
+    zIndex: 2,
+    padding: "0 6rem",
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "1rem",
+  } as CSSProperties,
+  heroStyle: {
+    display: "inline-block",
+    fontSize: "0.75rem",
+    fontWeight: "700",
+    letterSpacing: "3px",
+    textTransform: "uppercase",
+    color: "#ffffff",
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    border: "1px solid rgba(255,255,255,0.35)",
+    padding: "0.4rem 1.1rem",
+    borderRadius: "20px",
+  } as CSSProperties,
+  heroTitle: {
+    fontSize: "3.4rem",
+    fontWeight: "800",
+    margin: "0",
+    lineHeight: "1.15",
+    color: "#ffffff",
+    maxWidth: "800px",
+    textShadow: "0 2px 12px rgba(0,0,0,0.3)",
+  } as CSSProperties,
+  heroSubtitle: {
+    fontSize: "1.1rem",
+    fontWeight: "300",
+    margin: "0",
+    maxWidth: "580px",
+    color: "rgba(255,255,255,0.88)",
+    lineHeight: "1.65",
+  } as CSSProperties,
+  arrowButton: {
+    position: "absolute",
+    top: "50%",
+    transform: "translateY(-50%)",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    backdropFilter: "blur(6px)",
+    color: "#fff",
+    border: "1px solid rgba(255,255,255,0.25)",
+    fontSize: "2rem",
+    width: "48px",
+    height: "48px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    zIndex: 10,
+    borderRadius: "50%",
+    lineHeight: "1",
+    transition: "background-color 0.25s ease",
+  } as CSSProperties,
+  dotsContainer: {
+    position: "absolute",
+    bottom: "28px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    display: "flex",
+    gap: "0.6rem",
+    zIndex: 10,
+    alignItems: "center",
+  } as CSSProperties,
+  dot: {
+    height: "10px",
+    border: "none",
+    cursor: "pointer",
+    transition: "all 0.35s ease",
+  } as CSSProperties,
 };
 
 export default HomePage;

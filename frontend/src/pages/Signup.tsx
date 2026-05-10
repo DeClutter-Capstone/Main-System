@@ -44,7 +44,6 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     height: "100vh",
-    backgroundColor: "#ffffff",
   } as React.CSSProperties,
   mainContent: {
     display: "flex",
@@ -64,7 +63,16 @@ const styles = {
 
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
+  .auth-container {
+    background-color: #f5f5f5ff;
+  }
   [data-theme="dark"] .auth-container {
+    background-color: #252525ff !important;
+  }
+  .auth-left-section {
+    background-color: #f5f5f5ff;
+  }
+  [data-theme="dark"] .auth-left-section {
     background-color: #252525ff !important;
   }
   [data-theme="dark"] .auth-card {

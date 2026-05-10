@@ -123,7 +123,7 @@ function SignupForm({ onAuthenticate }: SignupFormProps) {
   };
 
   return (
-    <div style={styles.leftSection}>
+    <div style={styles.leftSection} className="auth-left-section">
       <div style={styles.card} className="auth-card">
         {/* Title */}
         <h1 style={styles.title} className="auth-title">
@@ -219,7 +219,6 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     padding: "2rem",
-    backgroundColor: "#f5f5f5ff",
   } as React.CSSProperties,
   card: {
     width: "420px",

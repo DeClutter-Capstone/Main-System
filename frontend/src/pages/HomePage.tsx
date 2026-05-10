@@ -150,6 +150,13 @@ function HomePage() {
         [data-theme="dark"] .home-container {
           background-color: #252525ff !important;
         }
+
+        [data-theme="dark"] .home-container h1,
+        [data-theme="dark"] .home-container h2,
+        [data-theme="dark"] .home-container h3,
+        [data-theme="dark"] .home-container p {
+          color: #ffffff !important;
+        }
       `}</style>
       <TopBar showSignIn={true} />
       <main style={styles.mainContent}>

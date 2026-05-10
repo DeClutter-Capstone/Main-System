@@ -41,7 +41,7 @@ Transform your space into any of these design aesthetics:
 | **Saad Ahmed** | Frontend Lead | React web application, UI/UX design |
 | **Ahmed Salmi** | Mobile & Integration | React Native app, system integration |
 
-**Supervisor:** Prof. Dr. Hakan Altunçay  
+**Supervisor:** Prof. Dr. Hakan Altinçay  
 **Institution:** Eastern Mediterranean University  
 **Course:** CMSE 405 - Software Design & Development  
 **Timeline:** October 2025 - June 2026
@@ -164,13 +164,13 @@ npm run dev
 
 ##  License
 
-This project is for academic purposes as part of CMSE 405 coursework at Eastern Mediterranean University.
+This project is for academic purposes as part of CMSE 405/406 coursework at Eastern Mediterranean University.
 
 ---
 
 ##  Acknowledgments
 
-- **Supervisor:** Prof. Dr. Hakan Altunçay
+- **Supervisor:** Prof. Dr. Hakan Altinçay
 
 ---
 

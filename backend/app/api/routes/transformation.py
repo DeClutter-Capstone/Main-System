@@ -11,7 +11,6 @@ from PIL import Image
 
 load_dotenv()
 router = APIRouter(prefix="/transformations", tags=["transformation"])
-hf_token = os.getenv("hf_token")
 
 
 def save_uploaded_image_to_url(file_content: bytes) -> str:
@@ -58,7 +57,6 @@ def create_transformation(
             room_type=room_type,
             style_name=style_name,
             image_url=image_url,
-            hf_token=hf_token,
             prompt=prompt or ''
         )
         

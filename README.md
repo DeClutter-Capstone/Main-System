@@ -1,6 +1,6 @@
 # DeClutter - AI-Powered Interior Design Transformation
 
-![Project Banner](docs/banner.png) <
+![Project Banner](docs/banner.png) 
 
 **Capstone Graduation Project | CMSE 405 | Fall 2025-26**
 
@@ -25,7 +25,7 @@ Transform your space into any of these design aesthetics:
 - Living Rooms
 
 ###  **AI Technologies**
-- **GPT 2 Images**: Style transfer and room transformation
+- **GPT 2 Image**: Style transfer and room transformation
 - **Budget Estimation**: AI-powered cost analysis for redesign
 
 ---
@@ -34,14 +34,14 @@ Transform your space into any of these design aesthetics:
 
 | Name | Role | Responsibilities |
 |------|------|------------------|
-| **Mohamed Elfaki** | AI/ML Lead | Gpt 3 images integration,prompt engineering |
+| **Mohamed Elfaki** | AI/ML Lead | Gpt 2 image integration,prompt engineering |
 | **Firas Nazar** | Backend Lead | API development, database, cloud deployment |
 | **Saad Ahmed** | Frontend Lead | React web application, UI/UX design |
 | **Ahmed Salmi** | Mobile & Integration | React Native app, system integration |
 
-**Supervisor:** Prof. Dr. Hakan Altunçay  
+**Supervisor:** Prof. Dr. Hakan Altinçay  
 **Institution:** Eastern Mediterranean University  
-**Course:** CMSE 405 - Software Design & Development  
+**Course:** CMSE 405/CMSE 406
 **Timeline:** October 2025 - June 2026
 
 ---
@@ -52,8 +52,7 @@ Transform your space into any of these design aesthetics:
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/your-username/declutter-ai.git
-cd declutter-ai
+git clone https://github.com/your-username/DeClutter-Capstone/Main-System
 ```
 
 **2. Setup Python environment**
@@ -62,16 +61,6 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
-
-**3. Download dataset** (See [Dataset Setup](#dataset-setup))
-
-**4. Clone CycleGAN implementation**
-```bash
-git clone https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix.git
-cd pytorch-CycleGAN-and-pix2pix
-pip install -r requirements.txt
-```
-
 
 
 ##  Running the Application
@@ -99,16 +88,7 @@ Download and run PGadmin 4
 
 ---
 
-##  Milestones
 
-- [x] **M1:** Project setup and dataset collection (Week 2)
-- [x] **M2:** Tested Cut and cycle GAN, ended up switching to FLUX image diffuser model
-- [ ] **M3:** Sucessfully Uploaded customized AI model pipeline to Replicate (FLUX dev)
-- [ ] **M4:** Switched to GPT 3 Images for higher quality resultsd
-
----
-
-##  Results
 
 ### Sample Transformations
 

@@ -43,7 +43,7 @@ function Footer() {
         <div style={styles.column}>
           <h3 style={styles.columnTitle} className="footer-title">Contact</h3>
           <nav style={styles.linksList}>
-            <a href="#contact" style={styles.link} className="footer-link">Contact Us</a>
+            <a href="/contact" style={styles.link} className="footer-link">Contact Us</a>
           </nav>
         </div>
       </div>

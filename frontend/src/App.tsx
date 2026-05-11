@@ -25,6 +25,7 @@ import FAQ from "./pages/FAQ";
 import Accont from "./pages/Accont";
 import Authentication from "./pages/Authentication";
 import Signup from "./pages/Signup";
+import ContactUs from "./pages/ContactUs";
 
 // Protected Route Component
 interface ProtectedRouteProps {
@@ -96,6 +97,7 @@ function App() {
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:id" element={<BlogPost />} />
           <Route path="/generate" element={<Generate />} />
+          <Route path="/contact" element={<ContactUs />} />
 
           {/* Protected Routes */}
           <Route

@@ -1,6 +1,7 @@
 # DeClutter - AI-Powered Interior Design Transformation
 
-![Project Banner](docs/banner.png)
+![Project Banner](docs/banner.png) 
+
 
 **Capstone Graduation Project | CMSE 405 | Fall 2025-26**
 
@@ -28,6 +29,7 @@ Transform your space into any of these design aesthetics:
 - Spa
 
 ###  **AI Technologies**
+
 - **GPT Image 2**: Style transfer and room transformation via OpenAI API
 
 ---
@@ -43,7 +45,7 @@ Transform your space into any of these design aesthetics:
 
 **Supervisor:** Prof. Dr. Hakan Altinçay  
 **Institution:** Eastern Mediterranean University  
-**Course:** CMSE 405 - Software Design & Development  
+**Course:** CMSE 405/CMSE 406
 **Timeline:** October 2025 - June 2026
 
 ---
@@ -129,7 +131,6 @@ npm run dev
 
 ---
 
-##  Results
 
 ### Sample Transformations
 

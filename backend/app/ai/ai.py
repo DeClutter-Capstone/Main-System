@@ -66,25 +66,11 @@ ROOM_CONTEXT = {
 
 def build_prompt(room_type: str, style_name: str, extra_prompt: str = "") -> str:
     room_label = room_type.replace("_", " ")
-    style_desc = STYLE_DESCRIPTIONS.get(style_name, style_name)
-    room_context = ROOM_CONTEXT.get(room_type, "")
 
-    prompt = (
-        f"You are an interior designer. Redesign this {room_label} in a {style_name} style. "
-        f"Style characteristics: {style_desc}. "
-        f"{room_context} "
-        f"STRICT RULES — you must follow all of these exactly: "
-        f"1. Do NOT change the camera angle, viewpoint, or perspective in any way. "
-        f"2. Do NOT change the room shape, size, proportions, or layout. "
-        f"3. Do NOT move or remove any walls, windows, doors, or ceiling. "
-        f"4. Do NOT change the floor plan or spatial structure. "
-        f"5. ONLY change the furniture style, surface materials, colors, textures, decor items, and lighting fixtures. "
-        f"6. Every architectural element must stay in the exact same position as the original photo. "
-        f"The final image must look like a professional interior design photograph taken from the exact same position as the original."
-    )
+    prompt = f"Redesign this {room_label} as {style_name} style. Remove clutter. Keep same angle and structure. Change only furniture, colors, decor. Photorealistic."
 
     if extra_prompt:
-        prompt += f" Additional requirements: {extra_prompt}"
+        prompt += f" {extra_prompt}"
 
     return prompt
 
@@ -99,7 +85,7 @@ def generate_image(input_image_path: Path, room_type: str, style_name: str, extr
 
     with open(input_image_path, "rb") as image_file:
         response = client.images.edit(
-            model="gpt-image-1",
+            model="gpt-image-2",
             image=image_file,
             prompt=prompt,
             n=1,

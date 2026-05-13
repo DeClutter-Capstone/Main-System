@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface Project {
   id: string;
@@ -15,6 +15,20 @@ interface ProjectCardProps {
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isActive, setIsActive] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Watch for dark mode changes
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(document.documentElement.getAttribute("data-theme") === "dark");
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+    // Check initial state
+    setIsDarkMode(document.documentElement.getAttribute("data-theme") === "dark");
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleClick = () => {
     onClick?.(project.id);
@@ -24,8 +38,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
     display: "flex",
     flexDirection: "column",
     borderRadius: "12px",
-    border: isHovered ? "1px solid #d0d0d0" : "1px solid #e8e8e8",
-    backgroundColor: "#ffffff",
+    border: isHovered ? (isDarkMode ? "1px solid #2a2a2a" : "1px solid #d0d0d0") : (isDarkMode ? "1px solid #2a2a2a" : "1px solid #e8e8e8"),
+    backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff",
     overflow: "hidden",
     cursor: "pointer",
     transition: "all 0.3s ease",
@@ -39,7 +53,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
   const thumbnailStyle: React.CSSProperties = {
     width: "100%",
     aspectRatio: "1",
-    background: "linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)",
+    background: isDarkMode ? "linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%)" : "linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -54,7 +68,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
 
   const dividerStyle: React.CSSProperties = {
     height: "1px",
-    backgroundColor: "#efefef",
+    backgroundColor: isDarkMode ? "#444444" : "#efefef",
   };
 
   const contentStyle: React.CSSProperties = {
@@ -68,7 +82,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
   const titleStyle: React.CSSProperties = {
     fontSize: "14px",
     fontWeight: 600,
-    color: "#1a1a1a",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
     lineHeight: 1.4,
     margin: 0,
     display: "-webkit-box",
@@ -79,7 +93,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
 
   const metadataStyle: React.CSSProperties = {
     fontSize: "12px",
-    color: "#888888",
+    color: isDarkMode ? "#aaaaaa" : "#888888",
     margin: 0,
     lineHeight: 1.3,
   };

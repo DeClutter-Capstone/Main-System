@@ -23,6 +23,7 @@ function Projects() {
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [isLoading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [projects, setProjects] = useState<Project[]>(() => {
     try {
       const storedProjects = localStorage.getItem("projects");
@@ -43,6 +44,19 @@ function Projects() {
     // Save projects to localStorage whenever they change
     localStorage.setItem("projects", JSON.stringify(projects));
   }, [projects]);
+
+  useEffect(() => {
+    // Watch for dark mode changes
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(document.documentElement.getAttribute("data-theme") === "dark");
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+    // Check initial state
+    setIsDarkMode(document.documentElement.getAttribute("data-theme") === "dark");
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     // Handle resize events
@@ -174,12 +188,19 @@ function Projects() {
     return "10px 16px";
   };
 
+  // Get right margin to align with card grid
+  const getControlsRightMargin = () => {
+    if (windowWidth <= 480) return "0";
+    if (windowWidth <= 768) return "0";
+    return "24px";
+  };
+
   // CSS Styles
   const pageStyle: React.CSSProperties = {
     display: "flex",
     flexDirection: "column",
     minHeight: "100vh",
-    backgroundColor: "#f0f0f0",
+    backgroundColor: isDarkMode ? "#2a2a2a" : "#f0f0f0",
     width: "100%",
     margin: 0,
     padding: 0,
@@ -191,6 +212,8 @@ function Projects() {
     justifyContent: "space-between",
     gap: "24px",
     flexWrap: "wrap",
+    position: "relative",
+    zIndex: 1,
     ...(windowWidth <= 768 && { flexDirection: "column", alignItems: "stretch" }),
   };
 
@@ -200,10 +223,16 @@ function Projects() {
     gap: "12px",
   };
 
+  const iconStyle: React.CSSProperties = {
+    width: "32px",
+    height: "32px",
+    objectFit: "contain",
+  };
+
   const titleStyle: React.CSSProperties = {
     fontSize: getTitleFontSize(),
     fontWeight: 700,
-    color: "#1a1a1a",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
     margin: 0,
     lineHeight: 1.2,
   };
@@ -212,34 +241,36 @@ function Projects() {
     display: "flex",
     alignItems: "center",
     gap: "12px",
-    transform: "translateX(-25px)",
-    ...(windowWidth <= 768 && { width: "100%" }),
+    position: "relative",
+    zIndex: 10,
+    marginRight: getControlsRightMargin(),
+    ...(windowWidth <= 768 && { width: "100%", marginRight: 0 }),
   };
 
   const searchContainerStyle: React.CSSProperties = {
     flex: 1,
-    minWidth: windowWidth <= 768 ? "auto" : "250px",
+    minWidth: "300px",
     display: "flex",
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    border: searchFocused ? "1px solid #999999" : "1px solid #e0e0e0",
+    backgroundColor: isDarkMode ? "#2a2a2a" : "#ffffff",
+    border: isDarkMode ? "1px solid #000000" : "1px solid #e0e0e0",
     borderRadius: "8px",
-    padding: "10px 16px",
+    padding: getButtonPadding(),
     transition: "all 0.2s ease",
-    boxShadow: searchFocused ? "0 2px 8px rgba(0, 0, 0, 0.08)" : "none",
+    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
   };
 
   const searchIconStyle: React.CSSProperties = {
     width: "18px",
     height: "18px",
-    color: "#999999",
+    color: isDarkMode ? "#ffffff" : "#999999",
     marginRight: 0,
     marginLeft: "auto",
     flexShrink: 0,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    stroke: "#999999",
+    stroke: isDarkMode ? "#ffffff" : "#999999",
     order: 2,
   };
 
@@ -248,7 +279,7 @@ function Projects() {
     border: "none",
     background: "transparent",
     fontSize: "14px",
-    color: "#1a1a1a",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
     outline: "none",
     fontFamily: "inherit",
     minWidth: 0,
@@ -262,15 +293,15 @@ function Projects() {
     justifyContent: "center",
     gap: "8px",
     padding: getButtonPadding(),
-    border: filterButtonHovered ? "1px solid #d0d0d0" : "1px solid #e0e0e0",
+    border: filterButtonHovered ? (isDarkMode ? "1px solid #000000" : "1px solid #d0d0d0") : (isDarkMode ? "1px solid #000000" : "1px solid #e0e0e0"),
     borderRadius: "8px",
     fontSize: getButtonFontSize(),
     fontWeight: 500,
     cursor: "pointer",
     transition: "all 0.2s ease",
     fontFamily: "inherit",
-    backgroundColor: "#ffffff",
-    color: "#1a1a1a",
+    backgroundColor: isDarkMode ? "#2a2a2a" : "#ffffff",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
   };
 
   const primaryButtonStyle: React.CSSProperties = {
@@ -279,7 +310,7 @@ function Projects() {
     justifyContent: "center",
     gap: "8px",
     padding: getButtonPadding(),
-    border: "1px solid #e0e0e0",
+    border: isDarkMode ? "1px solid #000000" : "1px solid #e0e0e0",
     borderRadius: "8px",
     fontSize: getButtonFontSize(),
     fontWeight: 500,
@@ -304,11 +335,11 @@ function Projects() {
     top: "100%",
     right: 0,
     marginTop: "8px",
-    backgroundColor: "#ffffff",
-    border: "1px solid #e0e0e0",
+    backgroundColor: isDarkMode ? "#2a2a2a" : "#ffffff",
+    border: isDarkMode ? "1px solid #555555" : "1px solid #e0e0e0",
     borderRadius: "8px",
     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-    zIndex: -1,
+    zIndex: 1000,
     minWidth: "200px",
     overflow: "hidden",
   };
@@ -321,7 +352,7 @@ function Projects() {
     textAlign: "left",
     cursor: "pointer",
     fontSize: "15px",
-    color: "#1a1a1a",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
     transition: "all 0.2s ease",
     fontFamily: "inherit",
   };
@@ -357,7 +388,6 @@ function Projects() {
     display: "grid",
     gridTemplateColumns: `repeat(${getGridColumns()}, 1fr)`,
     gap: windowWidth <= 768 ? "24px" : "28px",
-    zIndex: 1,
   };
 
   const emptyStyle: React.CSSProperties = {
@@ -555,7 +585,7 @@ function Projects() {
           50% { opacity: 0.6; }
         }
         input::placeholder {
-          color: #999999;
+          color: ${isDarkMode ? "#666666" : "#999999"};
         }
       `}</style>
       <div style={pageStyle}>
@@ -565,7 +595,7 @@ function Projects() {
             50% { opacity: 0.6; }
           }
           input::placeholder {
-            color: #999999;
+            color: ${isDarkMode ? "#666666" : "#999999"};
           }
         `}</style>
 
@@ -576,6 +606,11 @@ function Projects() {
             <div style={headerContainerStyle}>
               {/* Title with Icon */}
               <div style={titleGroupStyle}>
+                <img
+                  src="/HomePageImages/projects icon.png"
+                  alt="Projects"
+                  style={iconStyle}
+                />
                 <h1 style={titleStyle}>My Projects</h1>
               </div>
 
@@ -590,7 +625,7 @@ function Projects() {
                   <input
                     type="text"
                     style={searchInputStyle}
-                    placeholder="Search your previous project..."
+                    placeholder="Search your projects..."
                     value={searchQuery}
                     onChange={handleSearch}
                     onFocus={() => setSearchFocused(true)}
@@ -622,22 +657,22 @@ function Projects() {
                         style={{
                           ...dropdownItemStyle,
                           paddingTop: "8px",
-                          backgroundColor: sortBy === "recent" ? "#f5f5f5" : "transparent",
+                          backgroundColor: sortBy === "recent" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent",
                         }}
                         onClick={() => handleSortChange("recent")}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "recent" ? "#f5f5f5" : "transparent")}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = isDarkMode ? "#3a3a3a" : "#f5f5f5")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "recent" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent")}
                       >
                         {sortBy === "recent" && "✓ "}Recently Updated
                       </button>
                       <button
                         style={{
                           ...dropdownItemStyle,
-                          backgroundColor: sortBy === "oldest" ? "#f5f5f5" : "transparent",
+                          backgroundColor: sortBy === "oldest" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent",
                         }}
                         onClick={() => handleSortChange("oldest")}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "oldest" ? "#f5f5f5" : "transparent")}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = isDarkMode ? "#3a3a3a" : "#f5f5f5")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "oldest" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent")}
                       >
                         {sortBy === "oldest" && "✓ "}Oldest First
                       </button>
@@ -645,11 +680,11 @@ function Projects() {
                         style={{
                           ...dropdownItemStyle,
                           paddingBottom: "8px",
-                          backgroundColor: sortBy === "alphabetical" ? "#f5f5f5" : "transparent",
+                          backgroundColor: sortBy === "alphabetical" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent",
                         }}
                         onClick={() => handleSortChange("alphabetical")}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "alphabetical" ? "#f5f5f5" : "transparent")}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = isDarkMode ? "#3a3a3a" : "#f5f5f5")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "alphabetical" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent")}
                       >
                         {sortBy === "alphabetical" && "✓ "}A to Z
                       </button>
@@ -667,11 +702,6 @@ function Projects() {
                   New Project
                 </button>
               </div>
-            </div>
-
-            {/* Section Header */}
-            <div style={sectionHeaderStyle}>
-              <h2 style={sectionTitleStyle}>All Projects</h2>
             </div>
 
             {/* Projects Grid */}
@@ -705,8 +735,6 @@ function Projects() {
       {showCreateModal && (
         <div style={modalOverlayStyle} onClick={closeModal}>
           <div style={modalContainerStyle} onClick={(e) => e.stopPropagation()}>
-            <h2 style={modalTitleStyle}>Create New Project</h2>
-
             {/* Project Name Input */}
             <div style={formGroupStyle}>
               <label style={labelStyle} htmlFor="project-name">Project Name *</label>

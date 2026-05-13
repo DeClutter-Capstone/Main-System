@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import HistoryCard from "../components/HistoryCard";
@@ -40,6 +40,20 @@ const ProjectsPage: React.FC = () => {
   const [editDescription, setEditDescription] = useState(currentProject?.description || "");
   const [editThumbnail, setEditThumbnail] = useState<string | undefined>(currentProject?.thumbnail);
   const [selectedGeneration, setSelectedGeneration] = useState<Generation | undefined>(undefined);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Watch for dark mode changes
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(document.documentElement.getAttribute("data-theme") === "dark");
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+    // Check initial state
+    setIsDarkMode(document.documentElement.getAttribute("data-theme") === "dark");
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleAddTransformation = () => {
     navigate("/generate", { state: { project: currentProject } });
@@ -171,7 +185,7 @@ const ProjectsPage: React.FC = () => {
     display: "flex",
     flexDirection: "column",
     minHeight: "100vh",
-    backgroundColor: "#fafafa",
+    backgroundColor: isDarkMode ? "#2a2a2a" : "#fafafa",
   };
 
 
@@ -182,7 +196,7 @@ const ProjectsPage: React.FC = () => {
   };
 
   const projectInfoStyle: React.CSSProperties = {
-    backgroundColor: "#ffffff",
+    backgroundColor: isDarkMode ? "#3a3a3a" : "#ffffff",
     borderRadius: "12px",
     padding: "32px",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
@@ -191,7 +205,7 @@ const ProjectsPage: React.FC = () => {
   const projectNameStyle: React.CSSProperties = {
     fontSize: "32px",
     fontWeight: 700,
-    color: "#1a1a1a",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
     margin: "0 0 24px 0",
   };
 
@@ -210,13 +224,13 @@ const ProjectsPage: React.FC = () => {
   const dateLabelStyle: React.CSSProperties = {
     fontSize: "14px",
     fontWeight: 600,
-    color: "#666666",
+    color: isDarkMode ? "#aaaaaa" : "#666666",
     minWidth: "100px",
   };
 
   const dateValueStyle: React.CSSProperties = {
     fontSize: "16px",
-    color: "#1a1a1a",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
   };
 
   const headerContainerStyle: React.CSSProperties = {
@@ -251,9 +265,9 @@ const ProjectsPage: React.FC = () => {
     justifyContent: "center",
     gap: "8px",
     padding: "10px 16px",
-    backgroundColor: "#ffffff",
-    color: "#000000",
-    border: "2px solid #000000",
+    backgroundColor: isDarkMode ? "#3a3a3a" : "#ffffff",
+    color: isDarkMode ? "#ffffff" : "#000000",
+    border: isDarkMode ? "2px solid #2a2a2a" : "2px solid #000000",
     borderRadius: "8px",
     fontSize: "14px",
     fontWeight: 400,
@@ -294,7 +308,7 @@ const ProjectsPage: React.FC = () => {
   };
 
   const modalContainerStyle: React.CSSProperties = {
-    backgroundColor: "#ffffff",
+    backgroundColor: isDarkMode ? "#3a3a3a" : "#ffffff",
     borderRadius: "12px",
     boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
     padding: "32px",
@@ -310,7 +324,7 @@ const ProjectsPage: React.FC = () => {
   const modalTitleStyle: React.CSSProperties = {
     fontSize: "24px",
     fontWeight: 700,
-    color: "#1a1a1a",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
     margin: 0,
   };
 
@@ -323,16 +337,17 @@ const ProjectsPage: React.FC = () => {
   const labelStyle: React.CSSProperties = {
     fontSize: "14px",
     fontWeight: 600,
-    color: "#1a1a1a",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
   };
 
   const inputStyle: React.CSSProperties = {
     padding: "12px 16px",
-    border: "1px solid #e0e0e0",
+    border: isDarkMode ? "1px solid #555555" : "1px solid #e0e0e0",
     borderRadius: "8px",
     fontSize: "14px",
     fontFamily: "inherit",
-    color: "#1a1a1a",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
+    backgroundColor: isDarkMode ? "#2a2a2a" : "#ffffff",
     transition: "all 0.2s ease",
     outline: "none",
   };
@@ -361,14 +376,14 @@ const ProjectsPage: React.FC = () => {
 
   const cancelButtonStyle: React.CSSProperties = {
     padding: "10px 24px",
-    border: "1px solid #e0e0e0",
+    border: isDarkMode ? "1px solid #555555" : "1px solid #e0e0e0",
     borderRadius: "8px",
     fontSize: "14px",
     fontWeight: 400,
     cursor: "pointer",
     fontFamily: "inherit",
-    backgroundColor: "#f5f5f5",
-    color: "#1a1a1a",
+    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
     transition: "all 0.2s ease",
   };
 
@@ -387,9 +402,9 @@ const ProjectsPage: React.FC = () => {
 
   // Generation Comparison Styles
   const generationComparisonContainerStyle: React.CSSProperties = {
-    backgroundColor: "#ffffff",
+    backgroundColor: isDarkMode ? "#3a3a3a" : "#ffffff",
     borderRadius: "12px",
-    border: "2px solid #1a1a1a",
+    border: isDarkMode ? "2px solid #2a2a2a" : "2px solid #1a1a1a",
     overflow: "visible",
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
@@ -409,7 +424,7 @@ const ProjectsPage: React.FC = () => {
   const comparisonImageContainerStyle: React.CSSProperties = {
     width: "100%",
     aspectRatio: "1",
-    backgroundColor: "#f0f0f0",
+    backgroundColor: isDarkMode ? "#2a2a2a" : "#f0f0f0",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -426,21 +441,21 @@ const ProjectsPage: React.FC = () => {
     padding: "16px",
     fontSize: "16px",
     fontWeight: 600,
-    color: "#1a1a1a",
+    color: isDarkMode ? "#ffffff" : "#1a1a1a",
     textAlign: "center",
     width: "100%",
-    borderTop: "1px solid #e0e0e0",
+    borderTop: isDarkMode ? "1px solid #555555" : "1px solid #e0e0e0",
   };
 
   const comparisonDividerStyle: React.CSSProperties = {
     width: "2px",
-    backgroundColor: "#1a1a1a",
+    backgroundColor: isDarkMode ? "#ffffff" : "#1a1a1a",
     gridColumn: "1 / 2",
   };
 
   const projectDescriptionStyle: React.CSSProperties = {
     fontSize: "16px",
-    color: "#666666",
+    color: isDarkMode ? "#aaaaaa" : "#666666",
     lineHeight: 1.5,
     marginBottom: "16px",
   };
@@ -468,7 +483,7 @@ const ProjectsPage: React.FC = () => {
                 {/* Description */}
                 {currentProject.description && (
                   <div>
-                    <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#1a1a1a", margin: "0 0 12px 0" }}>Project Description</h3>
+                    <h3 style={{ fontSize: "16px", fontWeight: 600, color: isDarkMode ? "#ffffff" : "#1a1a1a", margin: "0 0 12px 0" }}>Project Description</h3>
                     <div style={projectDescriptionStyle}>
                       {currentProject.description}
                     </div>
@@ -507,8 +522,8 @@ const ProjectsPage: React.FC = () => {
                     <button
                       style={deleteButtonStyle}
                       onClick={handleDeleteProject}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ffffff")}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = isDarkMode ? "#4a4a4a" : "#f0f0f0")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = isDarkMode ? "#3a3a3a" : "#ffffff")}
                       aria-label="Delete project"
                     >
                       Delete Project
@@ -518,7 +533,7 @@ const ProjectsPage: React.FC = () => {
 
                 {/* All Generations Section */}
                 <div style={{ marginTop: "32px", borderTop: "1px solid #efefef", paddingTop: "24px" }}>
-                  <h3 style={{ fontSize: "25px", fontWeight: 600, color: "#1a1a1a", margin: "0 0 16px 0" }}>All Generations</h3>
+                  <h3 style={{ fontSize: "25px", fontWeight: 600, color: isDarkMode ? "#ffffff" : "#1a1a1a", margin: "0 0 16px 0" }}>All Generations</h3>
                   <div style={generationsGridStyle}>
                     {dummyGenerations.map((generation) => (
                       <div
@@ -541,7 +556,7 @@ const ProjectsPage: React.FC = () => {
                   {/* Generation Comparison Display */}
                   {selectedGeneration && (
                     <div style={{ marginTop: "32px", display: "flex", flexDirection: "column", gap: "16px", alignItems: "center" }}>
-                      <h3 style={{ fontSize: "18px", fontWeight: 600, color: "#1a1a1a", margin: "0 0 16px 0" }}>
+                      <h3 style={{ fontSize: "18px", fontWeight: 600, color: isDarkMode ? "#ffffff" : "#1a1a1a", margin: "0 0 16px 0" }}>
                         {selectedGeneration.title}
                       </h3>
 
@@ -580,7 +595,7 @@ const ProjectsPage: React.FC = () => {
             </>
           ) : (
             <div style={projectInfoStyle}>
-              <p style={{ color: "#999999" }}>Project information not found</p>
+              <p style={{ color: isDarkMode ? "#aaaaaa" : "#999999" }}>Project information not found</p>
             </div>
           )}
         </div>

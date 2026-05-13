@@ -1,9 +1,11 @@
 import Layout from "../components/Layout";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { requestTransformation } from "../services/transformationAPI";
 import { toast } from "react-toastify";
 
 function Generate() {
+  const location = useLocation();
   const [roomType, setRoomType] = useState("Bedroom");
   const [assignProject, setAssignProject] = useState("N/A");
   const [customPrompt, setCustomPrompt] = useState("");
@@ -14,6 +16,26 @@ function Generate() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [showMoreStyles, setShowMoreStyles] = useState(false);
+  const [projects, setProjects] = useState<Array<{ id: string; title: string }>>([]);
+
+  // Load projects from localStorage and set pre-selected project if passed
+  useEffect(() => {
+    try {
+      const storedProjects = localStorage.getItem("projects");
+      if (storedProjects) {
+        const projectList = JSON.parse(storedProjects);
+        setProjects(projectList);
+
+        // Check if a project was passed via navigation state
+        const passedProject = (location.state as any)?.project;
+        if (passedProject && passedProject.title) {
+          setAssignProject(passedProject.title);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading projects:", error);
+    }
+  }, [location.state]);
 
   const all_styles_data = [
     {
@@ -276,9 +298,11 @@ function Generate() {
                 className="dark-mode-select"
               >
                 <option value="N/A">N/A</option>
-                <option value="Project 1">Project 1</option>
-                <option value="Project 2">Project 2</option>
-                <option value="Project 3">Project 3</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.title}>
+                    {project.title}
+                  </option>
+                ))}
               </select>
             </div>
 

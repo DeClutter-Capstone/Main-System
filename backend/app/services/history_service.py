@@ -80,3 +80,46 @@ def delete_transformation(db: Session, file_key: str) -> bool:
     db.commit()
     
     return True
+
+
+def rename_transformation(db: Session, old_file_key: str, new_file_key: str) -> bool:
+    """Rename a transformation record and its associated files."""
+    
+    # Check if old transformation exists
+    stmt = select(Transformation).where(Transformation.file_key == old_file_key)
+    transformation = db.exec(stmt).first()
+    
+    if not transformation:
+        return False
+    
+    # Check if new name already exists
+    stmt_check = select(Transformation).where(Transformation.file_key == new_file_key)
+    if db.exec(stmt_check).first():
+        return False
+    
+    # Rename files in storage
+    old_output_file = OUTPUT_DIR / f"{old_file_key}.png"
+    new_output_file = OUTPUT_DIR / f"{new_file_key}.png"
+    
+    old_input_file = INPUT_DIR / f"{old_file_key}.png"
+    new_input_file = INPUT_DIR / f"{new_file_key}.png"
+    
+    try:
+        # Rename output file if it exists
+        if old_output_file.exists():
+            old_output_file.rename(new_output_file)
+        
+        # Rename input file if it exists
+        if old_input_file.exists():
+            old_input_file.rename(new_input_file)
+        
+        # Update database record
+        transformation.file_key = new_file_key
+        db.add(transformation)
+        db.commit()
+        
+        return True
+    except Exception as e:
+        print(f"Error renaming transformation: {e}")
+        db.rollback()
+        return False

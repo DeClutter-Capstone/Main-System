@@ -85,7 +85,7 @@ def generate_image(input_image_path: Path, room_type: str, style_name: str, extr
 
     with open(input_image_path, "rb") as image_file:
         response = client.images.edit(
-            model="gpt-image-2",
+            model="gpt-image-1.5",
             image=image_file,
             prompt=prompt,
             n=1,

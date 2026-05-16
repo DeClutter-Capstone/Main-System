@@ -15,109 +15,19 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
 
   const applyDarkMode = () => {
     document.documentElement.setAttribute("data-theme", "dark");
-    document.documentElement.style.backgroundColor = "#1a1a1a";
-    document.documentElement.style.color = "#ffffff";
-    document.body.style.backgroundColor = "#1a1a1a";
-    document.body.style.color = "#ffffff";
-
-    // Apply dark theme to all elements with specific styles
-    document.querySelectorAll('[style*="background-color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      const bgColor = element.style.backgroundColor;
-      if (
-        bgColor === "rgb(245, 245, 245)" ||
-        bgColor === "#f5f5f5" ||
-        bgColor === "rgba(245, 245, 245, 1)"
-      ) {
-        element.style.backgroundColor = "#2a2a2a";
-      } else if (
-        bgColor === "rgb(255, 255, 255)" ||
-        bgColor === "#ffffff" ||
-        bgColor === "rgba(255, 255, 255, 1)"
-      ) {
-        element.style.backgroundColor = "#1a1a1a";
-      }
-    });
-
-    // Change all text colors to white
-    document.querySelectorAll('[style*="color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      if (
-        element.style.color === "rgb(51, 51, 51)" ||
-        element.style.color === "#333" ||
-        element.style.color === "rgb(102, 102, 102)" ||
-        element.style.color === "#666"
-      ) {
-        element.style.color = "#ffffff";
-      }
-    });
-
-    // Also apply to all elements without style attribute
-    document.querySelectorAll("*").forEach((el) => {
-      const element = el as HTMLElement;
-      const computedStyle = window.getComputedStyle(element);
-      if (
-        computedStyle.color === "rgb(51, 51, 51)" ||
-        computedStyle.color === "rgb(0, 0, 0)"
-      ) {
-        element.style.color = "#ffffff";
-      }
-    });
-
     localStorage.setItem("darkMode", "true");
   };
 
   const applyLightMode = () => {
     document.documentElement.removeAttribute("data-theme");
-    document.documentElement.style.backgroundColor = "#ffffff";
-    document.documentElement.style.color = "#000000";
-    document.body.style.backgroundColor = "#ffffff";
-    document.body.style.color = "#000000";
-
-    // Reset all background colors
-    document.querySelectorAll('[style*="background-color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      const bgColor = element.style.backgroundColor;
-      if (bgColor === "rgb(42, 42, 42)" || bgColor === "#2a2a2a") {
-        element.style.backgroundColor = "#f5f5f5";
-      } else if (bgColor === "rgb(26, 26, 26)" || bgColor === "#1a1a1a") {
-        element.style.backgroundColor = "#ffffff";
-      }
-    });
-
-    // Reset all text colors to dark
-    document.querySelectorAll('[style*="color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      if (
-        element.style.color === "#ffffff" ||
-        element.style.color === "rgb(255, 255, 255)"
-      ) {
-        element.style.color = "#333";
-      }
-    });
-
-    // Reset all computed colors
-    document.querySelectorAll("*").forEach((el) => {
-      const element = el as HTMLElement;
-      if (element.style.color === "#ffffff") {
-        element.style.color = "#333";
-      }
-    });
-
     localStorage.setItem("darkMode", "false");
   };
 
   useEffect(() => {
-    // Apply/remove dark mode based on state
     if (isDarkMode) {
-      // Use setTimeout to ensure DOM is ready
-      setTimeout(() => {
-        applyDarkMode();
-      }, 0);
+      applyDarkMode();
     } else {
-      setTimeout(() => {
-        applyLightMode();
-      }, 0);
+      applyLightMode();
     }
   }, [isDarkMode]);
 
@@ -130,31 +40,52 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
   return (
     <div style={styles.container}>
       <style>{`
-        a[style] {
-          cursor: pointer;
-          transition: color 0.3s ease;
+        .nav-link {
+          color: var(--color-text-secondary);
+          transition: color 0.15s ease;
+          text-decoration: none;
+          font-family: inherit;
         }
-        a[style]:hover {
-          opacity: 0.8;
+        .nav-link:hover {
+          color: var(--color-text-primary);
+        }
+        .nav-link.active {
+          color: var(--color-brand-primary);
+        }
+        .nav-icon-btn {
+          background: transparent;
+          border: 1px solid var(--color-border-subtle);
+          color: var(--color-text-secondary);
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+        }
+        .nav-icon-btn:hover {
+          color: var(--color-text-primary);
+          background-color: var(--color-bg-elevated);
+          border-color: var(--color-border-subtle);
         }
       `}</style>
-      {/* Logo on the left */}
-      <div style={styles.logoSection}>
-        <img
-          src="/Declutter logo.png"
-          alt="DeClutter Logo"
-          style={styles.logo}
-        />
-      </div>
+      {/* Logo */}
+      <Link to="/" style={styles.logoSection}>
+        <span style={{ color: "var(--color-brand-primary)" }}>De</span>
+        <span style={{ color: "var(--color-text-primary)" }}>Clutter</span>
+      </Link>
 
-      {/* Navigation links on the right */}
+      {/* Navigation links in center */}
       <nav style={styles.navSection}>
         <Link
           to="/"
           style={{
             ...styles.navLink,
-            color: isActive("/") ? "#4384E2" : "#333",
+            ...(isActive("/") && { color: "var(--color-brand-primary)" }),
           }}
+          className={`nav-link${isActive("/") ? " active" : ""}`}
         >
           Home
         </Link>
@@ -162,8 +93,9 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
           to="/about"
           style={{
             ...styles.navLink,
-            color: isActive("/about") ? "#4384E2" : "#333",
+            ...(isActive("/about") && { color: "var(--color-brand-primary)" }),
           }}
+          className={`nav-link${isActive("/about") ? " active" : ""}`}
         >
           About
         </Link>
@@ -171,11 +103,16 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
           to="/blog"
           style={{
             ...styles.navLink,
-            color: isActive("/blog") ? "#4384E2" : "#333",
+            ...(isActive("/blog") && { color: "var(--color-brand-primary)" }),
           }}
+          className={`nav-link${isActive("/blog") ? " active" : ""}`}
         >
           Blog
         </Link>
+      </nav>
+
+      {/* Right side - Sign In & Dark Mode */}
+      <div style={styles.rightSection}>
         {showSignIn && (
           <button
             style={styles.signInButton}
@@ -188,20 +125,42 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
           </button>
         )}
         <button
-          style={{
-            ...styles.toggleButton,
-            backgroundColor: isDarkMode ? "#333" : "#ddd",
-          }}
+          className="nav-icon-btn"
+          style={styles.toggleButton}
           onClick={toggleDarkMode}
-          title="Toggle dark mode"
+          title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label="Toggle theme"
         >
-          <img
-            src={isDarkMode ? "/light-mode.png" : "/dark-mode.png"}
-            alt="Toggle dark mode"
-            style={styles.toggleIcon}
-          />
+          {isDarkMode ? (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+          ) : (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
         </button>
-      </nav>
+      </div>
     </div>
   );
 }
@@ -209,71 +168,81 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
 const styles = {
   container: {
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: "0",
-    backgroundColor: "#ffffff",
+    justifyContent: "space-between",
+    height: "60px",
+    padding: "0 24px",
+    backgroundColor: "var(--color-bg-surface)",
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
     fontFamily: "'Alata', sans-serif",
+    borderBottom: "1px solid var(--color-border-low)",
   } as React.CSSProperties,
   logoSection: {
-    display: "flex",
+    display: "inline-flex",
     alignItems: "center",
-  } as React.CSSProperties,
-  logo: {
-    height: "40px",
-    width: "auto",
+    textDecoration: "none",
+    fontSize: "22px",
+    fontWeight: 700,
+    letterSpacing: "-0.01em",
+    flex: "0 0 auto",
+    gap: "0",
+    color: "inherit",
   } as React.CSSProperties,
   navSection: {
     display: "flex",
-    gap: "6rem",
     alignItems: "center",
+    gap: "40px",
+    flex: "1 1 auto",
+    justifyContent: "center",
   } as React.CSSProperties,
   navLink: {
-    color: "#333",
-    fontSize: "1.25rem",
-    fontWeight: "500",
+    color: "var(--color-text-secondary)",
+    fontSize: "0.95rem",
+    fontWeight: 500,
     cursor: "pointer",
-    transition: "color 0.3s ease",
-    fontFamily: "'Alata', sans-serif",
-    padding: "0.5rem 1rem",
+    transition: "color 0.15s ease",
+    fontFamily: "inherit",
+    padding: "8px 0",
     textDecoration: "none",
-    marginTop: "5px",
-    marginBottom: "5px",
-    marginRight: "15px",
+    lineHeight: 1,
   } as React.CSSProperties,
-  signInButton: {
-    backgroundColor: "#99c0f8ff",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "24px",
-    padding: "0.5rem 1.5rem",
-    fontSize: "1.25rem",
-    fontWeight: "500",
-    cursor: "pointer",
-    fontFamily: "'Alata', sans-serif",
-    transition: "background-color 0.3s ease",
-    marginTop: "5px",
-    marginBottom: "5px",
-    marginRight: "0px",
-  } as React.CSSProperties,
-  toggleButton: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    border: "none",
-    cursor: "pointer",
-    fontSize: "20px",
+  rightSection: {
     display: "flex",
     alignItems: "center",
+    gap: "24px",
+    flex: "0 0 auto",
+  } as React.CSSProperties,
+  signInButton: {
+    backgroundColor: "var(--color-brand-primary)",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "10px",
+    padding: "10px 20px",
+    fontSize: "0.95rem",
+    fontWeight: "500",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    transition: "background-color 0.15s ease",
+    letterSpacing: "0.01em",
+  } as React.CSSProperties,
+  toggleButton: {
+    background: "transparent",
+    border: "1px solid var(--color-border-subtle)",
+    color: "var(--color-text-secondary)",
+    width: "36px",
+    height: "36px",
+    borderRadius: "50%",
+    display: "inline-flex",
+    alignItems: "center",
     justifyContent: "center",
-    transition: "background-color 0.3s ease",
-    marginLeft: "10px",
-    margin: "4px",
-    marginRight: "15px",
+    cursor: "pointer",
+    transition: "color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease",
   } as React.CSSProperties,
   toggleIcon: {
-    width: "24px",
-    height: "24px",
+    width: "18px",
+    height: "18px",
   } as React.CSSProperties,
 };
 

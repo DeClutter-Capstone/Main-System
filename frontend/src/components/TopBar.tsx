@@ -29,16 +29,19 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
     } else {
       applyLightMode();
     }
+    localStorage.setItem("darkMode", String(isDarkMode));
   }, [isDarkMode]);
+
+  useEffect(() => {
+    if (localStorage.getItem("darkMode") === "true") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  }, []);
 
   const isActive = (path: string) => location.pathname === path;
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="topbar-container">
       <style>{`
         .nav-link {
           color: var(--color-text-secondary);
@@ -115,7 +118,7 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
       <div style={styles.rightSection}>
         {showSignIn && (
           <button
-            style={styles.signInButton}
+            className="signin-btn"
             onClick={() => {
               if (onSignIn) onSignIn();
               navigate("/login", { replace: true });

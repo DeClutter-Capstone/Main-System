@@ -13,24 +13,19 @@ function Footer() {
           background-color: #1a1a1a !important;
           border-top-color: #333 !important;
         }
+        [data-theme="dark"] .footer-title {
+          color: #ffffff !important;
+        }
       `}</style>
       <div style={styles.container}>
         {/* Company Column */}
         <div style={styles.column}>
-          <h3 style={styles.columnTitle}>Company</h3>
+          <h3 style={styles.columnTitle} className="footer-title">Company</h3>
           <nav style={styles.linksList}>
-            <a href="/about" style={styles.link}>
-              About Us
-            </a>
-            <a href="#privacy" style={styles.link}>
-              Privacy Policy
-            </a>
-            <a href="#terms" style={styles.link}>
-              Terms of Service
-            </a>
-            <a href="/blog" style={styles.link}>
-              Blog
-            </a>
+            <a href="/about" style={styles.link} className="footer-link">About Us</a>
+            <a href="#privacy" style={styles.link} className="footer-link">Privacy Policy</a>
+            <a href="#terms" style={styles.link} className="footer-link">Terms of Service</a>
+            <a href="/blog" style={styles.link} className="footer-link">Blog</a>
           </nav>
         </div>
 
@@ -46,17 +41,15 @@ function Footer() {
 
         {/* Contact Column */}
         <div style={styles.column}>
-          <h3 style={styles.columnTitle}>Contact</h3>
+          <h3 style={styles.columnTitle} className="footer-title">Contact</h3>
           <nav style={styles.linksList}>
-            <a href="#contact" style={styles.link}>
-              Contact Us
-            </a>
+            <a href="/contact" style={styles.link} className="footer-link">Contact Us</a>
           </nav>
         </div>
       </div>
 
       {/* Copyright */}
-      <div style={styles.copyright}>2026 © DeClutter, Inc.</div>
+      <div style={styles.copyright} className="footer-copyright">2026 © DeClutter, Inc.</div>
     </footer>
   );
 }

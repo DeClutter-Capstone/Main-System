@@ -29,7 +29,7 @@ function Authentication({ onAuthenticate }: AuthenticationProps) {
         {/* Right side - Visual section */}
         <div style={styles.rightSection}>
           <img
-            src={isDarkMode ? "/dark auth.png" : "/auth.jpg"}
+            src={isDarkMode ? "/darkauth2.png" : "/auth2.jpg"}
             alt="Authentication background"
             style={styles.authImage}
           />
@@ -44,7 +44,6 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     height: "100vh",
-    backgroundColor: "#ffffff",
   } as React.CSSProperties,
   mainContent: {
     display: "flex",
@@ -158,7 +157,16 @@ styleSheet.textContent = `
   .auth-google-text {
     color: #ffffff !important;
   }
+  .auth-container {
+    background-color: #f5f5f5ff;
+  }
   [data-theme="dark"] .auth-container {
+    background-color: #252525ff !important;
+  }
+  .auth-left-section {
+    background-color: #f5f5f5ff;
+  }
+  [data-theme="dark"] .auth-left-section {
     background-color: #252525ff !important;
   }
   [data-theme="dark"] .auth-card {

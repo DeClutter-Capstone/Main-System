@@ -14,3 +14,7 @@ class HistoryItem(BaseModel):
 
     class Config:
         from_attributes = True
+
+class RenameRequest(BaseModel):
+    old_file_key: str
+    new_file_key: str

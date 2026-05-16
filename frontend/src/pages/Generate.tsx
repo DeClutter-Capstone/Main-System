@@ -119,11 +119,6 @@ function Generate() {
       image: "/public/HomePageImages/bohemian.webp",
     },
     {
-      id: "Rustic",
-      name: "Rustic",
-      image: "/public/HomePageImages/rustic.jpg",
-    },
-    {
       id: "Spa",
       name: "Spa",
       image: "/public/HomePageImages/spa.jpg",

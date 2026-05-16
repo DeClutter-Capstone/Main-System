@@ -3,13 +3,21 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { useState, useEffect, type ReactNode } from "react";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import HomePage from "./pages/HomePage";
 import About from "./pages/About";
 import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import Generate from "./pages/Generate";
 import Projects from "./pages/Projects";
 import ProjectsPage from "./pages/ProjectsPage";
@@ -18,6 +26,7 @@ import FAQ from "./pages/FAQ";
 import Accont from "./pages/Accont";
 import Authentication from "./pages/Authentication";
 import Signup from "./pages/Signup";
+import ContactUs from "./pages/ContactUs";
 
 // Protected Route Component
 interface ProtectedRouteProps {
@@ -73,6 +82,7 @@ function App() {
         theme="light"
       />
       <Router>
+        <ScrollToTop />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
@@ -86,7 +96,9 @@ function App() {
           />
           <Route path="/about" element={<About />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:id" element={<BlogPost />} />
           <Route path="/generate" element={<Generate />} />
+          <Route path="/contact" element={<ContactUs />} />
 
           {/* Protected Routes */}
           <Route

@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["http://localhost:5173", "https://declutter-c6dfb.web.app", "https://declutter-c6dfb.firebaseapp.com"],
+    "method": ["GET", "PUT", "POST", "DELETE", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "User-Agent"]
+  }
+]

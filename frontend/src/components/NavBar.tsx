@@ -169,6 +169,7 @@ const styles = {
     top: 0,
     zIndex: 100,
     fontFamily: "'Alata', sans-serif",
+    transition: "background-color 0.3s ease",
   } as React.CSSProperties,
   logoLink: {
     display: "inline-flex",

@@ -61,3 +61,28 @@ export async function deleteHistoryItem(fileKey: string): Promise<void> {
     throw new Error(error.detail || "Failed to delete transformation");
   }
 }
+
+
+export async function renameHistoryItem(
+  oldFileKey: string,
+  newFileKey: string,
+): Promise<void> {
+  const backendBase =
+    import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
+
+  const res = await fetch(`${backendBase}/api/history/rename`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      old_file_key: oldFileKey,
+      new_file_key: newFileKey,
+    }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to rename transformation");
+  }
+}

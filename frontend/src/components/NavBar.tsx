@@ -12,104 +12,141 @@ function NavBar() {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.setAttribute("data-theme", "dark");
-    } else {
-      document.documentElement.removeAttribute("data-theme");
-    }
-    localStorage.setItem("darkMode", String(isDarkMode));
-  }, [isDarkMode]);
-
-  // Apply on first mount without waiting for state change
-  useEffect(() => {
-    if (localStorage.getItem("darkMode") === "true") {
-      document.documentElement.setAttribute("data-theme", "dark");
-    }
-  }, []);
-
-  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
     });
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+    localStorage.setItem("darkMode", isDarkMode ? "true" : "false");
+  }, [isDarkMode]);
+
   const isActive = (path: string) => location.pathname === path;
+  const toggleDarkMode = () => setIsDarkMode((v) => !v);
+
+  const navLinks: Array<{ to: string; label: string }> = [
+    { to: "/generate", label: "Generate" },
+    { to: "/projects", label: "My Projects" },
+    { to: "/history", label: "History" },
+  ];
 
   return (
-    <nav style={styles.navbar}>
+    <nav style={styles.navbar} className="app-navbar">
       <style>{`
+        .app-navbar {
+          border-bottom: 1px solid var(--color-border-low);
+        }
         .nav-link {
-          color: #333;
+          color: var(--color-text-secondary);
+          transition: color 0.15s ease;
           text-decoration: none;
-          font-size: 1.25rem;
-          font-weight: 500;
-          font-family: 'Alata', sans-serif;
-          cursor: pointer;
-          padding: 0.5rem 1rem;
-          transition: color 0.2s ease;
+          font-family: inherit;
         }
         .nav-link:hover {
-          color: #4384E2;
+          color: var(--color-text-primary);
         }
         .nav-link.active {
-          color: #4384E2;
+          color: var(--color-brand-primary);
         }
-        [data-theme="dark"] .nav-link {
-          color: #ffffff;
+        .nav-icon-btn {
+          background: transparent;
+          border: 1px solid var(--color-border-subtle);
+          color: var(--color-text-secondary);
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
         }
-        [data-theme="dark"] .nav-link:hover {
-          color: #82b6ff;
+        .nav-icon-btn:hover {
+          color: var(--color-text-primary);
+          background-color: var(--color-bg-elevated);
+          border-color: var(--color-border-subtle);
         }
-        [data-theme="dark"] .nav-link.active {
-          color: #82b6ff;
+        .nav-profile {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          cursor: pointer;
+          object-fit: cover;
+          border: 1px solid var(--color-border-subtle);
+          transition: opacity 0.15s ease;
         }
-        [data-theme="dark"] nav {
-          background-color: #1a1a1a !important;
+        .nav-profile:hover {
+          opacity: 0.85;
         }
       `}</style>
 
       {/* Logo */}
-      <div style={styles.logoSection}>
-        <img src="/Declutter logo.png" alt="DeClutter Logo" style={styles.logo} />
-      </div>
+      <Link to="/" style={styles.logoLink}>
+        <span style={styles.logoDe}>De</span>
+        <span style={styles.logoClutter}>Clutter</span>
+      </Link>
 
-      {/* Nav links */}
+      {/* Center nav */}
       <div style={styles.navItems}>
-        <Link to="/generate" className={`nav-link${isActive("/generate") ? " active" : ""}`}>
-          Generate
-        </Link>
-        <Link to="/projects" className={`nav-link${isActive("/projects") ? " active" : ""}`}>
-          My Projects
-        </Link>
-        <Link to="/history" className={`nav-link${isActive("/history") ? " active" : ""}`}>
-          History
-        </Link>
-        <Link to="/faq" className={`nav-link${isActive("/faq") ? " active" : ""}`}>
-          FAQ
-        </Link>
+        {navLinks.map((link) => (
+          <Link
+            key={link.to}
+            to={link.to}
+            style={styles.navLink}
+            className={`nav-link${isActive(link.to) ? " active" : ""}`}
+          >
+            {link.label}
+          </Link>
+        ))}
       </div>
 
       {/* Right side */}
-      <div style={styles.profileSection}>
+      <div style={styles.rightSection}>
         <button
-          style={{
-            ...styles.toggleButton,
-            backgroundColor: isDarkMode ? "#333" : "#ddd",
-          }}
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          title="Toggle dark mode"
+          className="nav-icon-btn"
+          onClick={toggleDarkMode}
+          title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label="Toggle theme"
         >
-          <img
-            src={isDarkMode ? "/light-mode.png" : "/dark-mode.png"}
-            alt="Toggle dark mode"
-            style={styles.toggleIcon}
-          />
+          {isDarkMode ? (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+          ) : (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
         </button>
         <img
           src={firebaseUser?.photoURL || "/profile logo.png"}
           alt="Profile"
-          style={styles.profileIcon}
+          className="nav-profile"
           onClick={() => navigate("/account")}
           onError={(e) => {
             (e.target as HTMLImageElement).src = "/profile logo.png";
@@ -123,58 +160,50 @@ function NavBar() {
 const styles = {
   navbar: {
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: "0",
-    backgroundColor: "#ffffff",
+    justifyContent: "space-between",
+    height: "60px",
+    padding: "0 24px",
+    backgroundColor: "var(--color-bg-surface)",
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
     fontFamily: "'Alata', sans-serif",
     transition: "background-color 0.3s ease",
   } as React.CSSProperties,
-  logoSection: {
-    display: "flex",
+  logoLink: {
+    display: "inline-flex",
     alignItems: "center",
+    textDecoration: "none",
+    fontSize: "22px",
+    fontWeight: 700,
+    letterSpacing: "-0.01em",
+    flex: "0 0 auto",
   } as React.CSSProperties,
-  logo: {
-    height: "40px",
-    width: "auto",
+  logoDe: {
+    color: "var(--color-brand-primary)",
+  } as React.CSSProperties,
+  logoClutter: {
+    color: "var(--color-text-primary)",
   } as React.CSSProperties,
   navItems: {
     display: "flex",
-    gap: "6rem",
     alignItems: "center",
     justifyContent: "center",
+    gap: "40px",
     flex: "1 1 auto",
   } as React.CSSProperties,
-  profileSection: {
+  navLink: {
+    fontSize: "0.95rem",
+    fontWeight: 500,
+    padding: "8px 0",
+    lineHeight: 1,
+  } as React.CSSProperties,
+  rightSection: {
     display: "flex",
     alignItems: "center",
+    gap: "24px",
     flex: "0 0 auto",
-    paddingRight: "1rem",
-    gap: "1rem",
-  } as React.CSSProperties,
-  toggleButton: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    border: "none",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "background-color 0.3s ease",
-    margin: "2px",
-  } as React.CSSProperties,
-  toggleIcon: {
-    width: "24px",
-    height: "24px",
-  } as React.CSSProperties,
-  profileIcon: {
-    height: "40px",
-    width: "40px",
-    borderRadius: "50%",
-    cursor: "pointer",
-    marginTop: "5px",
-    marginBottom: "5px",
   } as React.CSSProperties,
 };
 

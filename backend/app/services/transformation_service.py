@@ -1,19 +1,17 @@
 import os
-import replicate 
-import requests 
-from pathlib import Path 
+import requests
+from pathlib import Path
 from PIL import Image
 from io import BytesIO
 from app.models.transformation import Transformation
 from app.models.transformationsequence import TransformationSequence
+from app.ai.ai import generate_image
 from sqlmodel import Session, select
 from dotenv import load_dotenv
 from uuid import UUID
 import base64
 
 load_dotenv()
-
-MODEL_NAME = os.getenv("REPLICATE_MODEL_NAME")
 
 STORAGE_DIR = Path(__file__).parent.parent.parent / "storage"
 INPUT_DIR = STORAGE_DIR / "input"
@@ -86,7 +84,7 @@ def normalize_room_type(room_type: str) -> str:
     return room_type.lower().replace(" ", "_")
 
 
-def generate_transformation(db: Session, project_id, input_image_id, room_type: str, style_name: str, image_url: str, hf_token: str, prompt: str = ''):
+def generate_transformation(db: Session, project_id, input_image_id, room_type: str, style_name: str, image_url: str, prompt: str = ''):
     """
     Generate a transformation using Replicate API and save images locally
     """
@@ -128,30 +126,12 @@ def generate_transformation(db: Session, project_id, input_image_id, room_type: 
     else:
         save_image_from_url(image_url, input_image_path)
 
-    # Call Replicate API
-    replicate_input = {
-        "image": image_url,
-        "room_type": normalized_room_type,
-        "style": normalized_style_name,
-        "extra_prompt" : prompt,
-        "hf_token": hf_token
-    }
-
-    # Add custom prompt if provided
-    if prompt:
-        replicate_input["extra_prompt"] = prompt
-
-    print(f"Calling Replicate with: {replicate_input}")
-    output_url = replicate.run(
-        MODEL_NAME,
-        input=replicate_input
-    )
-
-    print(f"Replicate output URL: {output_url}")
-
-    # Save output image from Replicate URL
+    # Call OpenAI gpt-image-1
+    print(f"Calling OpenAI gpt-image-1 for {normalized_room_type} / {normalized_style_name}")
     output_image_path = OUTPUT_DIR / f"{base_name}.png"
+    b64_result = generate_image(input_image_path, normalized_room_type, normalized_style_name, prompt)
+
     print(f"Saving output image to: {output_image_path}")
-    save_image_from_url(output_url, output_image_path)
+    save_image_from_base64(b64_result, output_image_path)
 
     return transformation, f"/storage/output/{base_name}.png"

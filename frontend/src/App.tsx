@@ -19,7 +19,8 @@ import About from "./pages/About";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Generate from "./pages/Generate";
-import Porjects from "./pages/Porjects";
+import Projects from "./pages/Projects";
+import ProjectsPage from "./pages/ProjectsPage";
 import History from "./pages/History";
 import FAQ from "./pages/FAQ";
 import Accont from "./pages/Accont";
@@ -104,7 +105,7 @@ function App() {
             path="/projects"
             element={
               <ProtectedRoute isAuthenticated={isAuthenticated}>
-                <Porjects />
+                <Projects />
               </ProtectedRoute>
             }
           />
@@ -129,6 +130,14 @@ function App() {
             element={
               <ProtectedRoute isAuthenticated={isAuthenticated}>
                 <Accont />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/project/:projectId"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <ProjectsPage />
               </ProtectedRoute>
             }
           />

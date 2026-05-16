@@ -34,7 +34,6 @@ function NavBar() {
     { to: "/generate", label: "Generate" },
     { to: "/projects", label: "My Projects" },
     { to: "/history", label: "History" },
-    { to: "/faq", label: "FAQ" },
   ];
 
   return (

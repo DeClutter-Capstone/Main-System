@@ -11,7 +11,7 @@ import HomePage from "./pages/HomePage";
 import About from "./pages/About";
 import Blog from "./pages/Blog";
 import Generate from "./pages/Generate";
-import Porjects from "./pages/Porjects";
+import Projects from "./pages/Projects";
 import ProjectsPage from "./pages/ProjectsPage";
 import History from "./pages/History";
 import FAQ from "./pages/FAQ";
@@ -93,7 +93,7 @@ function App() {
             path="/projects"
             element={
               <ProtectedRoute isAuthenticated={isAuthenticated}>
-                <Porjects />
+                <Projects />
               </ProtectedRoute>
             }
           />

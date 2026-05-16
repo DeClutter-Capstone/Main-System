@@ -11,200 +11,143 @@ function NavBar() {
   });
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
 
-  const applyDarkMode = () => {
-    document.documentElement.setAttribute("data-theme", "dark");
-    document.documentElement.style.backgroundColor = "#1a1a1a";
-    document.documentElement.style.color = "#ffffff";
-    document.body.style.backgroundColor = "#1a1a1a";
-    document.body.style.color = "#ffffff";
-
-    // Apply dark theme to all elements with specific styles
-    document.querySelectorAll('[style*="background-color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      const bgColor = element.style.backgroundColor;
-      if (
-        bgColor === "rgb(245, 245, 245)" ||
-        bgColor === "#f5f5f5" ||
-        bgColor === "rgba(245, 245, 245, 1)"
-      ) {
-        element.style.backgroundColor = "#2a2a2a";
-      } else if (
-        bgColor === "rgb(255, 255, 255)" ||
-        bgColor === "#ffffff" ||
-        bgColor === "rgba(255, 255, 255, 1)"
-      ) {
-        element.style.backgroundColor = "#1a1a1a";
-      }
-    });
-
-    // Change all text colors to white
-    document.querySelectorAll('[style*="color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      if (
-        element.style.color === "rgb(51, 51, 51)" ||
-        element.style.color === "#333" ||
-        element.style.color === "rgb(102, 102, 102)" ||
-        element.style.color === "#666"
-      ) {
-        element.style.color = "#ffffff";
-      }
-    });
-
-    // Also apply to all elements without style attribute
-    document.querySelectorAll("*").forEach((el) => {
-      const element = el as HTMLElement;
-      const computedStyle = window.getComputedStyle(element);
-      if (
-        computedStyle.color === "rgb(51, 51, 51)" ||
-        computedStyle.color === "rgb(0, 0, 0)"
-      ) {
-        element.style.color = "#ffffff";
-      }
-    });
-
-    localStorage.setItem("darkMode", "true");
-  };
-
-  const applyLightMode = () => {
-    document.documentElement.removeAttribute("data-theme");
-    document.documentElement.style.backgroundColor = "#ffffff";
-    document.documentElement.style.color = "#000000";
-    document.body.style.backgroundColor = "#ffffff";
-    document.body.style.color = "#000000";
-
-    // Reset all background colors
-    document.querySelectorAll('[style*="background-color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      const bgColor = element.style.backgroundColor;
-      if (bgColor === "rgb(42, 42, 42)" || bgColor === "#2a2a2a") {
-        element.style.backgroundColor = "#f5f5f5";
-      } else if (bgColor === "rgb(26, 26, 26)" || bgColor === "#1a1a1a") {
-        element.style.backgroundColor = "#ffffff";
-      }
-    });
-
-    // Reset all text colors to dark
-    document.querySelectorAll('[style*="color"]').forEach((el) => {
-      const element = el as HTMLElement;
-      if (
-        element.style.color === "#ffffff" ||
-        element.style.color === "rgb(255, 255, 255)"
-      ) {
-        element.style.color = "#333";
-      }
-    });
-
-    // Reset all computed colors
-    document.querySelectorAll("*").forEach((el) => {
-      const element = el as HTMLElement;
-      if (element.style.color === "#ffffff") {
-        element.style.color = "#333";
-      }
-    });
-
-    localStorage.setItem("darkMode", "false");
-  };
-
-  // Fetch Firebase user data
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
     });
-
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    // Apply/remove dark mode based on state
     if (isDarkMode) {
-      // Use setTimeout to ensure DOM is ready
-      setTimeout(() => {
-        applyDarkMode();
-      }, 0);
+      document.documentElement.setAttribute("data-theme", "dark");
     } else {
-      setTimeout(() => {
-        applyLightMode();
-      }, 0);
+      document.documentElement.removeAttribute("data-theme");
     }
+    localStorage.setItem("darkMode", isDarkMode ? "true" : "false");
   }, [isDarkMode]);
 
   const isActive = (path: string) => location.pathname === path;
+  const toggleDarkMode = () => setIsDarkMode((v) => !v);
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
+  const navLinks: Array<{ to: string; label: string }> = [
+    { to: "/generate", label: "Generate" },
+    { to: "/projects", label: "My Projects" },
+    { to: "/history", label: "History" },
+    { to: "/faq", label: "FAQ" },
+  ];
 
   return (
-    <nav style={styles.navbar}>
-      {/* Logo on the left */}
-      <div style={styles.logoSection}>
-        <img
-          src="/Declutter logo.png"
-          alt="DeClutter Logo"
-          style={styles.logo}
-        />
-      </div>
+    <nav style={styles.navbar} className="app-navbar">
+      <style>{`
+        .app-navbar {
+          border-bottom: 1px solid var(--color-border-low);
+        }
+        .nav-link {
+          color: var(--color-text-secondary);
+          transition: color 0.15s ease;
+          text-decoration: none;
+          font-family: inherit;
+        }
+        .nav-link:hover {
+          color: var(--color-text-primary);
+        }
+        .nav-link.active {
+          color: var(--color-brand-primary);
+        }
+        .nav-icon-btn {
+          background: transparent;
+          border: 1px solid var(--color-border-subtle);
+          color: var(--color-text-secondary);
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+        }
+        .nav-icon-btn:hover {
+          color: var(--color-text-primary);
+          background-color: var(--color-bg-elevated);
+          border-color: var(--color-border-subtle);
+        }
+        .nav-profile {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          cursor: pointer;
+          object-fit: cover;
+          border: 1px solid var(--color-border-subtle);
+          transition: opacity 0.15s ease;
+        }
+        .nav-profile:hover {
+          opacity: 0.85;
+        }
+      `}</style>
 
-      {/* Navigation items in the middle */}
+      {/* Logo */}
+      <Link to="/" style={styles.logoLink}>
+        <span style={styles.logoDe}>De</span>
+        <span style={styles.logoClutter}>Clutter</span>
+      </Link>
+
+      {/* Center nav */}
       <div style={styles.navItems}>
-        <Link
-          to="/generate"
-          style={{
-            ...styles.navLink,
-            color: isActive("/generate") ? "#4384E2" : "#333",
-          }}
-        >
-          Generate
-        </Link>
-        <Link
-          to="/projects"
-          style={{
-            ...styles.navLink,
-            color: isActive("/projects") ? "#4384E2" : "#333",
-          }}
-        >
-          My Projects
-        </Link>
-        <Link
-          to="/history"
-          style={{
-            ...styles.navLink,
-            color: isActive("/history") ? "#4384E2" : "#333",
-          }}
-        >
-          History
-        </Link>
-        <Link
-          to="/faq"
-          style={{
-            ...styles.navLink,
-            color: isActive("/faq") ? "#4384E2" : "#333",
-          }}
-        >
-          FAQ
-        </Link>
+        {navLinks.map((link) => (
+          <Link
+            key={link.to}
+            to={link.to}
+            style={styles.navLink}
+            className={`nav-link${isActive(link.to) ? " active" : ""}`}
+          >
+            {link.label}
+          </Link>
+        ))}
       </div>
 
-      {/* Profile icon on the right */}
-      <div style={styles.profileSection}>
+      {/* Right side */}
+      <div style={styles.rightSection}>
         <button
-          style={{
-            ...styles.toggleButton,
-            backgroundColor: isDarkMode ? "#333" : "#ddd",
-          }}
+          className="nav-icon-btn"
           onClick={toggleDarkMode}
-          title="Toggle dark mode"
+          title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label="Toggle theme"
         >
-          <img
-            src={isDarkMode ? "/light-mode.png" : "/dark-mode.png"}
-            alt="Toggle dark mode"
-            style={styles.toggleIcon}
-          />
+          {isDarkMode ? (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+          ) : (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
         </button>
         <img
           src={firebaseUser?.photoURL || "/profile logo.png"}
           alt="Profile"
-          style={styles.profileIcon}
+          className="nav-profile"
           onClick={() => navigate("/account")}
           onError={(e) => {
             (e.target as HTMLImageElement).src = "/profile logo.png";
@@ -218,71 +161,49 @@ function NavBar() {
 const styles = {
   navbar: {
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: "0",
-    backgroundColor: "#ffffff",
+    justifyContent: "space-between",
+    height: "60px",
+    padding: "0 24px",
+    backgroundColor: "var(--color-bg-surface)",
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
     fontFamily: "'Alata', sans-serif",
   } as React.CSSProperties,
-  logoSection: {
-    display: "flex",
+  logoLink: {
+    display: "inline-flex",
     alignItems: "center",
+    textDecoration: "none",
+    fontSize: "22px",
+    fontWeight: 700,
+    letterSpacing: "-0.01em",
+    flex: "0 0 auto",
   } as React.CSSProperties,
-  logo: {
-    height: "40px",
-    width: "auto",
+  logoDe: {
+    color: "var(--color-brand-primary)",
+  } as React.CSSProperties,
+  logoClutter: {
+    color: "var(--color-text-primary)",
   } as React.CSSProperties,
   navItems: {
     display: "flex",
-    gap: "6rem",
     alignItems: "center",
     justifyContent: "center",
+    gap: "40px",
     flex: "1 1 auto",
   } as React.CSSProperties,
   navLink: {
-    background: "none",
-    border: "none",
-    textDecoration: "none",
-    color: "#333",
-    fontSize: "1.25rem",
-    fontWeight: "500",
-    fontFamily: "'Alata', sans-serif",
-    cursor: "pointer",
-    transition: "color 0.3s ease",
-    padding: "0.5rem 1rem",
+    fontSize: "0.95rem",
+    fontWeight: 500,
+    padding: "8px 0",
+    lineHeight: 1,
   } as React.CSSProperties,
-  profileSection: {
+  rightSection: {
     display: "flex",
     alignItems: "center",
+    gap: "24px",
     flex: "0 0 auto",
-    paddingRight: "1rem",
-    gap: "1rem",
-  } as React.CSSProperties,
-  toggleButton: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    border: "none",
-    cursor: "pointer",
-    fontSize: "20px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "background-color 0.3s ease",
-    margin: "2px",
-  } as React.CSSProperties,
-  toggleIcon: {
-    width: "24px",
-    height: "24px",
-  } as React.CSSProperties,
-  profileIcon: {
-    height: "40px",
-    width: "40px",
-    borderRadius: "50%",
-    cursor: "pointer",
-    marginTop: "5px",
-    marginBottom: "5px",
-    transition: "opacity 0.3s ease",
   } as React.CSSProperties,
 };
 

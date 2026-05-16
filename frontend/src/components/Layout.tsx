@@ -7,12 +7,7 @@ interface LayoutProps {
 
 function Layout({ children }: LayoutProps) {
   return (
-    <div style={styles.container} className="layout-container">
-      <style>{`
-        [data-theme="dark"] .layout-container {
-          background-color: #252525ff !important;
-        }
-      `}</style>
+    <div style={styles.container}>
       <NavBar />
       <main style={styles.mainContent}>{children}</main>
     </div>
@@ -24,7 +19,8 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     minHeight: "100vh",
-    backgroundColor: "#f5f5f5ff",
+    backgroundColor: "var(--color-bg-base)",
+    color: "var(--color-text-primary)",
   } as React.CSSProperties,
   mainContent: {
     flex: 1,

@@ -3,13 +3,15 @@ import Footer from "../components/Footer";
 import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect, useCallback } from "react";
 import React from "react";
+import { auth } from "../Firebase/Firebase";
 
 // ============ HERO SLIDES ============
 const heroSlides = [
   {
     id: 1,
     title: "Minimalist Living Redefined",
-    subtitle: "Discover how AI transforms your spaces into serene, decluttered havens of tranquility",
+    subtitle:
+      "Discover how AI transforms your spaces into serene, decluttered havens of tranquility",
     style: "Minimalist",
     imageUrl: "/HomePageImages/minimalist.jpg",
     accent: "#a8d8ea",
@@ -17,7 +19,8 @@ const heroSlides = [
   {
     id: 2,
     title: "Modern Design Meets AI Intelligence",
-    subtitle: "Experience cutting-edge interior transformation powered by artificial intelligence",
+    subtitle:
+      "Experience cutting-edge interior transformation powered by artificial intelligence",
     style: "Modern",
     imageUrl: "/HomePageImages/modren.jpg",
     accent: "#4790fd",
@@ -25,7 +28,8 @@ const heroSlides = [
   {
     id: 3,
     title: "Scandinavian Simplicity & Elegance",
-    subtitle: "Create functional, beautiful spaces inspired by Nordic design principles",
+    subtitle:
+      "Create functional, beautiful spaces inspired by Nordic design principles",
     style: "Scandinavian",
     imageUrl: "/HomePageImages/scandinavian.webp",
     accent: "#b8d8c8",
@@ -33,7 +37,8 @@ const heroSlides = [
   {
     id: 4,
     title: "Industrial Design, Raw & Unapologetic",
-    subtitle: "Exposed brick, steel, and weathered wood turn every imperfection into a bold statement",
+    subtitle:
+      "Exposed brick, steel, and weathered wood turn every imperfection into a bold statement",
     style: "Industrial",
     imageUrl: "/HomePageImages/industrial.jpg",
     accent: "#c8a882",
@@ -41,7 +46,8 @@ const heroSlides = [
   {
     id: 5,
     title: "Bohemian Spirit, Layered & Alive",
-    subtitle: "Rich colours, global patterns, and handcrafted pieces that tell your unique story",
+    subtitle:
+      "Rich colours, global patterns, and handcrafted pieces that tell your unique story",
     style: "Bohemian",
     imageUrl: "/HomePageImages/bohemian.webp",
     accent: "#e8a87c",
@@ -49,7 +55,8 @@ const heroSlides = [
   {
     id: 6,
     title: "Spa Serenity, Your Personal Sanctuary",
-    subtitle: "Soft earthy tones and natural materials that bring the healing energy of nature indoors",
+    subtitle:
+      "Soft earthy tones and natural materials that bring the healing energy of nature indoors",
     style: "Spa",
     imageUrl: "/HomePageImages/spa.jpg",
     accent: "#8fcfcf",
@@ -62,7 +69,8 @@ const designStyles = [
     label: "Minimalist",
     image: "/HomePageImages/minimalist.jpg",
     heading: "Minimalist Style",
-    description: "Minimalist design focuses on clarity, balance, and purpose. It reduces visual noise by using clean lines, neutral tones, and carefully selected elements. Each detail serves a function, creating calm, open spaces that feel refined, organized, and timeless.",
+    description:
+      "Minimalist design focuses on clarity, balance, and purpose. It reduces visual noise by using clean lines, neutral tones, and carefully selected elements. Each detail serves a function, creating calm, open spaces that feel refined, organized, and timeless.",
     color: "#a8d8ea",
   },
   {
@@ -70,7 +78,8 @@ const designStyles = [
     label: "Modern",
     image: "/HomePageImages/modren.jpg",
     heading: "Modern Style",
-    description: "Modern design harnesses bold geometry, open floor plans, and a curated mix of materials. Sleek surfaces meet warm accents to create spaces that feel effortlessly current and luxuriously liveable.",
+    description:
+      "Modern design harnesses bold geometry, open floor plans, and a curated mix of materials. Sleek surfaces meet warm accents to create spaces that feel effortlessly current and luxuriously liveable.",
     color: "#4790fd",
   },
   {
@@ -78,7 +87,8 @@ const designStyles = [
     label: "Scandinavian",
     image: "/HomePageImages/scandinavian.webp",
     heading: "Scandinavian Style",
-    description: "Scandinavian design combines minimalism with functionality and warmth. It emphasises natural light, light wood tones, and cozy elements that create inviting, liveable spaces with a perfect blend of beauty and practicality.",
+    description:
+      "Scandinavian design combines minimalism with functionality and warmth. It emphasises natural light, light wood tones, and cozy elements that create inviting, liveable spaces with a perfect blend of beauty and practicality.",
     color: "#b8d8c8",
   },
   {
@@ -86,7 +96,8 @@ const designStyles = [
     label: "Industrial",
     image: "/HomePageImages/industrial.jpg",
     heading: "Industrial Style",
-    description: "Industrial design draws inspiration from warehouses and urban lofts, celebrating raw, unfinished materials such as exposed brick, concrete, and steel — turning every imperfection into a design statement.",
+    description:
+      "Industrial design draws inspiration from warehouses and urban lofts, celebrating raw, unfinished materials such as exposed brick, concrete, and steel — turning every imperfection into a design statement.",
     color: "#c8a882",
   },
   {
@@ -94,7 +105,8 @@ const designStyles = [
     label: "Bohemian",
     image: "/HomePageImages/bohemian.webp",
     heading: "Bohemian Style",
-    description: "Bohemian design embraces a free-spirited, eclectic aesthetic that layers rich colours, global patterns, and mixed textures to create deeply personal and expressive spaces full of character.",
+    description:
+      "Bohemian design embraces a free-spirited, eclectic aesthetic that layers rich colours, global patterns, and mixed textures to create deeply personal and expressive spaces full of character.",
     color: "#e8a87c",
   },
   {
@@ -102,7 +114,8 @@ const designStyles = [
     label: "Spa",
     image: "/HomePageImages/spa.jpg",
     heading: "Spa Style",
-    description: "Spa design transforms living spaces into sanctuaries of calm and restoration. Soft earthy tones, natural stone, bamboo, and gentle lighting create an atmosphere of pure tranquility.",
+    description:
+      "Spa design transforms living spaces into sanctuaries of calm and restoration. Soft earthy tones, natural stone, bamboo, and gentle lighting create an atmosphere of pure tranquility.",
     color: "#8fcfcf",
   },
 ];
@@ -118,7 +131,10 @@ function useReveal(): [React.RefObject<HTMLDivElement | null>, boolean] {
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) { setVisible(true); obs.disconnect(); }
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
       },
       { threshold: 0 },
     );
@@ -127,7 +143,6 @@ function useReveal(): [React.RefObject<HTMLDivElement | null>, boolean] {
   }, []);
   return [revealRef, visible];
 }
-
 
 function HomePage() {
   const navigate = useNavigate();
@@ -161,28 +176,50 @@ function HomePage() {
   const goPrev = () => setCurrentSlide(getSlideIndex(currentSlide - 1));
   const goNext = () => setCurrentSlide(getSlideIndex(currentSlide + 1));
 
-  const switchStyle = useCallback((index: number) => {
-    if (index === activeStyle) return;
-    setStyleTransitioning(true);
-    setTimeout(() => { setActiveStyle(index); setStyleTransitioning(false); }, 280);
-  }, [activeStyle]);
+  const switchStyle = useCallback(
+    (index: number) => {
+      if (index === activeStyle) return;
+      setStyleTransitioning(true);
+      setTimeout(() => {
+        setActiveStyle(index);
+        setStyleTransitioning(false);
+      }, 280);
+    },
+    [activeStyle],
+  );
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isSlider1Active && sliderContainerRef1.current) {
         const rect = sliderContainerRef1.current.getBoundingClientRect();
-        setSlider1Position(Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
+        setSlider1Position(
+          Math.max(
+            0,
+            Math.min(100, ((e.clientX - rect.left) / rect.width) * 100),
+          ),
+        );
       }
       if (isSlider2Active && sliderContainerRef2.current) {
         const rect = sliderContainerRef2.current.getBoundingClientRect();
-        setSlider2Position(Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
+        setSlider2Position(
+          Math.max(
+            0,
+            Math.min(100, ((e.clientX - rect.left) / rect.width) * 100),
+          ),
+        );
       }
     };
-    const handleMouseUp = () => { setIsSlider1Active(false); setIsSlider2Active(false); };
+    const handleMouseUp = () => {
+      setIsSlider1Active(false);
+      setIsSlider2Active(false);
+    };
     if (isSlider1Active || isSlider2Active) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
-      return () => { document.removeEventListener("mousemove", handleMouseMove); document.removeEventListener("mouseup", handleMouseUp); };
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
     }
   }, [isSlider1Active, isSlider2Active]);
 
@@ -290,7 +327,7 @@ function HomePage() {
         [data-theme="dark"] .style-tab { background: rgba(255,255,255,0.06); color: #ccc; }
         [data-theme="dark"] .projects-right-panel { background: #2a2a2a !important; }
         [data-theme="dark"] .projects-bullet-text { color: #ccc !important; }
-        [data-theme="dark"] .projects-card-preview { background: rgba(71,144,253,0.08) !important; border-color: rgba(71,144,253,0.18) !important; }
+        [data-theme="dark"] .projects-card-preview { background: #333 !important; border-color: #444 !important; }
         [data-theme="dark"] .projects-card-preview-label { color: #999 !important; }
         [data-theme="dark"] .style-showcase-bg { background: #222 !important; }
         [data-theme="dark"] .style-text-area { background: #2a2a2a !important; }
@@ -310,21 +347,69 @@ function HomePage() {
         >
           {/* Animated orbs */}
           <div style={orbsContainerStyle}>
-            <div style={{ ...orbBaseStyle, width: "500px", height: "500px", top: "-100px", right: "-100px", background: `radial-gradient(circle, ${heroSlides[currentSlide].accent}55 0%, transparent 70%)`, animation: "orb-drift-1 12s ease-in-out infinite", transition: "background 1.2s ease" }} />
-            <div style={{ ...orbBaseStyle, width: "350px", height: "350px", bottom: "50px", left: "5%", background: `radial-gradient(circle, ${heroSlides[currentSlide].accent}33 0%, transparent 70%)`, animation: "orb-drift-2 9s ease-in-out infinite", transition: "background 1.2s ease" }} />
-            <div style={{ ...orbBaseStyle, width: "200px", height: "200px", top: "30%", left: "40%", background: "radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)", animation: "orb-drift-3 15s ease-in-out infinite" }} />
+            <div
+              style={{
+                ...orbBaseStyle,
+                width: "500px",
+                height: "500px",
+                top: "-100px",
+                right: "-100px",
+                background: `radial-gradient(circle, ${heroSlides[currentSlide].accent}55 0%, transparent 70%)`,
+                animation: "orb-drift-1 12s ease-in-out infinite",
+                transition: "background 1.2s ease",
+              }}
+            />
+            <div
+              style={{
+                ...orbBaseStyle,
+                width: "350px",
+                height: "350px",
+                bottom: "50px",
+                left: "5%",
+                background: `radial-gradient(circle, ${heroSlides[currentSlide].accent}33 0%, transparent 70%)`,
+                animation: "orb-drift-2 9s ease-in-out infinite",
+                transition: "background 1.2s ease",
+              }}
+            />
+            <div
+              style={{
+                ...orbBaseStyle,
+                width: "200px",
+                height: "200px",
+                top: "30%",
+                left: "40%",
+                background:
+                  "radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)",
+                animation: "orb-drift-3 15s ease-in-out infinite",
+              }}
+            />
           </div>
 
           {/* Slides */}
           {heroSlides.map((slide, index) => (
-            <div key={slide.id} style={{ ...slideStyle, opacity: index === currentSlide ? 1 : 0, backgroundImage: `url(${slide.imageUrl})`, transform: index === currentSlide ? "scale(1)" : "scale(1.03)" }} />
+            <div
+              key={slide.id}
+              style={{
+                ...slideStyle,
+                opacity: index === currentSlide ? 1 : 0,
+                backgroundImage: `url(${slide.imageUrl})`,
+                transform: index === currentSlide ? "scale(1)" : "scale(1.03)",
+              }}
+            />
           ))}
 
           <div style={overlayStyle} />
 
           {/* Content */}
           <div style={slideContentStyle}>
-            <span key={`style-${currentSlide}`} style={{ ...heroBadgeStyle, color: heroSlides[currentSlide].accent, border: `1px solid ${heroSlides[currentSlide].accent}88` }}>
+            <span
+              key={`style-${currentSlide}`}
+              style={{
+                ...heroBadgeStyle,
+                color: heroSlides[currentSlide].accent,
+                border: `1px solid ${heroSlides[currentSlide].accent}88`,
+              }}
+            >
               {heroSlides[currentSlide].style}
             </span>
             <h1 key={`title-${currentSlide}`} style={heroTitleStyle}>
@@ -336,19 +421,32 @@ function HomePage() {
             <button
               className="glow-button"
               style={heroButtonStyle}
-              onClick={() => navigate(localStorage.getItem("authToken") ? "/generate" : "/login")}
+              onClick={() =>
+                navigate(
+                  localStorage.getItem("authToken") ? "/generate" : "/login",
+                )
+              }
             >
-              Start Generating →
+              Start Generating
             </button>
           </div>
 
           {/* Arrows */}
-          {[{ side: "left", label: "‹", onClick: goPrev }, { side: "right", label: "›", onClick: goNext }].map(({ side, label, onClick }) => (
+          {[
+            { side: "left", label: "‹", onClick: goPrev },
+            { side: "right", label: "›", onClick: goNext },
+          ].map(({ side, label, onClick }) => (
             <button
               key={side}
               style={{ ...arrowButtonStyle, [side]: "24px" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(255,255,255,0.28)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(255,255,255,0.12)"; }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                  "rgba(255,255,255,0.28)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                  "rgba(255,255,255,0.12)";
+              }}
               onClick={onClick}
               aria-label={`${side === "left" ? "Previous" : "Next"} slide`}
             >
@@ -361,7 +459,15 @@ function HomePage() {
             {heroSlides.map((_, index) => (
               <button
                 key={index}
-                style={{ ...dotStyle, width: index === currentSlide ? "28px" : "8px", borderRadius: index === currentSlide ? "4px" : "50%", backgroundColor: index === currentSlide ? heroSlides[currentSlide].accent : "rgba(255,255,255,0.4)" }}
+                style={{
+                  ...dotStyle,
+                  width: index === currentSlide ? "28px" : "8px",
+                  borderRadius: index === currentSlide ? "4px" : "50%",
+                  backgroundColor:
+                    index === currentSlide
+                      ? heroSlides[currentSlide].accent
+                      : "rgba(255,255,255,0.4)",
+                }}
                 onClick={() => goToSlide(index)}
                 aria-label={`Slide ${index + 1}`}
               />
@@ -371,13 +477,15 @@ function HomePage() {
       </section>
 
       <main style={mainStyle}>
-
         {/* ═══════════════ PROJECTS SECTION ═══════════════ */}
         <div ref={projectsRef} style={projectsSectionStyle}>
           {/* Left: photo + floating project card */}
-          <div className={`reveal-fade-left${projectsVisible ? " visible" : ""}`} style={projectsLeftStyle}>
+          <div
+            className={`reveal-fade-left${projectsVisible ? " visible" : ""}`}
+            style={projectsLeftStyle}
+          >
             <img
-              src="/HomePageImages/scandinavian.webp"
+              src="/HomePageImages/projects photo.png"
               alt="Room transformation"
               style={projectsPhotoStyle}
             />
@@ -386,44 +494,78 @@ function HomePage() {
           </div>
 
           {/* Right: text + bullets */}
-          <div className={`projects-right-panel reveal-fade-right${projectsVisible ? " visible" : ""}`} style={projectsRightStyle}>
+          <div
+            className={`projects-right-panel reveal-fade-right${projectsVisible ? " visible" : ""}`}
+            style={projectsRightStyle}
+          >
             {/* 1. Eyebrow */}
             <div style={projectsEyebrowStyle}>A Collection of Spaces</div>
 
             {/* 2. Title */}
-            <h2 style={projectsTitleStyle}>Every room, organised in one place</h2>
+            <h2 style={projectsTitleStyle}>
+              Every room, organised in one place
+            </h2>
 
             {/* 3. Description */}
             <p style={projectsDescStyle}>
-              Each project groups all the spaces in a building so your designs stay consistent, comparable, and easy to refine — room by room.
+              Each project groups all the spaces in a building so your designs
+              stay consistent, comparable, and easy to refine — room by room.
             </p>
 
             {/* 4. Card preview + bullets + CTA side by side */}
-            <div style={projectsCardPreviewWrapStyle} className="projects-card-preview">
+            <div
+              style={projectsCardPreviewWrapStyle}
+              className="projects-card-preview"
+            >
               <img
                 src="/HomePageImages/collection.png"
                 alt="Project card preview"
                 style={projectsCardPreviewImgStyle}
                 className="collection-image-animated"
               />
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem", flex: 1 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.85rem",
+                  flex: 1,
+                }}
+              >
                 <div style={projectsBulletsStyle}>
                   {[
-                    { icon: "◈", text: "Group multiple rooms under one project" },
+                    {
+                      icon: "◈",
+                      text: "Group multiple rooms under one project",
+                    },
                     { icon: "◈", text: "Apply a unique style to each space" },
                     { icon: "◈", text: "Compare before & after at a glance" },
                   ].map(({ icon, text }) => (
                     <div key={text} style={projectsBulletRowStyle}>
                       <span style={projectsBulletIconStyle}>{icon}</span>
-                      <span className="projects-bullet-text" style={projectsBulletTextStyle}>{text}</span>
+                      <span
+                        className="projects-bullet-text"
+                        style={projectsBulletTextStyle}
+                      >
+                        {text}
+                      </span>
                     </div>
                   ))}
                 </div>
                 <button
                   style={projectsCtaStyle}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-3px)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; }}
-                  onClick={() => navigate(localStorage.getItem("authToken") ? "/generate" : "/login")}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform =
+                      "translateY(-3px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform =
+                      "translateY(0)";
+                  }}
+                  onClick={() =>
+                    auth.currentUser
+                      ? navigate("/projects")
+                      : navigate("/login", { state: { from: "/projects" } })
+                  }
                 >
                   Start a Project →
                 </button>
@@ -433,29 +575,85 @@ function HomePage() {
         </div>
 
         {/* ═══════════════ BEFORE / AFTER SLIDERS ═══════════════ */}
-        <div ref={sliderRef} className={`reveal-fade-up${sliderVisible ? " visible" : ""}`} style={slidersSectionStyle}>
+        <div
+          ref={sliderRef}
+          className={`reveal-fade-up${sliderVisible ? " visible" : ""}`}
+          style={slidersSectionStyle}
+        >
           <div style={sliderHeaderStyle}>
             <div style={sectionBadgeStyle}>See the Difference</div>
-            <h2 style={sliderTitleStyle}>Intelligent design turns clutter into calm spaces</h2>
-            <p style={sliderSubtitleStyle}>Drag the handle to reveal the transformation</p>
+            <h2 style={sliderTitleStyle}>
+              Intelligent design turns clutter into calm spaces
+            </h2>
+            <p style={sliderSubtitleStyle}>
+              Drag the handle to reveal the transformation
+            </p>
           </div>
 
           <div style={slidersRowStyle} className="slider-container-wrapper">
             {[
-              { ref: sliderContainerRef1, pos: slider1Position, before: "\\public\\HomePageImages\\before.jpg", after: "\\public\\HomePageImages\\after.png", onDown: () => setIsSlider1Active(true), onUp: () => setIsSlider1Active(false) },
-              { ref: sliderContainerRef2, pos: slider2Position, before: "/public/HomePageImages/before 2.png", after: "/public/HomePageImages/after 2.png", onDown: () => setIsSlider2Active(true), onUp: () => setIsSlider2Active(false) },
+              {
+                ref: sliderContainerRef1,
+                pos: slider1Position,
+                before: "\\public\\HomePageImages\\before.jpg",
+                after: "\\public\\HomePageImages\\after.png",
+                onDown: () => setIsSlider1Active(true),
+                onUp: () => setIsSlider1Active(false),
+              },
+              {
+                ref: sliderContainerRef2,
+                pos: slider2Position,
+                before: "/public/HomePageImages/before 2.png",
+                after: "/public/HomePageImages/after 2.png",
+                onDown: () => setIsSlider2Active(true),
+                onUp: () => setIsSlider2Active(false),
+              },
             ].map((s, i) => (
               <div key={i} ref={s.ref} style={sliderContainerStyle}>
                 <img src={s.before} alt="Before" style={sliderImgBaseStyle} />
-                <div style={{ ...sliderAfterContainerStyle, width: `${s.pos}%` }}>
+                <div
+                  style={{ ...sliderAfterContainerStyle, width: `${s.pos}%` }}
+                >
                   <img src={s.after} alt="After" style={sliderAfterImgStyle} />
                 </div>
-                <span style={{ ...sliderLabelStyle, left: "14px", opacity: s.pos > 15 ? 1 : 0 }}>After</span>
-                <span style={{ ...sliderLabelStyle, right: "14px", left: "auto", opacity: s.pos < 85 ? 1 : 0 }}>Before</span>
+                <span
+                  style={{
+                    ...sliderLabelStyle,
+                    left: "14px",
+                    opacity: s.pos > 15 ? 1 : 0,
+                  }}
+                >
+                  After
+                </span>
+                <span
+                  style={{
+                    ...sliderLabelStyle,
+                    right: "14px",
+                    left: "auto",
+                    opacity: s.pos < 85 ? 1 : 0,
+                  }}
+                >
+                  Before
+                </span>
                 <div style={{ ...sliderDividerStyle, left: `${s.pos}%` }} />
-                <div className="slider-handle-inner" style={{ ...sliderHandleStyle, left: `${s.pos}%` }} onMouseDown={s.onDown} onMouseUp={s.onUp} onTouchStart={s.onDown} onTouchEnd={s.onUp}>
-                  <img src="/public/HomePageImages/left.png" alt="" style={sliderArrowStyle} />
-                  <img src="/public/HomePageImages/right.png" alt="" style={sliderArrowStyle} />
+                <div
+                  className="slider-handle-inner"
+                  style={{ ...sliderHandleStyle, left: `${s.pos}%` }}
+                  onMouseDown={s.onDown}
+                  onMouseUp={s.onUp}
+                  onTouchStart={s.onDown}
+                  onTouchEnd={s.onUp}
+                >
+                  <img
+                    src="/public/HomePageImages/left.png"
+                    alt=""
+                    style={sliderArrowStyle}
+                  />
+                  <img
+                    src="/public/HomePageImages/right.png"
+                    alt=""
+                    style={sliderArrowStyle}
+                  />
                 </div>
               </div>
             ))}
@@ -463,7 +661,11 @@ function HomePage() {
         </div>
 
         {/* ═══════════════ DESIGN STYLES ═══════════════ */}
-        <div ref={stylesRef} className={`reveal-fade-up${stylesVisible ? " visible" : ""}`} style={stylesSectionStyle}>
+        <div
+          ref={stylesRef}
+          className={`reveal-fade-up${stylesVisible ? " visible" : ""}`}
+          style={stylesSectionStyle}
+        >
           <div style={stylesHeaderStyle}>
             <div style={sectionBadgeStyle}>Explore</div>
             <h2 style={stylesTitleStyle}>Discover Design Styles</h2>
@@ -483,9 +685,19 @@ function HomePage() {
                   onMouseLeave={() => setHoveredTab(null)}
                   style={
                     isActive
-                      ? { background: s.color, color: "#fff", borderColor: s.color, boxShadow: `0 4px 20px ${s.color}66` }
+                      ? {
+                          background: s.color,
+                          color: "#fff",
+                          borderColor: s.color,
+                          boxShadow: `0 4px 20px ${s.color}66`,
+                        }
                       : isHovered
-                        ? { background: s.color, color: "#fff", borderColor: s.color, transform: "translateY(-2px)" }
+                        ? {
+                            background: s.color,
+                            color: "#fff",
+                            borderColor: s.color,
+                            transform: "translateY(-2px)",
+                          }
                         : {}
                   }
                 >
@@ -498,24 +710,75 @@ function HomePage() {
           {/* Showcase */}
           <div className="style-showcase-bg" style={showcasePanelStyle}>
             <div style={showcaseImageSideStyle}>
-              <img key={current.key} src={current.image} alt={current.heading} style={{ ...showcaseImgStyle, opacity: styleTransitioning ? 0 : 1 }} />
-              <div style={{ ...showcaseTintStyle, background: `linear-gradient(135deg, ${current.color}22 0%, transparent 60%)` }} />
+              <img
+                key={current.key}
+                src={current.image}
+                alt={current.heading}
+                style={{
+                  ...showcaseImgStyle,
+                  opacity: styleTransitioning ? 0 : 1,
+                }}
+              />
+              <div
+                style={{
+                  ...showcaseTintStyle,
+                  background: `linear-gradient(135deg, ${current.color}22 0%, transparent 60%)`,
+                }}
+              />
             </div>
             <div className="style-text-area" style={showcaseTextSideStyle}>
-              <div style={{ ...styleColorBadgeStyle, color: current.color, background: `${current.color}20`, border: `1px solid ${current.color}44` }}>
+              <div
+                style={{
+                  ...styleColorBadgeStyle,
+                  color: current.color,
+                  background: `${current.color}20`,
+                  border: `1px solid ${current.color}44`,
+                }}
+              >
                 {current.label}
               </div>
-              <h3 key={`h-${current.key}`} style={{ ...showcaseHeadingStyle, opacity: styleTransitioning ? 0 : 1, transform: styleTransitioning ? "translateY(12px)" : "translateY(0)" }}>
+              <h3
+                key={`h-${current.key}`}
+                style={{
+                  ...showcaseHeadingStyle,
+                  opacity: styleTransitioning ? 0 : 1,
+                  transform: styleTransitioning
+                    ? "translateY(12px)"
+                    : "translateY(0)",
+                }}
+              >
                 {current.heading}
               </h3>
-              <p key={`p-${current.key}`} style={{ ...showcaseDescStyle, opacity: styleTransitioning ? 0 : 1 }}>
+              <p
+                key={`p-${current.key}`}
+                style={{
+                  ...showcaseDescStyle,
+                  opacity: styleTransitioning ? 0 : 1,
+                }}
+              >
                 {current.description}
               </p>
               <button
-                style={{ ...showcaseButtonStyle, backgroundColor: current.color, boxShadow: `0 8px 24px ${current.color}55` }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-3px)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; }}
-                onClick={() => navigate(localStorage.getItem("authToken") ? "/generate" : "/login")}
+                style={{
+                  ...showcaseButtonStyle,
+                  backgroundColor: current.color,
+                  boxShadow: `0 8px 24px ${current.color}55`,
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.transform =
+                    "translateY(-3px)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.transform =
+                    "translateY(0)";
+                }}
+                onClick={() =>
+                  auth.currentUser
+                    ? navigate("/generate", { state: { style: current.key } })
+                    : navigate("/login", {
+                        state: { from: "/generate", style: current.key },
+                      })
+                }
               >
                 Try This Style →
               </button>
@@ -524,23 +787,33 @@ function HomePage() {
         </div>
 
         {/* ═══════════════ FINAL CTA ═══════════════ */}
-        <div ref={ctaRef} className={`cta-section reveal-scale${ctaVisible ? " visible" : ""}`} style={ctaSectionStyle}>
+        <div
+          ref={ctaRef}
+          className={`cta-section reveal-scale${ctaVisible ? " visible" : ""}`}
+          style={ctaSectionStyle}
+        >
           <div style={ctaOrb1Style} />
           <div style={ctaOrb2Style} />
           <div style={ctaContentStyle}>
             <div style={ctaBadgeStyle}>AI-Powered Design</div>
             <h2 style={ctaTitleStyle}>Ready to transform your space?</h2>
-            <p style={ctaDescStyle}>Upload a photo and watch AI redesign your room in any style — in under 2 minutes.</p>
+            <p style={ctaDescStyle}>
+              Upload a photo and watch AI redesign your room in any style — in
+              under 2 minutes.
+            </p>
             <button
               className="glow-button"
               style={ctaButtonStyle}
-              onClick={() => navigate(localStorage.getItem("authToken") ? "/generate" : "/login")}
+              onClick={() =>
+                navigate(
+                  localStorage.getItem("authToken") ? "/generate" : "/login",
+                )
+              }
             >
               Start for Free →
             </button>
           </div>
         </div>
-
       </main>
       <Footer />
     </div>
@@ -561,7 +834,7 @@ const heroSectionStyle: React.CSSProperties = { width: "100%" };
 const carouselWrapStyle: React.CSSProperties = {
   position: "relative",
   width: "100%",
-  height: "630px",
+  height: "890px",
   overflow: "hidden",
 };
 
@@ -588,7 +861,8 @@ const slideStyle: React.CSSProperties = {
 const overlayStyle: React.CSSProperties = {
   position: "absolute",
   inset: 0,
-  background: "linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%)",
+  background:
+    "linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%)",
   zIndex: 1,
 };
 
@@ -700,13 +974,12 @@ const mainStyle: React.CSSProperties = {
   padding: "0 2rem",
 };
 
-
 const projectsSectionStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "stretch",
   width: "100%",
   maxWidth: "1200px",
-  marginTop: "6rem",
+  marginTop: "10rem",
   borderRadius: "28px",
   overflow: "hidden",
   boxShadow: "0 24px 80px rgba(0,0,0,0.12)",
@@ -739,8 +1012,8 @@ const projectsCardPreviewWrapStyle: React.CSSProperties = {
   flexDirection: "row",
   alignItems: "center",
   gap: "1.2rem",
-  background: "rgba(71,144,253,0.05)",
-  border: "1px solid rgba(71,144,253,0.12)",
+  background: "#f5f7fa",
+  border: "1px solid #e8eaed",
   borderRadius: "16px",
   padding: "1rem 1.2rem",
 };
@@ -752,7 +1025,6 @@ const projectsCardPreviewImgStyle: React.CSSProperties = {
   boxShadow: "0 8px 24px rgba(0,0,0,0.13)",
   display: "block",
 };
-
 
 const projectsRightStyle: React.CSSProperties = {
   flex: "1",
@@ -836,7 +1108,7 @@ const projectsCtaStyle: React.CSSProperties = {
 const slidersSectionStyle: React.CSSProperties = {
   width: "100%",
   maxWidth: "1200px",
-  marginTop: "7rem",
+  marginTop: "10rem",
 };
 
 const sliderHeaderStyle: React.CSSProperties = {
@@ -883,7 +1155,7 @@ const slidersRowStyle: React.CSSProperties = {
 const sliderContainerStyle: React.CSSProperties = {
   position: "relative",
   width: "calc(50% - 1rem)",
-  maxWidth: "560px",
+  maxWidth: "600px",
   height: "420px",
   overflow: "hidden",
   borderRadius: "16px",
@@ -972,7 +1244,7 @@ const sliderArrowStyle: React.CSSProperties = {
 const stylesSectionStyle: React.CSSProperties = {
   width: "100%",
   maxWidth: "1200px",
-  marginTop: "8rem",
+  marginTop: "10rem",
 };
 
 const stylesHeaderStyle: React.CSSProperties = {
@@ -1080,8 +1352,9 @@ const showcaseButtonStyle: React.CSSProperties = {
 
 const ctaSectionStyle: React.CSSProperties = {
   width: "100%",
-  maxWidth: "1100px",
-  margin: "7rem 0 5rem",
+  maxWidth: "1200px",
+  margin: "12rem 0 5rem",
+  marginBottom: "10rem",
   borderRadius: "28px",
   background: "linear-gradient(135deg, #1a3a6f 0%, #0d2040 50%, #1a1a3e 100%)",
   padding: "5rem 3rem",
@@ -1096,7 +1369,8 @@ const ctaOrb1Style: React.CSSProperties = {
   width: "300px",
   height: "300px",
   borderRadius: "50%",
-  background: "radial-gradient(circle, rgba(71,144,253,0.25) 0%, transparent 70%)",
+  background:
+    "radial-gradient(circle, rgba(71,144,253,0.25) 0%, transparent 70%)",
   top: "-80px",
   right: "-60px",
   pointerEvents: "none",
@@ -1107,13 +1381,17 @@ const ctaOrb2Style: React.CSSProperties = {
   width: "200px",
   height: "200px",
   borderRadius: "50%",
-  background: "radial-gradient(circle, rgba(138,180,255,0.15) 0%, transparent 70%)",
+  background:
+    "radial-gradient(circle, rgba(138,180,255,0.15) 0%, transparent 70%)",
   bottom: "-50px",
   left: "5%",
   pointerEvents: "none",
 };
 
-const ctaContentStyle: React.CSSProperties = { position: "relative", zIndex: 1 };
+const ctaContentStyle: React.CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+};
 
 const ctaBadgeStyle: React.CSSProperties = {
   display: "inline-block",

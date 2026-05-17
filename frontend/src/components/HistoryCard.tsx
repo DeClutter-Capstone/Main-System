@@ -49,8 +49,12 @@ function HistoryCard({
             <h3 style={titleStyle} className="history-card-title">
               {title}
             </h3>
-            <p style={dateStyle} className="history-card-date">{date}</p>
-            <p style={styleTextStyle} className="history-card-style">{style}</p>
+            <p style={dateStyle} className="history-card-date">
+              {date}
+            </p>
+            <p style={styleTextStyle} className="history-card-style">
+              {style}
+            </p>
           </div>
 
           {/* Bottom Right: Action Icons */}
@@ -211,7 +215,7 @@ const cardStyle: React.CSSProperties = {
   padding: "16px",
   backgroundColor: "#ffffff",
   border: "1px solid #e0e0e0",
-  borderRadius: "12px",
+  borderRadius: "7px",
   transition: "all 0.2s ease",
   cursor: "default",
 };

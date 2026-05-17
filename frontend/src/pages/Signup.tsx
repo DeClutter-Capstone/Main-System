@@ -29,7 +29,7 @@ function Signup({ onAuthenticate }: SignupProps) {
         {/* Right side - Visual section */}
         <div style={styles.rightSection}>
           <img
-            src={isDarkMode ? "/darkauth.avif" : "/auth.jpg"}
+            src={isDarkMode ? "/darkauth2.png" : "/auth2.jpg"}
             alt="Authentication background"
             style={styles.authImage}
           />

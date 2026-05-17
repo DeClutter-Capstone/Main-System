@@ -6,6 +6,8 @@ import {
   useLocation,
 } from "react-router-dom";
 import { useState, useEffect, type ReactNode } from "react";
+import { auth } from "./Firebase/Firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -42,16 +44,12 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check authentication status on app load
   useEffect(() => {
-    const checkAuthStatus = () => {
-      // Check if user is logged in (from localStorage, Firebase, or your backend)
-      const authToken = localStorage.getItem("authToken");
-      setIsAuthenticated(!!authToken);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAuthenticated(!!user);
       setIsLoading(false);
-    };
-
-    checkAuthStatus();
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleAuthenticate = (authenticated: boolean) => {

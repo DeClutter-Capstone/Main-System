@@ -1,12 +1,17 @@
 import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import HistoryCard from "../components/HistoryCard";
-import { fetchHistory, deleteHistoryItem, renameHistoryItem, type HistoryItem } from "../services/historyAPI";
+import {
+  fetchHistory,
+  deleteHistoryItem,
+  renameHistoryItem,
+  type HistoryItem,
+} from "../services/historyAPI";
 
 function History() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDark, setIsDark] = useState(
-    document.documentElement.getAttribute("data-theme") === "dark"
+    document.documentElement.getAttribute("data-theme") === "dark",
   );
 
   useEffect(() => {
@@ -66,39 +71,41 @@ function History() {
     console.log(`Downloaded card: ${id}`);
   };
 
-const handleRename = async (id: string, oldName: string, newName: string) => {
-  if (!newName.trim()) {
-    alert("Name cannot be empty");
-    return;
-  }
+  const handleRename = async (id: string, oldName: string, newName: string) => {
+    if (!newName.trim()) {
+      alert("Name cannot be empty");
+      return;
+    }
 
-  if (newName === oldName) {
-    return; // No change
-  }
+    if (newName === oldName) {
+      return; // No change
+    }
 
-  try {
-    await renameHistoryItem(oldName, newName);
-    
-    const backendBase =
-      import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
-    
-    // Update the card in the list with cache-busting query parameter
-    setHistoryCards((prev) =>
-      prev.map((card) =>
-        card.id === id
-          ? {
-              ...card,
-              title: newName,
-              image: `${backendBase}/storage/output/${newName}.png?t=${Date.now()}`,
-            }
-          : card
-      )
-    );
-  } catch (e) {
-    console.error("Failed to rename:", e);
-    alert(`Failed to rename: ${e instanceof Error ? e.message : "Unknown error"}`);
-  }
-};
+    try {
+      await renameHistoryItem(oldName, newName);
+
+      const backendBase =
+        import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
+
+      // Update the card in the list with cache-busting query parameter
+      setHistoryCards((prev) =>
+        prev.map((card) =>
+          card.id === id
+            ? {
+                ...card,
+                title: newName,
+                image: `${backendBase}/storage/output/${newName}.png?t=${Date.now()}`,
+              }
+            : card,
+        ),
+      );
+    } catch (e) {
+      console.error("Failed to rename:", e);
+      alert(
+        `Failed to rename: ${e instanceof Error ? e.message : "Unknown error"}`,
+      );
+    }
+  };
   useEffect(() => {
     const run = async () => {
       setIsLoading(true);
@@ -138,7 +145,11 @@ const handleRename = async (id: string, oldName: string, newName: string) => {
         <div style={headerStyle}>
           <div style={titleSectionStyle}>
             <img
-              src={isDark ? "/HomePageImages/gridlight.png" : "/HomePageImages/griddark.png"}
+              src={
+                isDark
+                  ? "/HomePageImages/gridlight.png"
+                  : "/HomePageImages/griddark.png"
+              }
               alt="Projects"
               style={iconStyle}
             />
@@ -228,8 +239,10 @@ const handleRename = async (id: string, oldName: string, newName: string) => {
                   isDeleting={deletingIds.has(card.id)}
                   onDelete={() => handleDelete(card.id, card.title)}
                   onDownload={() => handleDownload(card.id)}
-                  onRename={(newName) => handleRename(card.id, card.title, newName)}
-/>
+                  onRename={(newName) =>
+                    handleRename(card.id, card.title, newName)
+                  }
+                />
               ))
             )}
           </div>
@@ -322,7 +335,7 @@ const searchInputStyle: React.CSSProperties = {
   padding: "10px 16px",
   fontSize: "13px",
   border: "1px solid #e0e0e0",
-  borderRadius: "24px",
+  borderRadius: "7px",
   outline: "none",
   backgroundColor: "#ffffff",
   color: "#1a1a1a",

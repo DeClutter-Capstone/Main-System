@@ -84,10 +84,21 @@ function Generate() {
         if (cancelled) return;
         setProjects(list);
 
-        const passedProject = (location.state as any)?.project;
+        const state = location.state as {
+          project?: { id?: string; project_id?: string };
+          style?: string;
+        } | null;
+
+        const passedProject = state?.project;
         if (passedProject) {
           const passedId = passedProject.id ?? passedProject.project_id;
           if (passedId) setAssignProject(passedId);
+        }
+
+        if (state?.style) {
+          const styleId =
+            state.style.charAt(0).toUpperCase() + state.style.slice(1);
+          setSelectedStyle(styleId);
         }
       } catch (error) {
         console.error("Error loading projects:", error);
@@ -99,10 +110,20 @@ function Generate() {
   }, [location.state]);
 
   useEffect(() => {
-    const regen = (location.state as any)?.regenerateFrom;
+    const regen = (
+      location.state as {
+        regenerateFrom?: { image?: string; roomType?: string };
+      } | null
+    )?.regenerateFrom;
     if (regen?.image) {
       if (regen.roomType) {
-        const known = ["Bedroom", "Living Room", "Kitchen", "Bathroom", "Office"];
+        const known = [
+          "Bedroom",
+          "Living Room",
+          "Kitchen",
+          "Bathroom",
+          "Office",
+        ];
         if (known.includes(regen.roomType)) {
           setRoomType(regen.roomType);
         } else {
@@ -112,7 +133,9 @@ function Generate() {
       }
       setUploadedImage(regen.image);
       fetch(regen.image, { mode: "cors" })
-        .then((r) => (r.ok ? r.blob() : Promise.reject(new Error("fetch failed"))))
+        .then((r) =>
+          r.ok ? r.blob() : Promise.reject(new Error("fetch failed")),
+        )
         .then((blob) => {
           const type = blob.type || "image/png";
           const ext = type.split("/")[1] ?? "png";
@@ -120,7 +143,9 @@ function Generate() {
           setUploadedFile(file);
         })
         .catch(() => {
-          toast.error("Could not load source image. Please re-upload manually.");
+          toast.error(
+            "Could not load source image. Please re-upload manually.",
+          );
         });
     }
   }, [location.state]);
@@ -235,9 +260,7 @@ function Generate() {
 
     try {
       const effectiveRoomType =
-        roomType === "Other"
-          ? customRoomType.trim() || "Other"
-          : roomType;
+        roomType === "Other" ? customRoomType.trim() || "Other" : roomType;
 
       const projectIdToAssign =
         assignProject && assignProject !== "N/A" ? assignProject : undefined;
@@ -527,7 +550,9 @@ function Generate() {
                 className="hero-style-card"
                 style={{
                   ...styles.heroStyleCard,
-                  borderColor: isSelected ? "var(--color-brand-primary)" : "transparent",
+                  borderColor: isSelected
+                    ? "var(--color-brand-primary)"
+                    : "transparent",
                   boxShadow: isSelected
                     ? "0 12px 32px rgba(67, 132, 226, 0.16)"
                     : "0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)",
@@ -543,7 +568,9 @@ function Generate() {
                 <div
                   style={{
                     ...styles.heroStyleInfo,
-                    backgroundColor: isSelected ? "var(--color-brand-soft)" : "transparent",
+                    backgroundColor: isSelected
+                      ? "var(--color-brand-soft)"
+                      : "transparent",
                   }}
                   className="hero-style-info"
                 >
@@ -586,8 +613,12 @@ function Generate() {
                   aria-hidden={!visible}
                   style={{
                     ...styles.smallStyleCard,
-                    borderColor: isSelected ? "var(--color-brand-primary)" : "transparent",
-                    backgroundColor: isSelected ? "var(--color-brand-soft)" : "var(--color-card)",
+                    borderColor: isSelected
+                      ? "var(--color-brand-primary)"
+                      : "transparent",
+                    backgroundColor: isSelected
+                      ? "var(--color-brand-soft)"
+                      : "var(--color-card)",
                     boxShadow: isSelected
                       ? "0 8px 20px rgba(67, 132, 226, 0.18)"
                       : "0 1px 3px rgba(0, 0, 0, 0.06)",
@@ -714,9 +745,7 @@ function Generate() {
         {generatedImage && !isLoading && (
           <section style={styles.resultSection}>
             <div style={styles.resultLabel}>Result</div>
-            <h2 style={styles.resultHeading}>
-              Your {selectedStyle} Room
-            </h2>
+            <h2 style={styles.resultHeading}>Your {selectedStyle} Room</h2>
             <div style={styles.resultImageWrapper}>
               <img
                 src={generatedImage}
@@ -754,9 +783,9 @@ const styles = {
     flexDirection: "column",
     gap: "2.5rem",
     padding: "2rem",
-    maxWidth: "900px",
+    maxWidth: "1200px",
     margin: "0 auto",
-    marginTop: "4rem",
+    marginTop: "1rem",
     paddingBottom: "2rem",
   } as React.CSSProperties,
 
@@ -1022,7 +1051,7 @@ const styles = {
   } as React.CSSProperties,
   smallStyleImageWrapper: {
     width: "100%",
-    height: "82px",
+    height: "110px",
     borderRadius: "8px",
     overflow: "hidden",
     position: "relative",

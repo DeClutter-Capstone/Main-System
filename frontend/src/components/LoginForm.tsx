@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../Firebase/Firebase";
 import { toast, Bounce } from "react-toastify";
@@ -12,6 +12,10 @@ function LoginForm({ onAuthenticate }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as { from?: string; style?: string } | null;
+  const from = locationState?.from ?? "/generate";
+  const styleState = locationState?.style ? { style: locationState.style } : {};
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,8 +23,7 @@ function LoginForm({ onAuthenticate }: LoginFormProps) {
       await signInWithEmailAndPassword(auth, email, password);
       toast.success("Login successful!");
       onAuthenticate(true);
-      // Navigate to generate page after successful login
-      setTimeout(() => navigate("/generate"), 500);
+      setTimeout(() => navigate(from, { state: styleState }), 500);
     } catch (error) {
       if (error instanceof Error) {
         if (
@@ -74,8 +77,7 @@ function LoginForm({ onAuthenticate }: LoginFormProps) {
       const user = result.user;
       toast.success(`Welcome ${user.displayName}`);
       onAuthenticate(true);
-      // Navigate to generate page after successful login
-      setTimeout(() => navigate("/generate"), 500);
+      setTimeout(() => navigate(from, { state: styleState }), 500);
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message, {

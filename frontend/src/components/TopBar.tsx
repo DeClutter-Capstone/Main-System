@@ -44,6 +44,10 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
   return (
     <div style={styles.container} className="topbar-container">
       <style>{`
+        [data-theme="dark"] .topbar-container {
+          background-color: #1a1a1a !important;
+          border-bottom-color: #333 !important;
+        }
         .nav-link {
           color: var(--color-text-secondary);
           transition: color 0.15s ease;

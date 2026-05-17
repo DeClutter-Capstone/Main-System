@@ -1,4 +1,6 @@
 :root {
+  color-scheme: light;
+
   /* Surfaces */
   --color-bg-base: #f4f5f7;
   --color-bg-surface: #ffffff;
@@ -34,6 +36,8 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --color-bg-base: #1a1a1a;
   --color-bg-surface: #252525;
   --color-bg-elevated: #2f2f2f;

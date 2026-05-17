@@ -84,6 +84,19 @@ function Account() {
 
   const navigate = useNavigate();
 
+  // Inject the Account-page CSS overrides only while this page is mounted,
+  // so the global [data-theme="dark"] input[type="text"] rules don't bleed
+  // into other routes (Projects search bar, modals, etc).
+  useEffect(() => {
+    const el = document.createElement("style");
+    el.setAttribute("data-account-overrides", "true");
+    el.textContent = ACCOUNT_PAGE_OVERRIDES_CSS;
+    document.head.appendChild(el);
+    return () => {
+      el.remove();
+    };
+  }, []);
+
   // Fetch currently logged-in user from Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -1779,9 +1792,11 @@ const styles = {
   } as React.CSSProperties,
 } as const;
 
-// Add hover state
-const styleSheet = document.createElement("style");
-styleSheet.textContent = `
+// CSS overrides for the Account page. Injected by the component on mount and
+// removed on unmount — see the useEffect in <Account/>. Do NOT inject at
+// module scope, or these `[data-theme="dark"] input[type="text"]` rules will
+// leak into every other route.
+const ACCOUNT_PAGE_OVERRIDES_CSS = `
   [data-theme="dark"] h2 {
     color: #e8e8e8 !important;
   }
@@ -1933,6 +1948,5 @@ styleSheet.textContent = `
     background-color: #9a1414 !important;
   }
 `;
-document.head.appendChild(styleSheet);
 
 export default Account;

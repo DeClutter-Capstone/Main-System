@@ -197,7 +197,10 @@ function Projects() {
         .projects-page__search input {
           border: none;
           outline: none;
-          background: transparent;
+          background-color: transparent;
+          background-image: none;
+          -webkit-appearance: none;
+          appearance: none;
           flex: 1;
           font-size: 14px;
           color: var(--color-text-primary);
@@ -206,6 +209,15 @@ function Projects() {
         }
         .projects-page__search input::placeholder {
           color: var(--color-text-tertiary);
+          opacity: 1;
+        }
+        .projects-page__search input:-webkit-autofill,
+        .projects-page__search input:-webkit-autofill:hover,
+        .projects-page__search input:-webkit-autofill:focus {
+          -webkit-text-fill-color: var(--color-text-primary);
+          -webkit-box-shadow: 0 0 0 1000px var(--color-bg-surface) inset;
+          caret-color: var(--color-text-primary);
+          transition: background-color 9999s ease-out, color 9999s ease-out;
         }
         .projects-page__new {
           display: inline-flex;

@@ -193,11 +193,6 @@ function ContactUs() {
                 </div>
               </div>
             ))}
-            <div style={s.blurb}>
-              <div style={s.blurbText}>
-                Built as a capstone project by four students passionate about making AI-powered interior design accessible to everyone.
-              </div>
-            </div>
           </div>
 
           {/* Form card */}

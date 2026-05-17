@@ -23,6 +23,13 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
     localStorage.setItem("darkMode", "false");
   };
 
+  const toggleDarkMode = () => {
+    setIsDarkMode((prev) => {
+      if (prev) { applyLightMode(); return false; }
+      else { applyDarkMode(); return true; }
+    });
+  };
+
   useEffect(() => {
     if (isDarkMode) {
       applyDarkMode();

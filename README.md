@@ -5,7 +5,7 @@
 
 **Capstone Graduation Project | CMSE 405 | Fall 2025-26**
 
-DeClutter is an AI-powered interior design application that transforms room photographs into customized design styles using OpenAI's GPT Image 2. Upload a photo of your room and instantly visualize it in different aesthetic styles.
+DeClutter is an AI-powered interior design application that transforms room photographs into customized design styles using OpenAI's GPT Image 1.5. Upload a photo of your room and instantly visualize it in different aesthetic styles.
 
 ---
 
@@ -30,7 +30,7 @@ Transform your space into any of these design aesthetics:
 
 ###  **AI Technologies**
 
-- **GPT Image 2**: Style transfer and room transformation via OpenAI API
+- **GPT Image 1.5**: Style transfer and room transformation via OpenAI API
 
 ---
 
@@ -38,7 +38,7 @@ Transform your space into any of these design aesthetics:
 
 | Name | Role | Responsibilities |
 |------|------|------------------|
-| **Mohamed Elfaki** | AI/ML Lead | GPT Image 2 integration, prompt engineering |
+| **Mohamed Elfaki** | AI/ML Lead | GPT Image 1.5 integration, prompt engineering |
 | **Firas Nazar** | Backend Lead | API development, database, cloud deployment |
 | **Saad Ahmed** | Frontend Lead | React web application, UI/UX design |
 | **Ahmed Salmi** | Mobile & Integration | React Native app, system integration |
@@ -127,7 +127,7 @@ npm run dev
 - [x] **M1:** Project setup and initial research (Week 2)
 - [x] **M2:** Tested CycleGAN and CUT — switched to FLUX image diffusion model on Replicate
 - [x] **M3:** Successfully uploaded customized AI model pipeline to Replicate (FLUX dev)
-- [x] **M4:** Switched to GPT Image 2 for higher quality results and better prompt control
+- [x] **M4:** Switched to GPT Image 1.5 for higher quality results and better prompt control
 
 ---
 
@@ -136,14 +136,14 @@ npm run dev
 
 | Original | Minimalist | Modern | Scandinavian |
 |----------|------------|--------|--------------|
-| ![](docs/samples/Average-Bedroom-Sizes-in-American-Homes-Remodeling-and-Design-Tips-3.webp) | ![](docs/samples/bedroom_minimalist_23.jpg) | ![](docs/samples/bedroom_modern_10.jpg) | ![](docs/samples/bedroom_scandinavian_3.jpg) |
+| ![](docs/samples/OriginalREADME.png) | ![](docs/samples/MinimalistREADME.png) | ![](docs/samples/ModernREADME.png) | ![](docs/samples/ScandinavianREADME.png) |
 
 ---
 
 ##  Technology Stack
 
 ### AI/ML
-- OpenAI GPT Image 2 API
+- OpenAI GPT Image 1.5 API
 
 ### Backend
 - FastAPI

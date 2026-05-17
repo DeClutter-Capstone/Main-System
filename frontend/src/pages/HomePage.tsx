@@ -128,22 +128,6 @@ function useReveal(): [React.RefObject<HTMLDivElement | null>, boolean] {
   return [revealRef, visible];
 }
 
-function Counter({ target, suffix = "" }: { target: number; suffix?: string }) {
-  const [count, setCount] = useState(0);
-  const [counterRef, visible] = useReveal();
-  useEffect(() => {
-    if (!visible) return;
-    let start = 0;
-    const step = Math.ceil(target / 60);
-    const id = setInterval(() => {
-      start += step;
-      if (start >= target) { setCount(target); clearInterval(id); }
-      else setCount(start);
-    }, 16);
-    return () => clearInterval(id);
-  }, [visible, target]);
-  return <span ref={counterRef}>{count.toLocaleString()}{suffix}</span>;
-}
 
 function HomePage() {
   const navigate = useNavigate();
@@ -160,7 +144,6 @@ function HomePage() {
   const sliderContainerRef1 = useRef<HTMLDivElement>(null);
   const sliderContainerRef2 = useRef<HTMLDivElement>(null);
 
-  const [statsRef, statsVisible] = useReveal();
   const [projectsRef, projectsVisible] = useReveal();
   const [sliderRef, sliderVisible] = useReveal();
   const [stylesRef, stylesVisible] = useReveal();
@@ -305,6 +288,10 @@ function HomePage() {
         [data-theme="dark"] .stat-label { color: #aaa !important; }
         [data-theme="dark"] .stat-number { color: #4790fd !important; }
         [data-theme="dark"] .style-tab { background: rgba(255,255,255,0.06); color: #ccc; }
+        [data-theme="dark"] .projects-right-panel { background: #2a2a2a !important; }
+        [data-theme="dark"] .projects-bullet-text { color: #ccc !important; }
+        [data-theme="dark"] .projects-card-preview { background: rgba(71,144,253,0.08) !important; border-color: rgba(71,144,253,0.18) !important; }
+        [data-theme="dark"] .projects-card-preview-label { color: #999 !important; }
         [data-theme="dark"] .style-showcase-bg { background: #222 !important; }
         [data-theme="dark"] .style-text-area { background: #2a2a2a !important; }
         [data-theme="dark"] .cta-section { background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 50%, #1a1a2e 100%) !important; }
@@ -385,46 +372,63 @@ function HomePage() {
 
       <main style={mainStyle}>
 
-        {/* ═══════════════ STATS BAR ═══════════════ */}
-        <div ref={statsRef} style={statsRowStyle}>
-          {[
-            { value: 6, suffix: "", label: "Design Styles" },
-            { value: 98, suffix: "%", label: "Satisfaction Rate" },
-            { value: 1, suffix: "min", label: "Average Render Time" },
-          ].map((stat, i) => (
-            <div
-              key={i}
-              className={`stat-card reveal-fade-up${statsVisible ? " visible" : ""}`}
-              style={{ ...statCardWrapStyle, animationDelay: `${i * 0.12}s` }}
-            >
-              <div className="stat-card-inner" style={statCardInnerStyle}>
-                <div className="stat-number" style={statNumberStyle}>
-                  <Counter target={stat.value} suffix={stat.suffix} />
-                </div>
-                <div className="stat-label" style={statLabelStyle}>{stat.label}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
         {/* ═══════════════ PROJECTS SECTION ═══════════════ */}
         <div ref={projectsRef} style={projectsSectionStyle}>
-          {/* Left: card */}
+          {/* Left: photo + floating project card */}
           <div className={`reveal-fade-left${projectsVisible ? " visible" : ""}`} style={projectsLeftStyle}>
-            <div style={projectsHeaderStyle}>
-              <img src="/HomePageImages/griddark.png" alt="" className="grid-icon-light" style={gridIconStyle} />
-              <img src="/HomePageImages/gridlight.png" alt="" className="grid-icon-dark" style={gridIconStyle} />
-              <span className="projects-label" style={projectsLabelStyle}>Projects</span>
-            </div>
-            <img src="/HomePageImages/collection.png" alt="Collection" className="collection-image-animated" style={collectionImageStyle} />
+            <img
+              src="/HomePageImages/scandinavian.webp"
+              alt="Room transformation"
+              style={projectsPhotoStyle}
+            />
+            {/* Gradient scrim so the card reads cleanly */}
+            <div style={projectsPhotoScrimStyle} />
           </div>
 
-          {/* Right: text */}
-          <div className={`reveal-fade-right${projectsVisible ? " visible" : ""}`} style={projectsRightStyle}>
-            <h2 style={projectsTitleStyle}>A Collection of Spaces</h2>
+          {/* Right: text + bullets */}
+          <div className={`projects-right-panel reveal-fade-right${projectsVisible ? " visible" : ""}`} style={projectsRightStyle}>
+            {/* 1. Eyebrow */}
+            <div style={projectsEyebrowStyle}>A Collection of Spaces</div>
+
+            {/* 2. Title */}
+            <h2 style={projectsTitleStyle}>Every room, organised in one place</h2>
+
+            {/* 3. Description */}
             <p style={projectsDescStyle}>
-              Each project represents a structured collection of spaces within the same building. Designs are grouped intentionally, allowing consistency, comparison, and refinement across every room.
+              Each project groups all the spaces in a building so your designs stay consistent, comparable, and easy to refine — room by room.
             </p>
+
+            {/* 4. Card preview + bullets + CTA side by side */}
+            <div style={projectsCardPreviewWrapStyle} className="projects-card-preview">
+              <img
+                src="/HomePageImages/collection.png"
+                alt="Project card preview"
+                style={projectsCardPreviewImgStyle}
+                className="collection-image-animated"
+              />
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem", flex: 1 }}>
+                <div style={projectsBulletsStyle}>
+                  {[
+                    { icon: "◈", text: "Group multiple rooms under one project" },
+                    { icon: "◈", text: "Apply a unique style to each space" },
+                    { icon: "◈", text: "Compare before & after at a glance" },
+                  ].map(({ icon, text }) => (
+                    <div key={text} style={projectsBulletRowStyle}>
+                      <span style={projectsBulletIconStyle}>{icon}</span>
+                      <span className="projects-bullet-text" style={projectsBulletTextStyle}>{text}</span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  style={projectsCtaStyle}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-3px)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; }}
+                  onClick={() => navigate(localStorage.getItem("authToken") ? "/generate" : "/login")}
+                >
+                  Start a Project →
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -696,101 +700,137 @@ const mainStyle: React.CSSProperties = {
   padding: "0 2rem",
 };
 
-const statsRowStyle: React.CSSProperties = {
-  width: "100%",
-  maxWidth: "1100px",
-  display: "flex",
-  gap: "1.5rem",
-  justifyContent: "center",
-  flexWrap: "wrap",
-  margin: "5rem auto 0",
-};
-
-const statCardWrapStyle: React.CSSProperties = {
-  flex: "1",
-  minWidth: "200px",
-  maxWidth: "240px",
-};
-
-const statCardInnerStyle: React.CSSProperties = {
-  background: "#fff",
-  borderRadius: "20px",
-  padding: "2rem 1.5rem",
-  textAlign: "center",
-  border: "1px solid #eee",
-  boxShadow: "0 8px 30px rgba(0,0,0,0.07)",
-};
-
-const statNumberStyle: React.CSSProperties = {
-  fontSize: "2.8rem",
-  fontWeight: "900",
-  color: "#4790fd",
-  lineHeight: 1,
-  fontVariantNumeric: "tabular-nums",
-};
-
-const statLabelStyle: React.CSSProperties = {
-  fontSize: "0.85rem",
-  color: "#888",
-  marginTop: "0.5rem",
-  fontWeight: "500",
-  letterSpacing: "0.5px",
-};
 
 const projectsSectionStyle: React.CSSProperties = {
   display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "2.6rem",
+  alignItems: "stretch",
   width: "100%",
-  maxWidth: "1100px",
+  maxWidth: "1200px",
   marginTop: "6rem",
-  padding: "0 1rem",
-  flexWrap: "wrap",
+  borderRadius: "28px",
+  overflow: "hidden",
+  boxShadow: "0 24px 80px rgba(0,0,0,0.12)",
 };
 
-const projectsLeftStyle: React.CSSProperties = { flexShrink: 0 };
-
-const projectsHeaderStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "0.6rem",
-  marginBottom: "2rem",
+const projectsLeftStyle: React.CSSProperties = {
+  flex: "1.1",
+  minHeight: "360px",
+  position: "relative",
+  overflow: "hidden",
 };
 
-const gridIconStyle: React.CSSProperties = { width: "24px", height: "24px" };
-
-const projectsLabelStyle: React.CSSProperties = {
-  fontWeight: "700",
-  fontSize: "1rem",
-  color: "#333",
-};
-
-const collectionImageStyle: React.CSSProperties = {
-  width: "200px",
-  height: "auto",
+const projectsPhotoStyle: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
   display: "block",
-  borderRadius: "15px",
+  transition: "transform 0.6s ease",
 };
+
+const projectsPhotoScrimStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 55%)",
+  pointerEvents: "none",
+};
+
+const projectsCardPreviewWrapStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: "1.2rem",
+  background: "rgba(71,144,253,0.05)",
+  border: "1px solid rgba(71,144,253,0.12)",
+  borderRadius: "16px",
+  padding: "1rem 1.2rem",
+};
+
+const projectsCardPreviewImgStyle: React.CSSProperties = {
+  width: "120px",
+  flexShrink: 0,
+  borderRadius: "10px",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.13)",
+  display: "block",
+};
+
 
 const projectsRightStyle: React.CSSProperties = {
-  flexShrink: 0,
-  maxWidth: "560px",
+  flex: "1",
+  background: "#fff",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  padding: "2.5rem 3rem",
+  gap: "1rem",
+};
+
+const projectsEyebrowStyle: React.CSSProperties = {
+  fontSize: "0.72rem",
+  fontWeight: "700",
+  letterSpacing: "4px",
+  textTransform: "uppercase",
+  color: "#4790fd",
+  background: "rgba(71,144,253,0.1)",
+  border: "1px solid rgba(71,144,253,0.2)",
+  padding: "0.3rem 0.9rem",
+  borderRadius: "20px",
+  display: "inline-block",
+  width: "fit-content",
 };
 
 const projectsTitleStyle: React.CSSProperties = {
   fontSize: "2.4rem",
   fontWeight: "800",
   color: "#1a1a1a",
-  margin: "0 0 1rem",
+  margin: "0",
   lineHeight: 1.2,
 };
 
 const projectsDescStyle: React.CSSProperties = {
-  fontSize: "1.4rem",
+  fontSize: "1rem",
   color: "#666",
   lineHeight: "1.85",
   margin: 0,
+};
+
+const projectsBulletsStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.85rem",
+};
+
+const projectsBulletRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "0.75rem",
+};
+
+const projectsBulletIconStyle: React.CSSProperties = {
+  fontSize: "1rem",
+  color: "#4790fd",
+  flexShrink: 0,
+};
+
+const projectsBulletTextStyle: React.CSSProperties = {
+  fontSize: "0.95rem",
+  color: "#444",
+  fontWeight: "500",
+};
+
+const projectsCtaStyle: React.CSSProperties = {
+  width: "fit-content",
+  marginTop: "0.5rem",
+  padding: "13px 30px",
+  fontSize: "0.95rem",
+  fontWeight: "700",
+  backgroundColor: "#4790fd",
+  color: "#fff",
+  border: "none",
+  borderRadius: "50px",
+  cursor: "pointer",
+  letterSpacing: "0.3px",
+  transition: "transform 0.25s ease, box-shadow 0.25s ease",
+  boxShadow: "0 8px 24px rgba(71,144,253,0.35)",
 };
 
 const slidersSectionStyle: React.CSSProperties = {

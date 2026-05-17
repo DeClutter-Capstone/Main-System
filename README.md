@@ -134,9 +134,9 @@ npm run dev
 
 ### Sample Transformations
 
-| Original | Minimalist | Modern | Scandinavian |
-|----------|------------|--------|--------------|
-| ![](docs/samples/OriginalREADME.png) | ![](docs/samples/MinimalistREADME.png) | ![](docs/samples/ModernREADME.png) | ![](docs/samples/ScandinavianREADME.png) |
+| Original | Minimalist | Modern | 
+|----------|------------|--------|
+| ![](docs/samples/OriginalREADME.png) | ![](docs/samples/MinimalistREADME.png) | ![](docs/samples/ModernREADME.png) | 
 
 ---
 

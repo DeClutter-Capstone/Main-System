@@ -136,7 +136,7 @@ npm run dev
 
 | Original | Minimalist | Modern | 
 |----------|------------|--------|
-| ![](docs/samples/OriginalREADME.png) | ![](docs/samples/MinimalistREADME.png) | ![](docs/samples/ModernREADME.png) | 
+| ![](docs/samples/Original2README.png) | ![](docs/samples/MinimalistREADME.png) | ![](docs/samples/ModernREADME.png) | 
 
 ---
 

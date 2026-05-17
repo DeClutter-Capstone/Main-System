@@ -60,6 +60,10 @@ body,
   padding: 0;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: "Alata", sans-serif;
   background-color: var(--color-bg-base);

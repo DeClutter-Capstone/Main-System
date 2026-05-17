@@ -107,6 +107,76 @@ function LoginForm({ onAuthenticate }: LoginFormProps) {
 
   return (
     <div style={styles.leftSection} className="auth-left-section">
+      <style>{`
+        .auth-card {
+          background-color: #eeeeeeff;
+          color: #1f2937;
+        }
+        [data-theme="dark"] .auth-card {
+          background-color: #2a2a2a !important;
+          color: #ffffff !important;
+        }
+        .auth-title {
+          color: #1f2937;
+        }
+        [data-theme="dark"] .auth-title {
+          color: #ffffff !important;
+        }
+        .auth-subtitle {
+          color: #6b7280;
+        }
+        [data-theme="dark"] .auth-subtitle {
+          color: #cccccc !important;
+        }
+        .auth-label {
+          color: #1f2937 !important;
+        }
+        [data-theme="dark"] .auth-label {
+          color: #ffffff !important;
+        }
+        .auth-email-input {
+          background-color: #ffffff;
+          color: #1a1a1a;
+          border: 1px solid #e0e0e0;
+        }
+        .auth-email-input::placeholder {
+          color: #999999;
+        }
+        [data-theme="dark"] .auth-email-input {
+          background-color: #1a1a1a !important;
+          color: #ffffff !important;
+          border: 1px solid #444444 !important;
+        }
+        [data-theme="dark"] .auth-email-input::placeholder {
+          color: #888888 !important;
+        }
+        .auth-email-button {
+          background-color: #4384E2;
+          color: #ffffff;
+        }
+        [data-theme="dark"] .auth-email-button {
+          background-color: #4384E2 !important;
+        }
+        .auth-google-button {
+          background-color: #000000;
+        }
+        [data-theme="dark"] .auth-google-button {
+          background-color: #1a1a1a !important;
+          border: 1px solid #444444 !important;
+        }
+        .auth-divider-line {
+          background-color: #e0e0e0;
+        }
+        [data-theme="dark"] .auth-divider-line {
+          background-color: #444444 !important;
+        }
+        .auth-divider-text {
+          color: #999999;
+        }
+        [data-theme="dark"] .auth-divider-text {
+          color: #888888 !important;
+        }
+      `}</style>
       <div style={styles.card} className="auth-card">
         {/* Title */}
         <h1 style={styles.title} className="auth-title">
@@ -120,7 +190,7 @@ function LoginForm({ onAuthenticate }: LoginFormProps) {
 
         {/* Email field group */}
         <div style={styles.fieldGroup}>
-          <label style={styles.label}>Email</label>
+          <label style={styles.label} className="auth-label">Email</label>
           <input
             type="email"
             placeholder="Type in your email"
@@ -133,7 +203,7 @@ function LoginForm({ onAuthenticate }: LoginFormProps) {
 
         {/* Password field group */}
         <div style={styles.fieldGroup}>
-          <label style={styles.label}>Password</label>
+          <label style={styles.label} className="auth-label">Password</label>
           <input
             type="password"
             placeholder="Type in your password"
@@ -298,7 +368,7 @@ const styles = {
   label: {
     fontSize: "16px",
     fontWeight: "600",
-    color: "#ffffff",
+    color: "#1f2937",
     fontFamily: "'Lato', sans-serif",
     margin: "0",
   } as React.CSSProperties,

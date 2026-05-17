@@ -1,5 +1,6 @@
 import { useState } from "react";
-import Layout from "../components/Layout";
+import TopBar from "../components/TopBar";
+import Footer from "../components/Footer";
 
 interface FAQItem {
   id: string;
@@ -135,7 +136,8 @@ function FAQ() {
   };
 
   return (
-    <Layout>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <TopBar showSignIn={true} />
       <style>{`
         @keyframes slideDown {
           from { opacity: 0; max-height: 0; padding-bottom: 0; }
@@ -166,6 +168,8 @@ function FAQ() {
           .faq-heading { font-size: 26px !important; }
         }
       `}</style>
+
+      <main style={{ flex: 1, backgroundColor: "var(--color-bg-base)" }}>
 
       <div style={styles.container} className="faq-container">
         <h1 style={styles.heading} className="faq-heading">
@@ -252,7 +256,9 @@ function FAQ() {
           ))
         )}
       </div>
-    </Layout>
+      </main>
+      <Footer />
+    </div>
   );
 }
 

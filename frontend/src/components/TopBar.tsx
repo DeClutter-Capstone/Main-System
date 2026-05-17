@@ -39,6 +39,7 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
   }, []);
 
   const isActive = (path: string) => location.pathname === path;
+  const toggleDarkMode = () => setIsDarkMode((v) => !v);
 
   return (
     <div style={styles.container} className="topbar-container">
@@ -54,6 +55,22 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
         }
         .nav-link.active {
           color: var(--color-brand-primary);
+        }
+        .signin-btn {
+          background-color: var(--color-brand-primary);
+          color: #ffffff;
+          border: none;
+          border-radius: 10px;
+          padding: 10px 20px;
+          font-size: 0.95rem;
+          font-weight: 500;
+          cursor: pointer;
+          font-family: inherit;
+          transition: background-color 0.15s ease;
+          letter-spacing: 0.01em;
+        }
+        .signin-btn:hover {
+          background-color: var(--color-brand-dark);
         }
         .nav-icon-btn {
           background: transparent;
@@ -116,17 +133,19 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
 
       {/* Right side - Sign In & Dark Mode */}
       <div style={styles.rightSection}>
-        {showSignIn && (
-          <button
-            className="signin-btn"
-            onClick={() => {
-              if (onSignIn) onSignIn();
-              navigate("/login", { replace: true });
-            }}
-          >
-            Sign in
-          </button>
-        )}
+        <div style={{ width: showSignIn ? "auto" : "90px", height: showSignIn ? "auto" : "40px" }}>
+          {showSignIn && (
+            <button
+              className="signin-btn"
+              onClick={() => {
+                if (onSignIn) onSignIn();
+                navigate("/login", { replace: true });
+              }}
+            >
+              Sign in
+            </button>
+          )}
+        </div>
         <button
           className="nav-icon-btn"
           style={styles.toggleButton}

@@ -31,7 +31,7 @@ function Footer() {
 
         {/* Product Column */}
         <div style={styles.column}>
-          <h3 style={styles.columnTitle}>Product</h3>
+          <h3 style={styles.columnTitle} className="footer-title">Product</h3>
           <nav style={styles.linksList}>
             <a href="/faq" style={styles.link}>
               FAQ
@@ -69,7 +69,7 @@ const styles = {
     alignItems: "flex-start",
     maxWidth: "1200px",
     margin: "0 auto",
-    padding: "0 2rem 0 calc(2rem)",
+    padding: "0 2rem",
     flexWrap: "wrap",
     gap: "5rem",
   } as React.CSSProperties,
@@ -97,12 +97,14 @@ const styles = {
     cursor: "pointer",
   } as React.CSSProperties,
   copyright: {
-    textAlign: "center",
+    textAlign: "left",
     fontSize: "0.9rem",
-    color: "#888888",
-    marginTop: "3rem",
+    color: "var(--color-text-secondary)",
+    marginTop: "2rem",
+    paddingTop: "2rem",
+    borderTop: "1px solid var(--color-border-subtle)",
+    paddingLeft: "2rem",
     fontFamily: "'Alata', sans-serif",
-    paddingRight: "calc(2rem + 1700px)",
   } as React.CSSProperties,
 };
 

@@ -97,6 +97,7 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:id" element={<BlogPost />} />
+          <Route path="/faq" element={<FAQ />} />
           <Route path="/generate" element={<Generate />} />
           <Route path="/contact" element={<ContactUs />} />
 
@@ -114,14 +115,6 @@ function App() {
             element={
               <ProtectedRoute isAuthenticated={isAuthenticated}>
                 <History />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/faq"
-            element={
-              <ProtectedRoute isAuthenticated={isAuthenticated}>
-                <FAQ />
               </ProtectedRoute>
             }
           />

@@ -101,12 +101,12 @@ function Generate() {
     {
       id: "Modern",
       name: "Modern",
-      image: "/public/HomePageImages/modren.jpg",
+      image: "/public/GenerateImages/Moderninterior.jpg",
     },
     {
       id: "Scandinavian",
       name: "Scandinavian",
-      image: "/public/HomePageImages/scandinavian.webp",
+      image: "/public/GenerateImages/Scandinavianinterior.webp",
     },
     {
       id: "Industrial",
@@ -116,12 +116,12 @@ function Generate() {
     {
       id: "Bohemian",
       name: "Bohemian",
-      image: "/public/HomePageImages/bohemian.webp",
+      image: "/public/GenerateImages/Bohemianinterior.jpg",
     },
     {
       id: "Spa",
       name: "Spa",
-      image: "/public/HomePageImages/spa.jpg",
+      image: "/public/GenerateImages/SpaInterior.webp",
     },
   ];
 

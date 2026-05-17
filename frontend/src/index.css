@@ -22,6 +22,15 @@
 
   /* Focus */
   --color-focus-ring: rgba(67, 132, 226, 0.18);
+
+  /* Danger */
+  --color-danger: #d33b3b;
+  --color-danger-soft: rgba(211, 59, 59, 0.08);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.10), 0 4px 8px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="dark"] {
@@ -43,6 +52,13 @@
   --color-brand-dark: #4384e2;
 
   --color-focus-ring: rgba(91, 155, 255, 0.25);
+
+  --color-danger: #ff6b6b;
+  --color-danger-soft: rgba(255, 107, 107, 0.12);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6), 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 * {

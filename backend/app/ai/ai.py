@@ -65,9 +65,17 @@ ROOM_CONTEXT = {
 
 
 def build_prompt(room_type: str, style_name: str, extra_prompt: str = "") -> str:
-    room_label = room_type.replace("_", " ")
+    """Compose the image-edit prompt. `room_type` and `style_name` are used
+    verbatim (after light cosmetic cleanup) so user-supplied values like
+    "studio apartment" or "hotel lobby" flow into the prompt naturally."""
+    room_label = (room_type or "room").replace("_", " ").strip()
+    style_label = (style_name or "").replace("_", " ").strip()
 
-    prompt = f"Redesign this {room_label} as {style_name} style. Remove clutter. Keep same angle and structure. Change only furniture, colors, decor. Photorealistic."
+    prompt = (
+        f"Redesign this {room_label} in a {style_label} style. "
+        "Remove clutter. Keep the same camera angle and architectural structure. "
+        "Change only furniture, colors, and decor. Photorealistic."
+    )
 
     if extra_prompt:
         prompt += f" {extra_prompt}"

@@ -1,9 +1,7 @@
-/**
- * API service for transformation requests
- * Handles communication with the backend transformation endpoint
- */
+import { authHeader } from "./auth";
 
-const API_BASE_URL = "http://localhost:8000/api"; // Update this to your backend URL
+const API_BASE_URL =
+  (import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000") + "/api";
 
 export interface TransformationResponse {
   transformation_id: string;
@@ -16,12 +14,10 @@ export interface TransformationResponse {
 }
 
 /**
- * Send transformation request to backend
- * @param imageFile - The image file uploaded by user
- * @param roomType - Type of room (e.g., "bedroom", "living_room")
- * @param styleName - Style name (e.g., "modern", "minimalist")
- * @param projectId - Optional project ID
- * @returns Promise with transformation response containing output image URL
+ * Send a transformation request to the backend.
+ *
+ * `roomType` is passed verbatim so free-text values (entered when the user
+ * selected "Other") survive end-to-end into the DB and the AI prompt.
  */
 export async function requestTransformation(
   imageFile: File,
@@ -32,24 +28,31 @@ export async function requestTransformation(
 ): Promise<TransformationResponse> {
   const formData = new FormData();
   formData.append("image_file", imageFile);
-  formData.append("room_type", roomType.toLowerCase());
-  formData.append("style_name", styleName.toLowerCase());
+  formData.append("room_type", roomType);
+  formData.append("style_name", styleName);
   if (prompt && prompt.trim()) {
     formData.append("prompt", prompt.trim());
   }
-  
   if (projectId) {
     formData.append("project_id", projectId);
   }
 
+  const auth = await authHeader();
   const response = await fetch(`${API_BASE_URL}/transformations/`, {
     method: "POST",
     body: formData,
+    headers: { ...auth },
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Transformation failed");
+    let detail = "Transformation failed";
+    try {
+      const error = await response.json();
+      detail = error.detail ?? detail;
+    } catch {
+      // ignore
+    }
+    throw new Error(detail);
   }
 
   return response.json();

@@ -2,6 +2,7 @@ import Layout from "../components/Layout";
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { requestTransformation } from "../services/transformationAPI";
+import { listProjects, type ProjectSummary } from "../services/projectsAPI";
 import { toast } from "react-toastify";
 
 function Generate() {
@@ -25,7 +26,7 @@ function Generate() {
   const rafRef = useRef<number | null>(null);
   const progressStartRef = useRef<number>(0);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [projects, setProjects] = useState<Array<{ id: string; title: string }>>([]);
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
 
   useEffect(() => {
     return () => {
@@ -76,19 +77,51 @@ function Generate() {
   const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
   useEffect(() => {
-    try {
-      const storedProjects = localStorage.getItem("projects");
-      if (storedProjects) {
-        const projectList = JSON.parse(storedProjects);
-        setProjects(projectList);
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await listProjects();
+        if (cancelled) return;
+        setProjects(list);
 
         const passedProject = (location.state as any)?.project;
-        if (passedProject && passedProject.title) {
-          setAssignProject(passedProject.title);
+        if (passedProject) {
+          const passedId = passedProject.id ?? passedProject.project_id;
+          if (passedId) setAssignProject(passedId);
+        }
+      } catch (error) {
+        console.error("Error loading projects:", error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [location.state]);
+
+  useEffect(() => {
+    const regen = (location.state as any)?.regenerateFrom;
+    if (regen?.image) {
+      if (regen.roomType) {
+        const known = ["Bedroom", "Living Room", "Kitchen", "Bathroom", "Office"];
+        if (known.includes(regen.roomType)) {
+          setRoomType(regen.roomType);
+        } else {
+          setRoomType("Other");
+          setCustomRoomType(regen.roomType);
         }
       }
-    } catch (error) {
-      console.error("Error loading projects:", error);
+      setUploadedImage(regen.image);
+      fetch(regen.image, { mode: "cors" })
+        .then((r) => (r.ok ? r.blob() : Promise.reject(new Error("fetch failed"))))
+        .then((blob) => {
+          const type = blob.type || "image/png";
+          const ext = type.split("/")[1] ?? "png";
+          const file = new File([blob], `regenerate-source.${ext}`, { type });
+          setUploadedFile(file);
+        })
+        .catch(() => {
+          toast.error("Could not load source image. Please re-upload manually.");
+        });
     }
   }, [location.state]);
 
@@ -206,11 +239,15 @@ function Generate() {
           ? customRoomType.trim() || "Other"
           : roomType;
 
+      const projectIdToAssign =
+        assignProject && assignProject !== "N/A" ? assignProject : undefined;
+
       const response = await requestTransformation(
         uploadedFile,
         effectiveRoomType,
         selectedStyle,
         customPrompt,
+        projectIdToAssign,
       );
 
       const backendBase =
@@ -232,6 +269,9 @@ function Generate() {
       setIsJumping(false);
       setGeneratedImage(outputUrl);
       toast.success("Image generated successfully!");
+
+      // Backend already persisted the transformation against the selected
+      // project (if any). No client-side write needed.
     } catch (err) {
       stopProgressLoop();
       setShowProgress(false);
@@ -465,8 +505,8 @@ function Generate() {
             >
               <option value="N/A">N/A</option>
               {projects.map((project) => (
-                <option key={project.id} value={project.title}>
-                  {project.title}
+                <option key={project.project_id} value={project.project_id}>
+                  {project.project_name}
                 </option>
               ))}
             </select>

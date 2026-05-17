@@ -1,7 +1,9 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import Layout from "../components/Layout";
 import ProjectCard from "../components/ProjectCard";
+import { createProject, listProjects, type ProjectSummary } from "../services/projectsAPI";
 
 interface Project {
   id: string;
@@ -12,127 +14,113 @@ interface Project {
   thumbnail?: string;
 }
 
-// Mock data - replace with actual API calls
-const MOCK_PROJECTS: Project[] = [];
+interface Generation {
+  id: string;
+  image: string;
+  style: string;
+  date: string;
+}
 
-type SortOption = "recent" | "oldest" | "alphabetical";
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString();
+  } catch {
+    return iso;
+  }
+}
+
+function summaryToProject(s: ProjectSummary): Project {
+  return {
+    id: s.project_id,
+    title: s.project_name,
+    description: s.project_description ?? undefined,
+    createdDate: formatDate(s.project_creation_time),
+    updatedDate: formatDate(s.project_last_updated),
+    thumbnail: s.latest_output_image ?? undefined,
+  };
+}
+
+function summaryToFakeGenerations(s: ProjectSummary): Generation[] {
+  // We don't fetch every generation for the listing — we synthesize a minimal
+  // array so the card can render the count badge, thumbnail, and the
+  // shared-style tag (when the backend says all generations share one style).
+  if (s.generation_count <= 0) return [];
+  const placeholder: Generation = {
+    id: `${s.project_id}-latest`,
+    image: s.latest_output_image ?? "",
+    style: s.shared_style ?? "",
+    date: s.project_last_updated,
+  };
+  const others: Generation[] = Array.from({ length: Math.max(0, s.generation_count - 1) }, (_, i) => ({
+    id: `${s.project_id}-${i}`,
+    image: "",
+    style: s.shared_style ?? "",
+    date: s.project_last_updated,
+  }));
+  return [placeholder, ...others];
+}
 
 function Projects() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("recent");
-  const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [isLoading] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [projects, setProjects] = useState<Project[]>(() => {
-    try {
-      const storedProjects = localStorage.getItem("projects");
-      return storedProjects ? JSON.parse(storedProjects) : MOCK_PROJECTS;
-    } catch {
-      return MOCK_PROJECTS;
-    }
-  });
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [filterButtonHovered, setFilterButtonHovered] = useState(false);
+  const [summaries, setSummaries] = useState<ProjectSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
-  const [projectThumbnail, setProjectThumbnail] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    // Save projects to localStorage whenever they change
-    localStorage.setItem("projects", JSON.stringify(projects));
-  }, [projects]);
-
-  useEffect(() => {
-    // Watch for dark mode changes
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.getAttribute("data-theme") === "dark");
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-
-    // Check initial state
-    setIsDarkMode(document.documentElement.getAttribute("data-theme") === "dark");
-
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    // Handle resize events
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Filter and sort projects
-  const filteredAndSortedProjects = useMemo(() => {
-    let result = projects.filter((project) =>
-      project.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    // Sort projects
-    switch (sortBy) {
-      case "oldest":
-        result = result.sort((a, b) => {
-          const dateA = new Date(a.updatedDate);
-          const dateB = new Date(b.updatedDate);
-          return dateA.getTime() - dateB.getTime();
-        });
-        break;
-      case "alphabetical":
-        result = result.sort((a, b) =>
-          a.title.localeCompare(b.title)
-        );
-        break;
-      case "recent":
-      default:
-        result = result.sort((a, b) => {
-          const dateA = new Date(a.updatedDate);
-          const dateB = new Date(b.updatedDate);
-          return dateB.getTime() - dateA.getTime();
-        });
-        break;
-    }
-
-    return result;
-  }, [projects, searchQuery, sortBy]);
-
-  const handleNewProject = () => {
-    setShowCreateModal(true);
-  };
-
-  const handleCreateProject = () => {
-    if (!projectName.trim()) {
-      alert("Please enter a project name");
-      return;
-    }
-
-    const now = new Date().toLocaleDateString();
-    const newProject: Project = {
-      id: `project-${Date.now()}`,
-      title: projectName,
-      description: projectDescription || undefined,
-      createdDate: now,
-      updatedDate: now,
-      thumbnail: projectThumbnail,
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await listProjects();
+        if (!cancelled) setSummaries(data);
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(err instanceof Error ? err.message : "Failed to load projects");
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
+  }, []);
 
-    setProjects([newProject, ...projects]);
-    setShowCreateModal(false);
-    setProjectName("");
-    setProjectDescription("");
-    setProjectThumbnail(undefined);
-  };
+  const projects = useMemo(() => summaries.map(summaryToProject), [summaries]);
+  const generationsByProject = useMemo(() => {
+    const map: Record<string, Generation[]> = {};
+    summaries.forEach((s) => {
+      map[s.project_id] = summaryToFakeGenerations(s);
+    });
+    return map;
+  }, [summaries]);
 
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProjectThumbnail(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const filteredProjects = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = q
+      ? projects.filter((p) => p.title.toLowerCase().includes(q))
+      : projects;
+    return [...filtered].sort((a, b) => {
+      const dateA = new Date(a.updatedDate).getTime();
+      const dateB = new Date(b.updatedDate).getTime();
+      return dateB - dateA;
+    });
+  }, [projects, searchQuery]);
+
+  const handleCreateProject = async () => {
+    const name = projectName.trim();
+    if (!name) return;
+    try {
+      const created = await createProject({
+        project_name: name,
+        project_description: projectDescription.trim() || undefined,
+      });
+      setSummaries((prev) => [created, ...prev]);
+      closeModal();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create project");
     }
   };
 
@@ -140,653 +128,393 @@ function Projects() {
     setShowCreateModal(false);
     setProjectName("");
     setProjectDescription("");
-    setProjectThumbnail(undefined);
   };
 
   const handleProjectClick = (projectId: string) => {
-    const project = projects.find(p => p.id === projectId);
-    navigate(`/project/${projectId}`, { state: { project } });
+    navigate(`/project/${projectId}`);
   };
 
-  const handleSortChange = (option: SortOption) => {
-    setSortBy(option);
-    setShowFilterMenu(false);
-  };
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
-
-  // Responsive grid columns
-  const getGridColumns = () => {
-    if (windowWidth > 1024) return 4;
-    if (windowWidth > 768) return 3;
-    if (windowWidth > 480) return 2;
-    return 1;
-  };
-
-  // Responsive padding
-  const getMainPadding = () => {
-    if (windowWidth <= 480) return "16px";
-    if (windowWidth <= 768) return "20px 24px";
-    return "24px 240px 24px 300px";
-  };
-
-  // Responsive sizes
-  const getTitleFontSize = () => {
-    if (windowWidth <= 480) return "24px";
-    return "28px";
-  };
-
-  const getButtonFontSize = () => {
-    if (windowWidth <= 480) return "13px";
-    return "14px";
-  };
-
-  const getButtonPadding = () => {
-    if (windowWidth <= 480) return "8px 12px";
-    return "10px 16px";
-  };
-
-  // Get right margin to align with card grid
-  const getControlsRightMargin = () => {
-    if (windowWidth <= 480) return "0";
-    if (windowWidth <= 768) return "0";
-    return "24px";
-  };
-
-  // CSS Styles
-  const pageStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    minHeight: "100vh",
-    backgroundColor: isDarkMode ? "#2a2a2a" : "#f0f0f0",
-    width: "100%",
-    margin: 0,
-    padding: 0,
-  };
-
-  const headerContainerStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "24px",
-    flexWrap: "wrap",
-    position: "relative",
-    zIndex: 1,
-    ...(windowWidth <= 768 && { flexDirection: "column", alignItems: "stretch" }),
-  };
-
-  const titleGroupStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  };
-
-  const iconStyle: React.CSSProperties = {
-    width: "32px",
-    height: "32px",
-    objectFit: "contain",
-  };
-
-  const titleStyle: React.CSSProperties = {
-    fontSize: getTitleFontSize(),
-    fontWeight: 700,
-    color: isDarkMode ? "#ffffff" : "#1a1a1a",
-    margin: 0,
-    lineHeight: 1.2,
-  };
-
-  const controlsStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    position: "relative",
-    zIndex: 10,
-    marginRight: getControlsRightMargin(),
-    ...(windowWidth <= 768 && { width: "100%", marginRight: 0 }),
-  };
-
-  const searchContainerStyle: React.CSSProperties = {
-    flex: 1,
-    minWidth: "300px",
-    display: "flex",
-    alignItems: "center",
-    backgroundColor: isDarkMode ? "#1a1a1a" : "#ffffff",
-    border: isDarkMode ? "1px solid #444444" : "1px solid #e0e0e0",
-    borderRadius: "8px",
-    padding: getButtonPadding(),
-    transition: "all 0.2s ease",
-    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
-  };
-
-  const searchIconStyle: React.CSSProperties = {
-    width: "18px",
-    height: "18px",
-    color: isDarkMode ? "#ffffff" : "#999999",
-    marginRight: 0,
-    marginLeft: "auto",
-    flexShrink: 0,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    stroke: isDarkMode ? "#ffffff" : "#999999",
-    order: 2,
-  };
-
-  const searchInputStyle: React.CSSProperties = {
-    flex: 1,
-    border: "none",
-    background: "transparent",
-    fontSize: "14px",
-    color: isDarkMode ? "#ffffff" : "#1a1a1a",
-    outline: "none",
-    fontFamily: "inherit",
-    minWidth: 0,
-    paddingLeft: 0,
-    order: 1,
-  };
-
-  const filterButtonStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    padding: getButtonPadding(),
-    border: filterButtonHovered ? (isDarkMode ? "1px solid #000000" : "1px solid #d0d0d0") : (isDarkMode ? "1px solid #000000" : "1px solid #e0e0e0"),
-    borderRadius: "8px",
-    fontSize: getButtonFontSize(),
-    fontWeight: 500,
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    fontFamily: "inherit",
-    backgroundColor: isDarkMode ? "#2a2a2a" : "#ffffff",
-    color: isDarkMode ? "#ffffff" : "#1a1a1a",
-  };
-
-  const primaryButtonStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    padding: getButtonPadding(),
-    border: isDarkMode ? "1px solid #000000" : "1px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: getButtonFontSize(),
-    fontWeight: 500,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    backgroundColor: "#4384E2",
-    color: "#ffffff",
-  };
-
-  const buttonIconStyle: React.CSSProperties = {
-    width: "16px",
-    height: "16px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-    stroke: "currentColor",
-  };
-
-  const filterDropdownStyle: React.CSSProperties = {
-    position: "absolute",
-    top: "100%",
-    right: 0,
-    marginTop: "8px",
-    backgroundColor: isDarkMode ? "#2a2a2a" : "#ffffff",
-    border: isDarkMode ? "1px solid #555555" : "1px solid #e0e0e0",
-    borderRadius: "8px",
-    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-    zIndex: 1000,
-    minWidth: "200px",
-    overflow: "hidden",
-  };
-
-  const dropdownItemStyle: React.CSSProperties = {
-    padding: "12px 16px",
-    border: "none",
-    background: "transparent",
-    width: "100%",
-    textAlign: "left",
-    cursor: "pointer",
-    fontSize: "15px",
-    color: isDarkMode ? "#ffffff" : "#1a1a1a",
-    transition: "all 0.2s ease",
-    fontFamily: "inherit",
-  };
-
-  const mainStyle: React.CSSProperties = {
-    flex: 1,
-    padding: getMainPadding(),
-    width: "100%",
-  };
-
-  const sectionStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-    width: "100%",
-  };
-
-  const sectionHeaderStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    ...(windowWidth <= 768 && { marginBottom: "8px" }),
-  };
-
-  const sectionTitleStyle: React.CSSProperties = {
-    fontSize: "18px",
-    fontWeight: 600,
-    color: "#1a1a1a",
-    margin: 0,
-  };
-
-  const gridStyle: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: `repeat(${getGridColumns()}, 1fr)`,
-    gap: windowWidth <= 768 ? "24px" : "28px",
-  };
-
-  const emptyStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "60px 20px",
-    textAlign: "center",
-    gridColumn: "1 / -1",
-  };
-
-  const emptyTitleStyle: React.CSSProperties = {
-    fontSize: "18px",
-    fontWeight: 600,
-    color: "#1a1a1a",
-    margin: "0 0 8px 0",
-  };
-
-  const emptyDescriptionStyle: React.CSSProperties = {
-    fontSize: "14px",
-    color: "#888888",
-    margin: "0 0 24px 0",
-    maxWidth: "300px",
-  };
-
-  const skeletonStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    borderRadius: "12px",
-    border: "1px solid #e8e8e8",
-    backgroundColor: "#ffffff",
-    overflow: "hidden",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
-    animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-  };
-
-  const skeletonThumbnailStyle: React.CSSProperties = {
-    width: "100%",
-    aspectRatio: "1",
-    backgroundColor: "#e8e8e8",
-  };
-
-  const skeletonDividerStyle: React.CSSProperties = {
-    height: "1px",
-    backgroundColor: "#efefef",
-  };
-
-  const skeletonContentStyle: React.CSSProperties = {
-    padding: "16px",
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  };
-
-  const skeletonTitleStyle: React.CSSProperties = {
-    height: "16px",
-    backgroundColor: "#e8e8e8",
-    borderRadius: "4px",
-  };
-
-  const skeletonMetadataStyle: React.CSSProperties = {
-    height: "12px",
-    backgroundColor: "#f0f0f0",
-    borderRadius: "4px",
-    width: "70%",
-  };
-
-  // Modal styles
-  const modalOverlayStyle: React.CSSProperties = {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 100000,
-  };
-
-  const modalContainerStyle: React.CSSProperties = {
-    backgroundColor: "#ffffff",
-    borderRadius: "12px",
-    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-    padding: "32px",
-    maxWidth: "500px",
-    width: "90%",
-    maxHeight: "90vh",
-    overflowY: "auto",
-    display: "flex",
-    flexDirection: "column",
-    gap: "24px",
-  };
-
-  const modalTitleStyle: React.CSSProperties = {
-    fontSize: "24px",
-    fontWeight: 700,
-    color: "#1a1a1a",
-    margin: 0,
-  };
-
-  const formGroupStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  };
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: "14px",
-    fontWeight: 600,
-    color: "#1a1a1a",
-  };
-
-  const inputStyle: React.CSSProperties = {
-    padding: "12px 16px",
-    border: "1px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontFamily: "inherit",
-    color: "#1a1a1a",
-    transition: "all 0.2s ease",
-    outline: "none",
-  };
-
-  const textareaStyle: React.CSSProperties = {
-    ...inputStyle,
-    minHeight: "100px",
-    resize: "vertical",
-    fontFamily: "inherit",
-  };
-
-  const thumbnailPreviewStyle: React.CSSProperties = {
-    width: "100%",
-    maxHeight: "150px",
-    borderRadius: "8px",
-    objectFit: "cover",
-    marginTop: "8px",
-  };
-
-  const modalButtonsStyle: React.CSSProperties = {
-    display: "flex",
-    gap: "12px",
-    justifyContent: "flex-end",
-    marginTop: "12px",
-  };
-
-  const cancelButtonStyle: React.CSSProperties = {
-    padding: "10px 24px",
-    border: "1px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: 500,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    backgroundColor: "#f5f5f5",
-    color: "#1a1a1a",
-    transition: "all 0.2s ease",
-  };
-
-  const createButtonStyle: React.CSSProperties = {
-    padding: "10px 24px",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: 500,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    backgroundColor: "#4384E2",
-    color: "#ffffff",
-    transition: "all 0.2s ease",
-  };
-
-  // Render skeleton loaders
-  const renderSkeletons = () => {
-    return Array.from({ length: 5 }).map((_, i) => (
-      <div key={`skeleton-${i}`} style={skeletonStyle}>
-        <div style={skeletonThumbnailStyle} />
-        <div style={skeletonDividerStyle} />
-        <div style={skeletonContentStyle}>
-          <div style={skeletonTitleStyle} />
-          <div style={skeletonMetadataStyle} />
-        </div>
-      </div>
-    ));
-  };
+  const hasProjects = !isLoading && projects.length > 0;
 
   return (
     <Layout>
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.6; }
+        .projects-page {
+          width: 100%;
+          min-height: 100vh;
+          background-color: var(--color-bg-base);
+          color: var(--color-text-primary);
         }
-        input::placeholder {
-          color: ${isDarkMode ? "#666666" : "#999999"};
+        .projects-page__inner {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 32px 24px 64px;
+        }
+        .projects-page__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+          margin-bottom: 28px;
+        }
+        .projects-page__title {
+          font-size: 28px;
+          font-weight: 700;
+          margin: 0;
+          color: var(--color-text-primary);
+        }
+        .projects-page__controls {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex: 1;
+          justify-content: flex-end;
+          min-width: 0;
+        }
+        .projects-page__search {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 14px;
+          background-color: var(--color-bg-surface);
+          border: 1px solid var(--color-border-subtle);
+          border-radius: 8px;
+          flex: 1;
+          max-width: 360px;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .projects-page__search:focus-within {
+          border-color: var(--color-brand-primary);
+          box-shadow: 0 0 0 3px var(--color-focus-ring);
+        }
+        .projects-page__search svg {
+          width: 16px;
+          height: 16px;
+          color: var(--color-text-tertiary);
+          flex-shrink: 0;
+        }
+        .projects-page__search input {
+          border: none;
+          outline: none;
+          background: transparent;
+          flex: 1;
+          font-size: 14px;
+          color: var(--color-text-primary);
+          font-family: inherit;
+          min-width: 0;
+        }
+        .projects-page__search input::placeholder {
+          color: var(--color-text-tertiary);
+        }
+        .projects-page__new {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 18px;
+          background-color: var(--color-brand-primary);
+          color: var(--color-text-inverse);
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          font-family: inherit;
+          transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+          white-space: nowrap;
+        }
+        .projects-page__new:hover {
+          background-color: var(--color-brand-dark);
+          transform: translateY(-1px);
+          box-shadow: var(--shadow-md);
+        }
+        .projects-page__new:active {
+          transform: translateY(0);
+        }
+        .projects-page__grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+        }
+        @media (max-width: 1024px) {
+          .projects-page__grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 640px) {
+          .projects-page__grid {
+            grid-template-columns: 1fr;
+          }
+          .projects-page__header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .projects-page__controls {
+            justify-content: stretch;
+          }
+          .projects-page__search {
+            max-width: none;
+          }
+        }
+        .projects-page__empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 80px 24px;
+          background-color: var(--color-bg-surface);
+          border: 1px dashed var(--color-border-subtle);
+          border-radius: 16px;
+        }
+        .projects-page__empty-icon {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background-color: var(--color-bg-elevated);
+          color: var(--color-text-tertiary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 20px;
+        }
+        .projects-page__empty-icon svg {
+          width: 38px;
+          height: 38px;
+        }
+        .projects-page__empty-title {
+          font-size: 20px;
+          font-weight: 600;
+          margin: 0 0 8px;
+          color: var(--color-text-primary);
+        }
+        .projects-page__empty-subtext {
+          font-size: 14px;
+          color: var(--color-text-secondary);
+          margin: 0 0 24px;
+          max-width: 360px;
+          line-height: 1.5;
+        }
+        .projects-modal__overlay {
+          position: fixed;
+          inset: 0;
+          background-color: rgba(0, 0, 0, 0.45);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          backdrop-filter: blur(2px);
+        }
+        .projects-modal {
+          background-color: var(--color-bg-surface);
+          border: 1px solid var(--color-border-subtle);
+          border-radius: 14px;
+          box-shadow: var(--shadow-lg);
+          padding: 28px;
+          max-width: 440px;
+          width: 92%;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .projects-modal__title {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--color-text-primary);
+          margin: 0;
+        }
+        .projects-modal__field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .projects-modal__label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--color-text-primary);
+        }
+        .projects-modal__input,
+        .projects-modal__textarea {
+          padding: 11px 14px;
+          border: 1px solid var(--color-border-subtle);
+          border-radius: 8px;
+          font-size: 14px;
+          font-family: inherit;
+          color: var(--color-text-primary);
+          background-color: var(--color-bg-base);
+          outline: none;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .projects-modal__input:focus,
+        .projects-modal__textarea:focus {
+          border-color: var(--color-brand-primary);
+          box-shadow: 0 0 0 3px var(--color-focus-ring);
+        }
+        .projects-modal__textarea {
+          min-height: 80px;
+          resize: vertical;
+        }
+        .projects-modal__actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          margin-top: 4px;
+        }
+        .projects-modal__btn {
+          padding: 9px 18px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.15s ease;
+        }
+        .projects-modal__btn--cancel {
+          background-color: transparent;
+          color: var(--color-text-primary);
+          border: 1px solid var(--color-border-subtle);
+        }
+        .projects-modal__btn--cancel:hover {
+          background-color: var(--color-bg-elevated);
+        }
+        .projects-modal__btn--primary {
+          background-color: var(--color-brand-primary);
+          color: var(--color-text-inverse);
+          border: none;
+        }
+        .projects-modal__btn--primary:hover {
+          background-color: var(--color-brand-dark);
+        }
+        .projects-modal__btn--primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
       `}</style>
-      <div style={pageStyle}>
-        <style>{`
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-          }
-          input::placeholder {
-            color: ${isDarkMode ? "#666666" : "#999999"};
-          }
-        `}</style>
 
-        {/* Main Content */}
-        <main style={mainStyle}>
-          <section style={sectionStyle}>
-            {/* Header Controls */}
-            <div style={headerContainerStyle}>
-              {/* Title with Icon */}
-              <div style={titleGroupStyle}>
-                <img
-                  src="/HomePageImages/projects icon.png"
-                  alt="Projects"
-                  style={iconStyle}
+      <div className="projects-page">
+        <div className="projects-page__inner">
+          <header className="projects-page__header">
+            <h1 className="projects-page__title">My Projects</h1>
+            <div className="projects-page__controls">
+              <div className="projects-page__search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search your projects..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Search projects"
                 />
-                <h1 style={titleStyle}>My Projects</h1>
               </div>
-
-              {/* Search and Controls */}
-              <div style={controlsStyle}>
-                {/* Search Bar */}
-                <div style={searchContainerStyle}>
-                  <svg style={searchIconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.35-4.35"></path>
-                  </svg>
-                  <input
-                    type="text"
-                    style={searchInputStyle}
-                    placeholder="Search your projects..."
-                    value={searchQuery}
-                    onChange={handleSearch}
-                    onFocus={() => setSearchFocused(true)}
-                    onBlur={() => setSearchFocused(false)}
-                    aria-label="Search projects"
-                  />
-                </div>
-
-                {/* Filter Button */}
-                <div style={{ position: "relative" }}>
-                  <button
-                    style={filterButtonStyle}
-                    onClick={() => setShowFilterMenu(!showFilterMenu)}
-                    onMouseEnter={() => setFilterButtonHovered(true)}
-                    onMouseLeave={() => setFilterButtonHovered(false)}
-                    aria-label="Filter projects"
-                    aria-expanded={showFilterMenu}
-                  >
-                    <svg style={buttonIconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                    </svg>
-                    Filter
-                  </button>
-
-                  {/* Filter Dropdown */}
-                  {showFilterMenu && (
-                    <div style={filterDropdownStyle}>
-                      <button
-                        style={{
-                          ...dropdownItemStyle,
-                          paddingTop: "8px",
-                          backgroundColor: sortBy === "recent" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent",
-                        }}
-                        onClick={() => handleSortChange("recent")}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = isDarkMode ? "#3a3a3a" : "#f5f5f5")}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "recent" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent")}
-                      >
-                        {sortBy === "recent" && "✓ "}Recently Updated
-                      </button>
-                      <button
-                        style={{
-                          ...dropdownItemStyle,
-                          backgroundColor: sortBy === "oldest" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent",
-                        }}
-                        onClick={() => handleSortChange("oldest")}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = isDarkMode ? "#3a3a3a" : "#f5f5f5")}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "oldest" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent")}
-                      >
-                        {sortBy === "oldest" && "✓ "}Oldest First
-                      </button>
-                      <button
-                        style={{
-                          ...dropdownItemStyle,
-                          paddingBottom: "8px",
-                          backgroundColor: sortBy === "alphabetical" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent",
-                        }}
-                        onClick={() => handleSortChange("alphabetical")}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = isDarkMode ? "#3a3a3a" : "#f5f5f5")}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sortBy === "alphabetical" ? (isDarkMode ? "#3a3a3a" : "#f5f5f5") : "transparent")}
-                      >
-                        {sortBy === "alphabetical" && "✓ "}A to Z
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* New Project Button */}
-                <button
-                  style={primaryButtonStyle}
-                  onClick={handleNewProject}
-                  aria-label="Create new project"
-                >
-                  <span style={buttonIconStyle}>+</span>
-                  New Project
-                </button>
-              </div>
+              <button
+                className="projects-page__new"
+                onClick={() => setShowCreateModal(true)}
+                aria-label="Create new project"
+              >
+                <span aria-hidden="true">+</span>
+                New Project
+              </button>
             </div>
+          </header>
 
-            {/* Projects Grid */}
-            <div style={gridStyle}>
-              {isLoading ? (
-                renderSkeletons()
-              ) : filteredAndSortedProjects.length > 0 ? (
-                filteredAndSortedProjects.map((project) => (
+          {isLoading ? (
+            <div className="projects-page__empty">
+              <p className="projects-page__empty-subtext">Loading projects…</p>
+            </div>
+          ) : hasProjects ? (
+            filteredProjects.length > 0 ? (
+              <div className="projects-page__grid">
+                {filteredProjects.map((project) => (
                   <ProjectCard
                     key={project.id}
                     project={project}
+                    generations={generationsByProject[project.id] ?? []}
                     onClick={handleProjectClick}
                   />
-                ))
-              ) : (
-                <div style={emptyStyle}>
-                  <h3 style={emptyTitleStyle}>No projects found</h3>
-                  <p style={emptyDescriptionStyle}>
-                    {searchQuery
-                      ? "Try adjusting your search terms"
-                      : "Create your first project to get started"}
-                  </p>
+                ))}
+              </div>
+            ) : (
+              <div className="projects-page__empty">
+                <div className="projects-page__empty-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m20 20-3.5-3.5" />
+                  </svg>
                 </div>
-              )}
+                <h2 className="projects-page__empty-title">No matches</h2>
+                <p className="projects-page__empty-subtext">
+                  No projects match "{searchQuery}". Try a different search.
+                </p>
+              </div>
+            )
+          ) : (
+            <div className="projects-page__empty">
+              <div className="projects-page__empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12 12 4l9 8" />
+                  <path d="M5 10v10h14V10" />
+                  <path d="M10 20v-6h4v6" />
+                </svg>
+              </div>
+              <h2 className="projects-page__empty-title">No projects yet</h2>
+              <p className="projects-page__empty-subtext">
+                Create a project to start organizing your room redesigns.
+              </p>
+              <button
+                className="projects-page__new"
+                onClick={() => setShowCreateModal(true)}
+              >
+                <span aria-hidden="true">+</span>
+                New Project
+              </button>
             </div>
-          </section>
-        </main>
+          )}
+        </div>
       </div>
 
-      {/* Create Project Modal */}
       {showCreateModal && (
-        <div style={modalOverlayStyle} onClick={closeModal}>
-          <div style={modalContainerStyle} onClick={(e) => e.stopPropagation()}>
-            {/* Project Name Input */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="project-name">Project Name *</label>
+        <div className="projects-modal__overlay" onClick={closeModal}>
+          <div className="projects-modal" onClick={(e) => e.stopPropagation()}>
+            <h2 className="projects-modal__title">New Project</h2>
+
+            <div className="projects-modal__field">
+              <label className="projects-modal__label" htmlFor="project-name">Name</label>
               <input
                 id="project-name"
                 type="text"
-                style={inputStyle}
-                placeholder="Enter project name"
+                className="projects-modal__input"
+                placeholder="e.g. Living room refresh"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleCreateProject()}
+                onKeyDown={(e) => e.key === "Enter" && handleCreateProject()}
+                autoFocus
               />
             </div>
 
-            {/* Project Description Input */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="project-description">Description</label>
+            <div className="projects-modal__field">
+              <label className="projects-modal__label" htmlFor="project-description">
+                Description <span style={{ fontWeight: 400, color: "var(--color-text-tertiary)" }}>(optional)</span>
+              </label>
               <textarea
                 id="project-description"
-                style={textareaStyle}
-                placeholder="Enter project description (optional)"
+                className="projects-modal__textarea"
+                placeholder="What is this project about?"
                 value={projectDescription}
                 onChange={(e) => setProjectDescription(e.target.value)}
               />
             </div>
 
-            {/* Thumbnail Upload */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="project-thumbnail">Thumbnail Image</label>
-              <input
-                id="project-thumbnail"
-                type="file"
-                accept="image/*"
-                style={{ ...inputStyle, cursor: "pointer" }}
-                onChange={handleThumbnailChange}
-              />
-              {projectThumbnail && (
-                <img src={projectThumbnail} alt="Project thumbnail preview" style={thumbnailPreviewStyle} />
-              )}
-            </div>
-
-            {/* Modal Actions */}
-            <div style={modalButtonsStyle}>
-              <button
-                style={cancelButtonStyle}
-                onClick={closeModal}
-              >
+            <div className="projects-modal__actions">
+              <button className="projects-modal__btn projects-modal__btn--cancel" onClick={closeModal}>
                 Cancel
               </button>
               <button
-                style={createButtonStyle}
+                className="projects-modal__btn projects-modal__btn--primary"
                 onClick={handleCreateProject}
+                disabled={!projectName.trim()}
               >
                 Create Project
               </button>

@@ -1,7 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import Layout from "../components/Layout";
-import HistoryCard from "../components/HistoryCard";
+import {
+  assignGeneration,
+  createGroup as apiCreateGroup,
+  deleteGeneration as apiDeleteGeneration,
+  deleteGroup as apiDeleteGroup,
+  deleteProject as apiDeleteProject,
+  getProject,
+  renameGroup as apiRenameGroup,
+  updateProject,
+  type GenerationDTO,
+  type GroupDTO,
+  type ProjectDetail,
+} from "../services/projectsAPI";
 
 interface Project {
   id: string;
@@ -12,655 +25,767 @@ interface Project {
   thumbnail?: string;
 }
 
-interface ProjectPageParams extends Record<string, string | undefined> {
-  projectId?: string;
-}
-
-interface LocationState {
-  project?: Project;
-}
-
 interface Generation {
-  id: number;
+  id: string;
   image: string;
-  title: string;
-  date: string;
-  style: string;
   originalImage?: string;
+  style: string;
+  roomType?: string;
+  date: string;
+  groupId?: string;
+}
+
+interface Group {
+  id: string;
+  name: string;
+}
+
+type Tab = "all" | "groups";
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString();
+  } catch {
+    return iso;
+  }
+}
+
+function detailToProject(d: ProjectDetail): Project {
+  return {
+    id: d.project_id,
+    title: d.project_name,
+    description: d.project_description ?? undefined,
+    createdDate: formatDate(d.project_creation_time),
+    updatedDate: formatDate(d.project_last_updated),
+  };
+}
+
+function dtoToGeneration(g: GenerationDTO): Generation {
+  return {
+    id: g.transformation_id,
+    image: g.output_image_path ?? "",
+    originalImage: g.input_image_path ?? undefined,
+    style: g.style_name,
+    roomType: g.room_type,
+    date: g.created_at,
+    groupId: g.group_id ?? undefined,
+  };
+}
+
+function dtoToGroup(g: GroupDTO): Group {
+  return { id: g.group_id, name: g.group_name };
+}
+
+async function downloadImage(url: string, filename: string) {
+  try {
+    const resp = await fetch(url, { mode: "cors" });
+    if (!resp.ok) throw new Error("download failed");
+    const blob = await resp.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 }
 
 const ProjectsPage: React.FC = () => {
-  const { projectId } = useParams<ProjectPageParams>();
-  const location = useLocation();
+  const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
 
-  const [currentProject, setCurrentProject] = useState<Project | undefined>((location.state as LocationState)?.project);
+  const [project, setProject] = useState<Project | undefined>(undefined);
+  const [generations, setGenerations] = useState<Generation[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [activeTab, setActiveTab] = useState<Tab>("all");
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [draftName, setDraftName] = useState("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editName, setEditName] = useState(currentProject?.title || "");
-  const [editDescription, setEditDescription] = useState(currentProject?.description || "");
-  const [editThumbnail, setEditThumbnail] = useState<string | undefined>(currentProject?.thumbnail);
-  const [selectedGeneration, setSelectedGeneration] = useState<Generation | undefined>(undefined);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+
+  const [showNewGroupModal, setShowNewGroupModal] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [renamingGroup, setRenamingGroup] = useState<{ id: string; name: string } | null>(null);
+  const [groupMenuOpenFor, setGroupMenuOpenFor] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const [cardMenuOpenFor, setCardMenuOpenFor] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const detail = await getProject(projectId);
+      setProject(detailToProject(detail));
+      setGenerations(detail.generations.map(dtoToGeneration));
+      setGroups(detail.groups.map(dtoToGroup));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load project");
+    }
+  }, [projectId]);
 
   useEffect(() => {
-    // Watch for dark mode changes
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.getAttribute("data-theme") === "dark");
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    refetch();
+  }, [refetch]);
 
-    // Check initial state
-    setIsDarkMode(document.documentElement.getAttribute("data-theme") === "dark");
-
-    return () => observer.disconnect();
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-menu-root]")) {
+        setCardMenuOpenFor(null);
+        setGroupMenuOpenFor(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleAddTransformation = () => {
-    navigate("/generate", { state: { project: currentProject } });
-  };
-
-  const handleEditProject = () => {
-    if (currentProject) {
-      setEditName(currentProject.title);
-      setEditDescription(currentProject.description || "");
-      setEditThumbnail(currentProject.thumbnail);
-      setShowEditModal(true);
+  // Focus the inline name input when entering edit mode
+  useEffect(() => {
+    if (isEditingName && nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select();
     }
-  };
+  }, [isEditingName]);
 
-  const handleSaveProject = () => {
-    if (!editName.trim()) {
-      alert("Please enter a project name");
-      return;
-    }
+  const sortedGenerations = useMemo(
+    () =>
+      [...generations].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      ),
+    [generations],
+  );
 
-    if (!currentProject) return;
-
-    const updatedProject: Project = {
-      ...currentProject,
-      title: editName,
-      description: editDescription || undefined,
-      thumbnail: editThumbnail,
-      updatedDate: new Date().toLocaleDateString(),
-    };
-
-    try {
-      const storedProjects = localStorage.getItem("projects");
-      if (storedProjects) {
-        let projects = JSON.parse(storedProjects);
-        projects = projects.map((p: Project) =>
-          p.id === currentProject.id ? updatedProject : p
-        );
-        localStorage.setItem("projects", JSON.stringify(projects));
+  const groupedView = useMemo(() => {
+    const map: Record<string, Generation[]> = {};
+    groups.forEach((g) => {
+      map[g.id] = [];
+    });
+    sortedGenerations.forEach((gen) => {
+      if (gen.groupId && map[gen.groupId]) {
+        map[gen.groupId].push(gen);
       }
-    } catch (error) {
-      console.error("Error updating project:", error);
-    }
+    });
+    return map;
+  }, [sortedGenerations, groups]);
 
-    setCurrentProject(updatedProject);
-    setShowEditModal(false);
+  // ─── Project actions ──────────────────────────────────────
+  const startInlineNameEdit = () => {
+    if (!project) return;
+    setDraftName(project.title);
+    setIsEditingName(true);
   };
 
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditThumbnail(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const closeEditModal = () => {
-    setShowEditModal(false);
-    setEditName("");
-    setEditDescription("");
-    setEditThumbnail(undefined);
-  };
-
-  const handleGenerationClick = (generation: Generation) => {
-    if (selectedGeneration?.id === generation.id) {
-      setSelectedGeneration(undefined);
-    } else {
-      setSelectedGeneration(generation);
-    }
-  };
-
-  const handleDeleteProject = () => {
-    if (!currentProject || !window.confirm(`Are you sure you want to delete "${currentProject.title}"?`)) {
-      return;
-    }
-
-    try {
-      // Get current projects from localStorage
-      const storedProjects = localStorage.getItem("projects");
-      if (storedProjects) {
-        let projects = JSON.parse(storedProjects);
-        // Remove the project
-        projects = projects.filter((p: Project) => p.id !== currentProject.id);
-        // Save back to localStorage
-        localStorage.setItem("projects", JSON.stringify(projects));
+  const commitInlineNameEdit = async () => {
+    if (!project) return;
+    const trimmed = draftName.trim();
+    if (trimmed && trimmed !== project.title) {
+      const previous = project;
+      setProject({ ...project, title: trimmed });
+      try {
+        await updateProject(project.id, { project_name: trimmed });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to rename project");
+        setProject(previous);
       }
-    } catch (error) {
-      console.error("Error deleting project:", error);
     }
-
-    // Navigate back to projects page
-    navigate("/projects");
+    setIsEditingName(false);
   };
 
-  const dummyGenerations = [
-    {
-      id: 1,
-      image: "/HomePageImages/minimalist.jpg",
-      title: "Living Room Transformation 1",
-      date: "9/8/2025",
-      style: "Modern",
-    },
-    {
-      id: 2,
-      image: "/HomePageImages/industrial.jpg",
-      title: "Living Room Transformation 2",
-      date: "8/15/2025",
-      style: "Industrial",
-    },
-    {
-      id: 3,
-      image: "/HomePageImages/bohemian.webp",
-      title: "Living Room Transformation 3",
-      date: "7/20/2025",
-      style: "Bohemian",
-    },
-    {
-      id: 4,
-      image: "/HomePageImages/scandinavian.webp",
-      title: "Living Room Transformation 4",
-      date: "6/10/2025",
-      style: "Scandinavian",
-    },
-  ];
-
-  const pageStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    minHeight: "100vh",
-    backgroundColor: isDarkMode ? "#2a2a2a" : "#fafafa",
+  const cancelInlineNameEdit = () => {
+    setIsEditingName(false);
+    setDraftName("");
   };
 
-
-
-  const contentStyle: React.CSSProperties = {
-    flex: 1,
-    padding: "32px 150px",
+  const openEditModal = () => {
+    if (!project) return;
+    setEditName(project.title);
+    setEditDescription(project.description ?? "");
+    setShowEditModal(true);
   };
 
-  const projectInfoStyle: React.CSSProperties = {
-    backgroundColor: isDarkMode ? "#3a3a3a" : "#ffffff",
-    borderRadius: "12px",
-    padding: "32px",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+  const saveEditModal = async () => {
+    if (!project || !editName.trim()) return;
+    try {
+      await updateProject(project.id, {
+        project_name: editName.trim(),
+        project_description: editDescription.trim() || undefined,
+      });
+      setShowEditModal(false);
+      await refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save project");
+    }
   };
 
-  const projectNameStyle: React.CSSProperties = {
-    fontSize: "32px",
-    fontWeight: 700,
-    color: isDarkMode ? "#ffffff" : "#1a1a1a",
-    margin: "0 0 24px 0",
+  const handleDeleteProject = async () => {
+    if (!project) return;
+    if (!window.confirm(`Delete "${project.title}"? This cannot be undone.`)) return;
+    try {
+      await apiDeleteProject(project.id);
+      navigate("/projects");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete project");
+    }
   };
 
-  const dateContainerStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
+  const handleAddGeneration = () => {
+    navigate("/generate", { state: { project } });
   };
 
-  const dateItemStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
+  // ─── Generation actions ──────────────────────────────────
+  const handleRegenerate = (gen: Generation) => {
+    navigate("/generate", {
+      state: {
+        project,
+        regenerateFrom: {
+          image: gen.image,
+          roomType: gen.roomType,
+        },
+      },
+    });
   };
 
-  const dateLabelStyle: React.CSSProperties = {
-    fontSize: "14px",
-    fontWeight: 600,
-    color: isDarkMode ? "#aaaaaa" : "#666666",
-    minWidth: "100px",
+  const handleDeleteGeneration = async (genId: string) => {
+    if (!projectId) return;
+    if (!window.confirm("Delete this generation?")) return;
+    const previous = generations;
+    setGenerations(generations.filter((g) => g.id !== genId));
+    try {
+      await apiDeleteGeneration(genId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete generation");
+      setGenerations(previous);
+    }
   };
 
-  const dateValueStyle: React.CSSProperties = {
-    fontSize: "16px",
-    color: isDarkMode ? "#ffffff" : "#1a1a1a",
+  const handleDownloadGeneration = (gen: Generation) => {
+    const safeStyle = (gen.style || "redesign").toLowerCase().replace(/\s+/g, "-");
+    downloadImage(gen.image, `${safeStyle}-${gen.id}.png`);
   };
 
-  const headerContainerStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "24px",
-    gap: "16px",
+  const handleMoveToGroup = async (genId: string, groupId: string | undefined) => {
+    if (!projectId) return;
+    setCardMenuOpenFor(null);
+    const previous = generations;
+    setGenerations(generations.map((g) => (g.id === genId ? { ...g, groupId } : g)));
+    try {
+      await assignGeneration(genId, { project_id: projectId, group_id: groupId ?? null });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to move generation");
+      setGenerations(previous);
+    }
   };
 
-  const addTransformationButtonStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    padding: "10px 20px",
-    backgroundColor: "#4384E2",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: 400,
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    whiteSpace: "nowrap",
-    flex: "0 0 auto",
+  // ─── Group actions ───────────────────────────────────────
+  const handleCreateGroup = async (assignTo?: string) => {
+    if (!projectId || !newGroupName.trim()) return;
+    try {
+      const newGroup = await apiCreateGroup(projectId, newGroupName.trim());
+      const group: Group = { id: newGroup.group_id, name: newGroup.group_name };
+      setGroups((prev) => [...prev, group]);
+      setExpandedGroups((prev) => ({ ...prev, [group.id]: true }));
+      if (assignTo) {
+        setGenerations((prev) => prev.map((g) => (g.id === assignTo ? { ...g, groupId: group.id } : g)));
+        try {
+          await assignGeneration(assignTo, { project_id: projectId, group_id: group.id });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Failed to assign generation to new group");
+        }
+      }
+      setNewGroupName("");
+      setShowNewGroupModal(false);
+      setCardMenuOpenFor(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create group");
+    }
   };
 
-  const deleteButtonStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    padding: "10px 16px",
-    backgroundColor: isDarkMode ? "#3a3a3a" : "#ffffff",
-    color: isDarkMode ? "#ffffff" : "#000000",
-    border: isDarkMode ? "2px solid #2a2a2a" : "2px solid #000000",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: 400,
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    whiteSpace: "nowrap",
+  const handleRenameGroup = async () => {
+    if (!projectId || !renamingGroup || !renamingGroup.name.trim()) return;
+    const trimmed = renamingGroup.name.trim();
+    const previous = groups;
+    setGroups(groups.map((g) => (g.id === renamingGroup.id ? { ...g, name: trimmed } : g)));
+    setRenamingGroup(null);
+    try {
+      await apiRenameGroup(projectId, renamingGroup.id, trimmed);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to rename group");
+      setGroups(previous);
+    }
   };
 
-  const editButtonStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    padding: "10px 16px",
-    backgroundColor: "#4384E2",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: 400,
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    whiteSpace: "nowrap",
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!projectId) return;
+    if (!window.confirm("Delete this group? Generations will be kept but unassigned.")) return;
+    const previousGroups = groups;
+    const previousGens = generations;
+    setGroups(groups.filter((g) => g.id !== groupId));
+    setGenerations(generations.map((g) => (g.groupId === groupId ? { ...g, groupId: undefined } : g)));
+    setGroupMenuOpenFor(null);
+    try {
+      await apiDeleteGroup(projectId, groupId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete group");
+      setGroups(previousGroups);
+      setGenerations(previousGens);
+    }
   };
 
-  // Modal styles
-  const modalOverlayStyle: React.CSSProperties = {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 100000,
+  const toggleGroupExpansion = (groupId: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [groupId]: !(prev[groupId] ?? true) }));
   };
 
-  const modalContainerStyle: React.CSSProperties = {
-    backgroundColor: isDarkMode ? "#3a3a3a" : "#ffffff",
-    borderRadius: "12px",
-    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-    padding: "32px",
-    maxWidth: "500px",
-    width: "90%",
-    maxHeight: "90vh",
-    overflowY: "auto",
-    display: "flex",
-    flexDirection: "column",
-    gap: "24px",
+  // ─── Render helpers ──────────────────────────────────────
+  const renderGenerationCard = (gen: Generation) => {
+    const menuOpen = cardMenuOpenFor === gen.id;
+    return (
+      <article key={gen.id} className="gen-card">
+        <div className="gen-card__image">
+          <img src={gen.image} alt={`${gen.style} redesign`} />
+          <div className="gen-card__menu" data-menu-root>
+            <button
+              className="gen-card__menu-trigger"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCardMenuOpenFor(menuOpen ? null : gen.id);
+              }}
+              aria-label="Card options"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="5" r="1" />
+                <circle cx="12" cy="12" r="1" />
+                <circle cx="12" cy="19" r="1" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div className="gen-card__menu-list" role="menu">
+                <div className="gen-card__menu-label">Move to group</div>
+                {groups.length === 0 && (
+                  <div className="gen-card__menu-empty">No groups yet</div>
+                )}
+                {groups.map((g) => (
+                  <button
+                    key={g.id}
+                    className="gen-card__menu-item"
+                    onClick={() => handleMoveToGroup(gen.id, g.id)}
+                    disabled={gen.groupId === g.id}
+                  >
+                    {gen.groupId === g.id ? "✓ " : ""}{g.name}
+                  </button>
+                ))}
+                <div className="gen-card__menu-divider" />
+                <button
+                  className="gen-card__menu-item"
+                  onClick={() => {
+                    setCardMenuOpenFor(null);
+                    setNewGroupName("");
+                    setShowNewGroupModal(true);
+                  }}
+                >
+                  + Create new group
+                </button>
+                {gen.groupId && (
+                  <button
+                    className="gen-card__menu-item"
+                    onClick={() => handleMoveToGroup(gen.id, undefined)}
+                  >
+                    Remove from group
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="gen-card__body">
+          <div className="gen-card__meta">
+            <span className="gen-card__style">{gen.style}</span>
+            <span className="gen-card__date">{gen.date}</span>
+          </div>
+          <div className="gen-card__actions">
+            <button
+              className="gen-card__icon-btn"
+              onClick={() => handleRegenerate(gen)}
+              aria-label="Regenerate using this image"
+              title="Regenerate"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-3-6.7" />
+                <path d="M21 4v5h-5" />
+              </svg>
+            </button>
+            <button
+              className="gen-card__icon-btn"
+              onClick={() => handleDownloadGeneration(gen)}
+              aria-label="Download image"
+              title="Download"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v12" />
+                <path d="m7 10 5 5 5-5" />
+                <path d="M5 21h14" />
+              </svg>
+            </button>
+            <button
+              className="gen-card__icon-btn gen-card__icon-btn--danger"
+              onClick={() => handleDeleteGeneration(gen.id)}
+              aria-label="Delete generation"
+              title="Delete"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18" />
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </article>
+    );
   };
 
-  const modalTitleStyle: React.CSSProperties = {
-    fontSize: "24px",
-    fontWeight: 700,
-    color: isDarkMode ? "#ffffff" : "#1a1a1a",
-    margin: 0,
-  };
-
-  const formGroupStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  };
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: "14px",
-    fontWeight: 600,
-    color: isDarkMode ? "#ffffff" : "#1a1a1a",
-  };
-
-  const inputStyle: React.CSSProperties = {
-    padding: "12px 16px",
-    border: isDarkMode ? "1px solid #555555" : "1px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontFamily: "inherit",
-    color: isDarkMode ? "#ffffff" : "#1a1a1a",
-    backgroundColor: isDarkMode ? "#2a2a2a" : "#ffffff",
-    transition: "all 0.2s ease",
-    outline: "none",
-  };
-
-  const textareaStyle: React.CSSProperties = {
-    ...inputStyle,
-    minHeight: "100px",
-    resize: "vertical",
-    fontFamily: "inherit",
-  };
-
-  const thumbnailPreviewStyle: React.CSSProperties = {
-    width: "100%",
-    maxHeight: "150px",
-    borderRadius: "8px",
-    objectFit: "cover",
-    marginTop: "8px",
-  };
-
-  const modalButtonsStyle: React.CSSProperties = {
-    display: "flex",
-    gap: "12px",
-    justifyContent: "flex-end",
-    marginTop: "12px",
-  };
-
-  const cancelButtonStyle: React.CSSProperties = {
-    padding: "10px 24px",
-    border: isDarkMode ? "1px solid #555555" : "1px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: 400,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
-    color: isDarkMode ? "#ffffff" : "#1a1a1a",
-    transition: "all 0.2s ease",
-  };
-
-  const saveButtonStyle: React.CSSProperties = {
-    padding: "10px 24px",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: 400,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    backgroundColor: "#4384E2",
-    color: "#ffffff",
-    transition: "all 0.2s ease",
-  };
-
-  // Generation Comparison Styles
-  const generationComparisonContainerStyle: React.CSSProperties = {
-    backgroundColor: isDarkMode ? "#3a3a3a" : "#ffffff",
-    borderRadius: "12px",
-    border: isDarkMode ? "2px solid #2a2a2a" : "2px solid #1a1a1a",
-    overflow: "visible",
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "24px",
-    padding: "12px",
-    maxWidth: "800px",
-    width: "100%",
-  };
-
-  const comparisonSideStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-
-  const comparisonImageContainerStyle: React.CSSProperties = {
-    width: "100%",
-    aspectRatio: "1",
-    backgroundColor: isDarkMode ? "#2a2a2a" : "#f0f0f0",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  };
-
-  const comparisonImageStyle: React.CSSProperties = {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-  };
-
-  const comparisonLabelStyle: React.CSSProperties = {
-    padding: "16px",
-    fontSize: "16px",
-    fontWeight: 600,
-    color: isDarkMode ? "#ffffff" : "#1a1a1a",
-    textAlign: "center",
-    width: "100%",
-    borderTop: isDarkMode ? "1px solid #555555" : "1px solid #e0e0e0",
-  };
-
-  const comparisonDividerStyle: React.CSSProperties = {
-    width: "2px",
-    backgroundColor: isDarkMode ? "#ffffff" : "#1a1a1a",
-    gridColumn: "1 / 2",
-  };
-
-  const projectDescriptionStyle: React.CSSProperties = {
-    fontSize: "16px",
-    color: isDarkMode ? "#aaaaaa" : "#666666",
-    lineHeight: 1.5,
-    marginBottom: "16px",
-  };
-
-  const generationsGridStyle: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "16px",
-  };
+  // ─── Render ──────────────────────────────────────────────
+  if (!project) {
+    return (
+      <Layout>
+        <div className="pp-page">
+          <div className="pp-page__inner">
+            <p className="pp-empty-text">Project not found.</p>
+            <button className="pp-btn pp-btn--primary" onClick={() => navigate("/projects")}>
+              Back to projects
+            </button>
+          </div>
+        </div>
+        <style>{baseStyles}</style>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div style={pageStyle}>
-        {/* Content */}
-        <div style={contentStyle}>
-          {currentProject ? (
-            <>
-              {/* Header */}
-              <div style={{ marginBottom: "24px" }}>
-                <h2 style={projectNameStyle}>{currentProject.title}</h2>
+      <style>{baseStyles}</style>
+      <div className="pp-page">
+        <div className="pp-page__inner">
+          {/* ─── Header ─── */}
+          <header className="pp-header">
+            <div className="pp-header__title-block">
+              {isEditingName ? (
+                <input
+                  ref={nameInputRef}
+                  className="pp-title-input"
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onBlur={commitInlineNameEdit}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitInlineNameEdit();
+                    if (e.key === "Escape") cancelInlineNameEdit();
+                  }}
+                  aria-label="Project name"
+                />
+              ) : (
+                <h1
+                  className="pp-title"
+                  onClick={startInlineNameEdit}
+                  title="Click to rename"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") startInlineNameEdit();
+                  }}
+                >
+                  {project.title}
+                </h1>
+              )}
+              <div className="pp-meta">
+                <span>Created {project.createdDate}</span>
+                <span className="pp-meta__dot">·</span>
+                <span>Updated {project.updatedDate}</span>
+                <span className="pp-meta__dot">·</span>
+                <span>{generations.length} {generations.length === 1 ? "generation" : "generations"}</span>
               </div>
+            </div>
+            <div className="pp-header__actions">
+              <button className="pp-btn pp-btn--primary" onClick={handleAddGeneration}>
+                <span aria-hidden="true">+</span> Add Generation
+              </button>
+              <button className="pp-btn pp-btn--outline" onClick={openEditModal}>
+                Edit Project
+              </button>
+              <button className="pp-btn pp-btn--danger" onClick={handleDeleteProject}>
+                Delete Project
+              </button>
+            </div>
+          </header>
 
-              {/* Project Info Card */}
-              <div style={projectInfoStyle}>
-                {/* Description */}
-                {currentProject.description && (
-                  <div>
-                    <h3 style={{ fontSize: "16px", fontWeight: 600, color: isDarkMode ? "#ffffff" : "#1a1a1a", margin: "0 0 12px 0" }}>Project Description</h3>
-                    <div style={projectDescriptionStyle}>
-                      {currentProject.description}
-                    </div>
-                  </div>
-                )}
+          {/* ─── Tabs ─── */}
+          <div className="pp-tabs" role="tablist">
+            <button
+              role="tab"
+              aria-selected={activeTab === "all"}
+              className={`pp-tab ${activeTab === "all" ? "pp-tab--active" : ""}`}
+              onClick={() => setActiveTab("all")}
+            >
+              All
+              <span className="pp-tab__count">{generations.length}</span>
+            </button>
+            <button
+              role="tab"
+              aria-selected={activeTab === "groups"}
+              className={`pp-tab ${activeTab === "groups" ? "pp-tab--active" : ""}`}
+              onClick={() => setActiveTab("groups")}
+            >
+              Groups
+              <span className="pp-tab__count">{groups.length}</span>
+            </button>
+          </div>
 
-                {/* Dates and Buttons */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "24px", marginBottom: "24px" }}>
-                  <div style={dateContainerStyle}>
-                    <div style={dateItemStyle}>
-                      <span style={dateLabelStyle}>Created:</span>
-                      <span style={dateValueStyle}>{currentProject.createdDate}</span>
-                    </div>
-                    <div style={dateItemStyle}>
-                      <span style={dateLabelStyle}>Updated:</span>
-                      <span style={dateValueStyle}>{currentProject.updatedDate}</span>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: "12px", flex: "0 0 auto" }}>
-                    <button
-                      style={addTransformationButtonStyle}
-                      onClick={handleAddTransformation}
-                      aria-label="Add new transformation"
-                    >
-                      +  Add New Transformation
-                    </button>
-                    <button
-                      style={editButtonStyle}
-                      onClick={handleEditProject}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#2563d9")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#4384E2")}
-                      aria-label="Edit project"
-                    >
-                      Edit Project
-                    </button>
-                    <button
-                      style={deleteButtonStyle}
-                      onClick={handleDeleteProject}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = isDarkMode ? "#4a4a4a" : "#f0f0f0")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = isDarkMode ? "#3a3a3a" : "#ffffff")}
-                      aria-label="Delete project"
-                    >
-                      Delete Project
-                    </button>
-                  </div>
+          {/* ─── Tab content ─── */}
+          {activeTab === "all" ? (
+            sortedGenerations.length === 0 ? (
+              <div className="pp-empty">
+                <div className="pp-empty__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="9" cy="9" r="1.5" />
+                    <path d="m3 17 5-5 5 5 4-4 4 4" />
+                  </svg>
                 </div>
-
-                {/* All Generations Section */}
-                <div style={{ marginTop: "32px", borderTop: "1px solid #efefef", paddingTop: "24px" }}>
-                  <h3 style={{ fontSize: "25px", fontWeight: 600, color: isDarkMode ? "#ffffff" : "#1a1a1a", margin: "0 0 16px 0" }}>All Generations</h3>
-                  <div style={generationsGridStyle}>
-                    {dummyGenerations.map((generation) => (
-                      <div
-                        key={generation.id}
-                        onClick={() => handleGenerationClick(generation)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        <HistoryCard
-                          image={generation.image}
-                          title={generation.title}
-                          date={generation.date}
-                          style={generation.style}
-                          onDelete={() => console.log("Delete generation", generation.id)}
-                          onDownload={() => console.log("Download generation", generation.id)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Generation Comparison Display */}
-                  {selectedGeneration && (
-                    <div style={{ marginTop: "32px", display: "flex", flexDirection: "column", gap: "16px", alignItems: "center" }}>
-                      <h3 style={{ fontSize: "18px", fontWeight: 600, color: isDarkMode ? "#ffffff" : "#1a1a1a", margin: "0 0 16px 0" }}>
-                        {selectedGeneration.title}
-                      </h3>
-
-                      {/* Image Comparison Container */}
-                      <div style={generationComparisonContainerStyle}>
-                        {/* Original Image Side */}
-                        <div style={comparisonSideStyle}>
-                          <div style={comparisonImageContainerStyle}>
-                            <img
-                              src={selectedGeneration.originalImage || "/HomePageImages/home page 1.png"}
-                              alt="Original"
-                              style={comparisonImageStyle}
-                            />
-                          </div>
-                          <div style={comparisonLabelStyle}>Original</div>
-                        </div>
-
-                        {/* Transformed Image Side */}
-                        <div style={comparisonSideStyle}>
-                          <div style={comparisonImageContainerStyle}>
-                            <img
-                              src={selectedGeneration.image}
-                              alt="Transformed"
-                              style={comparisonImageStyle}
-                            />
-                          </div>
-                          <div style={comparisonLabelStyle}>Transformed</div>
-                        </div>
-                      </div>
-
-
-                    </div>
-                  )}
-                </div>
+                <h3 className="pp-empty__title">No generations yet</h3>
+                <p className="pp-empty__subtext">
+                  Generate a redesign and assign it to this project to get started.
+                </p>
+                <button className="pp-btn pp-btn--primary" onClick={handleAddGeneration}>
+                  <span aria-hidden="true">+</span> Add Generation
+                </button>
               </div>
-            </>
+            ) : (
+              <div className="pp-grid">
+                {sortedGenerations.map(renderGenerationCard)}
+              </div>
+            )
           ) : (
-            <div style={projectInfoStyle}>
-              <p style={{ color: isDarkMode ? "#aaaaaa" : "#999999" }}>Project information not found</p>
+            <div className="pp-groups">
+              <div className="pp-groups__header">
+                <span className="pp-groups__hint">
+                  {groups.length === 0
+                    ? "Create groups to organize related generations"
+                    : "Click a group to expand or collapse"}
+                </span>
+                <button
+                  className="pp-btn pp-btn--primary pp-btn--small"
+                  onClick={() => {
+                    setNewGroupName("");
+                    setShowNewGroupModal(true);
+                  }}
+                >
+                  <span aria-hidden="true">+</span> New Group
+                </button>
+              </div>
+
+              {groups.length === 0 ? (
+                <div className="pp-empty">
+                  <div className="pp-empty__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    </svg>
+                  </div>
+                  <h3 className="pp-empty__title">No groups yet</h3>
+                  <p className="pp-empty__subtext">Use groups to organize generations by room, mood, or anything else.</p>
+                </div>
+              ) : (
+                <div className="pp-groups__list">
+                  {groups.map((group) => {
+                    const groupGens = groupedView[group.id] ?? [];
+                    const expanded = expandedGroups[group.id] ?? true;
+                    const menuOpen = groupMenuOpenFor === group.id;
+                    return (
+                      <section key={group.id} className="pp-group">
+                        <header className="pp-group__header">
+                          <button
+                            className="pp-group__toggle"
+                            onClick={() => toggleGroupExpansion(group.id)}
+                            aria-expanded={expanded}
+                          >
+                            <svg
+                              className="pp-group__chevron"
+                              style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}
+                              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                            >
+                              <polyline points="9 6 15 12 9 18" />
+                            </svg>
+                            <span className="pp-group__name">{group.name}</span>
+                            <span className="pp-group__count">{groupGens.length}</span>
+                          </button>
+                          <div className="pp-group__menu" data-menu-root>
+                            <button
+                              className="pp-group__kebab"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setGroupMenuOpenFor(menuOpen ? null : group.id);
+                              }}
+                              aria-label="Group options"
+                              aria-haspopup="menu"
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                <circle cx="12" cy="5" r="1" />
+                                <circle cx="12" cy="12" r="1" />
+                                <circle cx="12" cy="19" r="1" />
+                              </svg>
+                            </button>
+                            {menuOpen && (
+                              <div className="pp-group__menu-list" role="menu">
+                                <button
+                                  className="pp-group__menu-item"
+                                  onClick={() => {
+                                    setRenamingGroup({ id: group.id, name: group.name });
+                                    setGroupMenuOpenFor(null);
+                                  }}
+                                >
+                                  Rename
+                                </button>
+                                <button
+                                  className="pp-group__menu-item pp-group__menu-item--danger"
+                                  onClick={() => handleDeleteGroup(group.id)}
+                                >
+                                  Delete group
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </header>
+                        {expanded && (
+                          groupGens.length === 0 ? (
+                            <div className="pp-group__empty">
+                              No generations in this group yet. Use a generation's menu in the All tab to move it here.
+                            </div>
+                          ) : (
+                            <div className="pp-grid pp-grid--in-group">
+                              {groupGens.map(renderGenerationCard)}
+                            </div>
+                          )
+                        )}
+                      </section>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Edit Project Modal */}
-      {showEditModal && currentProject && (
-        <div style={modalOverlayStyle} onClick={closeEditModal}>
-          <div style={modalContainerStyle} onClick={(e) => e.stopPropagation()}>
-            <h2 style={modalTitleStyle}>Edit Project</h2>
-
-            {/* Project Name Input */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="edit-project-name">Project Name *</label>
+      {/* ─── Edit Project Modal ─── */}
+      {showEditModal && (
+        <div className="pp-modal__overlay" onClick={() => setShowEditModal(false)}>
+          <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
+            <h2 className="pp-modal__title">Edit Project</h2>
+            <div className="pp-modal__field">
+              <label className="pp-modal__label" htmlFor="edit-name">Name</label>
               <input
-                id="edit-project-name"
-                type="text"
-                style={inputStyle}
-                placeholder="Enter project name"
+                id="edit-name"
+                className="pp-modal__input"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSaveProject()}
+                onKeyDown={(e) => e.key === "Enter" && saveEditModal()}
               />
             </div>
-
-            {/* Project Description Input */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="edit-project-description">Description</label>
+            <div className="pp-modal__field">
+              <label className="pp-modal__label" htmlFor="edit-desc">
+                Description <span style={{ fontWeight: 400, color: "var(--color-text-tertiary)" }}>(optional)</span>
+              </label>
               <textarea
-                id="edit-project-description"
-                style={textareaStyle}
-                placeholder="Enter project description (optional)"
+                id="edit-desc"
+                className="pp-modal__textarea"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
               />
             </div>
-
-            {/* Thumbnail Upload */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="edit-project-thumbnail">Thumbnail Image</label>
-              <input
-                id="edit-project-thumbnail"
-                type="file"
-                accept="image/*"
-                style={{ ...inputStyle, cursor: "pointer" }}
-                onChange={handleThumbnailChange}
-              />
-              {editThumbnail && (
-                <img src={editThumbnail} alt="Project thumbnail preview" style={thumbnailPreviewStyle} />
-              )}
-            </div>
-
-            {/* Modal Actions */}
-            <div style={modalButtonsStyle}>
-              <button
-                style={cancelButtonStyle}
-                onClick={closeEditModal}
-              >
+            <div className="pp-modal__actions">
+              <button className="pp-btn pp-btn--outline" onClick={() => setShowEditModal(false)}>
                 Cancel
               </button>
               <button
-                style={saveButtonStyle}
-                onClick={handleSaveProject}
+                className="pp-btn pp-btn--primary"
+                onClick={saveEditModal}
+                disabled={!editName.trim()}
               >
-                Save Changes
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── New Group Modal ─── */}
+      {showNewGroupModal && (
+        <div className="pp-modal__overlay" onClick={() => setShowNewGroupModal(false)}>
+          <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
+            <h2 className="pp-modal__title">New Group</h2>
+            <div className="pp-modal__field">
+              <label className="pp-modal__label" htmlFor="new-group">Group name</label>
+              <input
+                id="new-group"
+                className="pp-modal__input"
+                placeholder="e.g. Final picks"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreateGroup()}
+                autoFocus
+              />
+            </div>
+            <div className="pp-modal__actions">
+              <button className="pp-btn pp-btn--outline" onClick={() => setShowNewGroupModal(false)}>
+                Cancel
+              </button>
+              <button
+                className="pp-btn pp-btn--primary"
+                onClick={() => handleCreateGroup()}
+                disabled={!newGroupName.trim()}
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Rename Group Modal ─── */}
+      {renamingGroup && (
+        <div className="pp-modal__overlay" onClick={() => setRenamingGroup(null)}>
+          <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
+            <h2 className="pp-modal__title">Rename Group</h2>
+            <div className="pp-modal__field">
+              <label className="pp-modal__label" htmlFor="rename-group">Group name</label>
+              <input
+                id="rename-group"
+                className="pp-modal__input"
+                value={renamingGroup.name}
+                onChange={(e) => setRenamingGroup({ ...renamingGroup, name: e.target.value })}
+                onKeyDown={(e) => e.key === "Enter" && handleRenameGroup()}
+                autoFocus
+              />
+            </div>
+            <div className="pp-modal__actions">
+              <button className="pp-btn pp-btn--outline" onClick={() => setRenamingGroup(null)}>
+                Cancel
+              </button>
+              <button
+                className="pp-btn pp-btn--primary"
+                onClick={handleRenameGroup}
+                disabled={!renamingGroup.name.trim()}
+              >
+                Save
               </button>
             </div>
           </div>
@@ -669,5 +794,633 @@ const ProjectsPage: React.FC = () => {
     </Layout>
   );
 };
+
+const baseStyles = `
+  .pp-page {
+    width: 100%;
+    min-height: 100vh;
+    background-color: var(--color-bg-base);
+    color: var(--color-text-primary);
+  }
+  .pp-page__inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* Header */
+  .pp-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+  .pp-header__title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+  .pp-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0;
+    line-height: 1.2;
+    cursor: text;
+    padding: 2px 4px;
+    margin-left: -4px;
+    border-radius: 6px;
+    transition: background-color 0.15s ease;
+    outline: none;
+  }
+  .pp-title:hover {
+    background-color: var(--color-bg-elevated);
+  }
+  .pp-title:focus-visible {
+    background-color: var(--color-bg-elevated);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+  }
+  .pp-title-input {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-brand-primary);
+    border-radius: 6px;
+    padding: 2px 6px;
+    margin-left: -7px;
+    font-family: inherit;
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+    max-width: 600px;
+    width: 100%;
+  }
+  .pp-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+  }
+  .pp-meta__dot {
+    color: var(--color-text-tertiary);
+  }
+  .pp-header__actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Buttons */
+  .pp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .pp-btn--small {
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+  .pp-btn--primary {
+    background-color: var(--color-brand-primary);
+    color: var(--color-text-inverse);
+    border: 1px solid var(--color-brand-primary);
+  }
+  .pp-btn--primary:hover:not(:disabled) {
+    background-color: var(--color-brand-dark);
+    border-color: var(--color-brand-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  .pp-btn--primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .pp-btn--outline {
+    background-color: transparent;
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-subtle);
+  }
+  .pp-btn--outline:hover:not(:disabled) {
+    background-color: var(--color-bg-elevated);
+    border-color: var(--color-text-secondary);
+  }
+  .pp-btn--danger {
+    background-color: transparent;
+    color: var(--color-danger);
+    border: 1px solid var(--color-border-subtle);
+  }
+  .pp-btn--danger:hover:not(:disabled) {
+    background-color: var(--color-danger-soft);
+    border-color: var(--color-danger);
+  }
+
+  /* Tabs */
+  .pp-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-bottom: 1px solid var(--color-border-subtle);
+    margin-bottom: 24px;
+  }
+  .pp-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .pp-tab:hover {
+    color: var(--color-text-primary);
+  }
+  .pp-tab--active {
+    color: var(--color-brand-primary);
+    border-bottom-color: var(--color-brand-primary);
+  }
+  .pp-tab__count {
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg-elevated);
+    border-radius: 999px;
+  }
+  .pp-tab--active .pp-tab__count {
+    color: var(--color-brand-primary);
+    background-color: var(--color-brand-soft);
+  }
+
+  /* Grid */
+  .pp-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .pp-grid--in-group {
+    margin-top: 12px;
+  }
+  @media (max-width: 1024px) {
+    .pp-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 640px) {
+    .pp-grid {
+      grid-template-columns: 1fr;
+    }
+    .pp-header {
+      flex-direction: column;
+    }
+    .pp-header__actions {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+  }
+
+  /* Generation card */
+  .gen-card {
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border-subtle);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .gen-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-brand-primary);
+  }
+  .gen-card__image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background-color: var(--color-bg-elevated);
+    overflow: hidden;
+  }
+  .gen-card__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .gen-card__menu {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+  .gen-card__menu-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background-color: rgba(0, 0, 0, 0.55);
+    color: var(--color-text-inverse);
+    border: none;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: background-color 0.15s ease;
+  }
+  .gen-card__menu-trigger:hover {
+    background-color: rgba(0, 0, 0, 0.75);
+  }
+  .gen-card__menu-trigger svg {
+    width: 16px;
+    height: 16px;
+  }
+  .gen-card__menu-list {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 200px;
+    padding: 6px;
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .gen-card__menu-label {
+    padding: 6px 10px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .gen-card__menu-empty {
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--color-text-tertiary);
+  }
+  .gen-card__menu-item {
+    padding: 8px 10px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+  }
+  .gen-card__menu-item:hover:not(:disabled) {
+    background-color: var(--color-bg-elevated);
+  }
+  .gen-card__menu-item:disabled {
+    color: var(--color-text-tertiary);
+    cursor: default;
+  }
+  .gen-card__menu-divider {
+    height: 1px;
+    background-color: var(--color-border-subtle);
+    margin: 4px 0;
+  }
+  .gen-card__body {
+    padding: 12px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .gen-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .gen-card__style {
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-brand-primary);
+    background-color: var(--color-brand-soft);
+    border-radius: 999px;
+  }
+  .gen-card__date {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+  }
+  .gen-card__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+  .gen-card__icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background-color: transparent;
+    border: 1px solid var(--color-border-subtle);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .gen-card__icon-btn:hover {
+    color: var(--color-brand-primary);
+    border-color: var(--color-brand-primary);
+    background-color: var(--color-brand-soft);
+  }
+  .gen-card__icon-btn--danger:hover {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+    background-color: var(--color-danger-soft);
+  }
+  .gen-card__icon-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Groups */
+  .pp-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .pp-groups__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .pp-groups__hint {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+  }
+  .pp-groups__list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .pp-group {
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .pp-group__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    position: relative;
+  }
+  .pp-group__toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 4px;
+    background: transparent;
+    border: none;
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px;
+    flex: 1;
+    text-align: left;
+    transition: background-color 0.15s ease;
+  }
+  .pp-group__toggle:hover {
+    background-color: var(--color-bg-elevated);
+  }
+  .pp-group__chevron {
+    width: 16px;
+    height: 16px;
+    color: var(--color-text-secondary);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+  .pp-group__name {
+    flex: 1;
+  }
+  .pp-group__count {
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg-elevated);
+    border-radius: 999px;
+  }
+  .pp-group__menu {
+    position: relative;
+  }
+  .pp-group__kebab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .pp-group__kebab:hover {
+    background-color: var(--color-bg-elevated);
+    color: var(--color-text-primary);
+  }
+  .pp-group__kebab svg {
+    width: 16px;
+    height: 16px;
+  }
+  .pp-group__menu-list {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 160px;
+    padding: 6px;
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .pp-group__menu-item {
+    padding: 8px 10px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+  }
+  .pp-group__menu-item:hover {
+    background-color: var(--color-bg-elevated);
+  }
+  .pp-group__menu-item--danger {
+    color: var(--color-danger);
+  }
+  .pp-group__menu-item--danger:hover {
+    background-color: var(--color-danger-soft);
+  }
+  .pp-group__empty {
+    padding: 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--color-text-tertiary);
+    background-color: var(--color-bg-base);
+    border: 1px dashed var(--color-border-subtle);
+    border-radius: 10px;
+    margin-top: 12px;
+  }
+
+  /* Empty state */
+  .pp-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 64px 24px;
+    background-color: var(--color-bg-surface);
+    border: 1px dashed var(--color-border-subtle);
+    border-radius: 16px;
+  }
+  .pp-empty__icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--color-bg-elevated);
+    color: var(--color-text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+  .pp-empty__icon svg {
+    width: 32px;
+    height: 32px;
+  }
+  .pp-empty__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0 0 6px;
+  }
+  .pp-empty__subtext {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    margin: 0 0 20px;
+    max-width: 360px;
+    line-height: 1.5;
+  }
+  .pp-empty-text {
+    text-align: center;
+    color: var(--color-text-secondary);
+    margin: 32px 0 16px;
+  }
+
+  /* Modals */
+  .pp-modal__overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+  }
+  .pp-modal {
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 14px;
+    box-shadow: var(--shadow-lg);
+    padding: 28px;
+    max-width: 440px;
+    width: 92%;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .pp-modal__title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0;
+  }
+  .pp-modal__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .pp-modal__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .pp-modal__input,
+  .pp-modal__textarea {
+    padding: 11px 14px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-base);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .pp-modal__input:focus,
+  .pp-modal__textarea:focus {
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+  }
+  .pp-modal__textarea {
+    min-height: 80px;
+    resize: vertical;
+  }
+  .pp-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 4px;
+  }
+`;
 
 export default ProjectsPage;

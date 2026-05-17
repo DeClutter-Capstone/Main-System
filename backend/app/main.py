@@ -3,8 +3,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import router
 from app.config import API_TITLE, API_VERSION, API_DESCRIPTION
-from app.database.db import create_db_and_tables
-from app.models import User, Project, Style, InputImage, Transformation, GeneratedImage, Activity
+from app.database.db import create_db_and_tables, migrate_schema
+from app.models import User, Project, Group, Style, InputImage, Transformation, GeneratedImage, Activity
 from pathlib import Path
 app = FastAPI(
     title=API_TITLE,
@@ -26,8 +26,9 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    """Create database tables on startup"""
+    """Create database tables and apply idempotent schema migrations."""
     create_db_and_tables()
+    migrate_schema()
 
 app.include_router(router)
 

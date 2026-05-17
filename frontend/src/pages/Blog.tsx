@@ -10,7 +10,6 @@ const roomTypeDefs = [
   {
     id: 1,
     label: "Bedroom",
-    icon: "🛏",
     description:
       "Your personal retreat. Explore layouts, lighting, and style guides to craft a bedroom that restores and inspires.",
     imageUrl: "/BlogPageImages/bedrom.jpg",
@@ -18,7 +17,6 @@ const roomTypeDefs = [
   {
     id: 2,
     label: "Living Room",
-    icon: "🛋",
     description:
       "The heart of the home. Discover furniture arrangements, colour palettes, and AI-driven ideas to elevate every gathering.",
     imageUrl: "/BlogPageImages/livingroom.jpg",
@@ -26,7 +24,6 @@ const roomTypeDefs = [
   {
     id: 3,
     label: "Kitchen",
-    icon: "🍳",
     description:
       "Where function meets beauty. Unlock smart storage, layout optimisation, and Nordic-inspired culinary spaces.",
     imageUrl: "/BlogPageImages/kitchen.jpg",
@@ -34,7 +31,6 @@ const roomTypeDefs = [
   {
     id: 4,
     label: "Bathroom",
-    icon: "🚿",
     description:
       "Turn your daily routine into a spa ritual. Browse calming materials, soft lighting, and wellness-first design.",
     imageUrl: "/BlogPageImages/bathroom.jpg",
@@ -242,7 +238,6 @@ function Blog() {
                     }}
                   >
                     <div style={styles.roomCardOverlay} />
-                    <span style={styles.roomCardIcon}>{room.icon}</span>
                   </div>
                   <div style={styles.roomCardBody}>
                     <h3 style={styles.roomCardTitle} className="room-card-title">{room.label}</h3>
@@ -321,7 +316,6 @@ function Blog() {
                     alt={post.title}
                     style={styles.postImage}
                   />
-                  <span style={styles.tagBadge}>{post.tag}</span>
                 </div>
 
                 <div style={styles.postContent}>
@@ -707,13 +701,6 @@ const styles = {
     background:
       "linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.05) 60%)",
     borderRadius: "0",
-  } as CSSProperties,
-  roomCardIcon: {
-    position: "relative",
-    zIndex: 1,
-    fontSize: "2rem",
-    padding: "0.8rem 1rem",
-    lineHeight: "1",
   } as CSSProperties,
   roomCardBody: {
     padding: "1.4rem 1.4rem 1.6rem",

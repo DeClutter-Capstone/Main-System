@@ -31,11 +31,11 @@ function Footer() {
 
         {/* Product Column */}
         <div style={styles.column}>
-          <h3 style={styles.columnTitle} className="footer-title">Product</h3>
+          <h3 style={styles.columnTitle}>Product</h3>
           <nav style={styles.linksList}>
-            <a href="/faq" style={styles.link} className="footer-link">FAQ</a>
-            <a href="/#design-styles" style={styles.link} className="footer-link">Design Styles</a>
-            <a href="/#before-after" style={styles.link} className="footer-link">Before & After</a>
+            <a href="/faq" style={styles.link}>
+              FAQ
+            </a>
           </nav>
         </div>
 

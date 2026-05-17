@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 
 from app.database.db import get_session
-from app.schemas.history_schema import HistoryItem
-from app.services.history_service import get_history, delete_transformation
+from app.schemas.history_schema import HistoryItem, RenameRequest
+from app.services.history_service import get_history, delete_transformation, rename_transformation
 
 router = APIRouter(prefix="/history", tags=["history"])
 
@@ -36,3 +36,21 @@ def delete_history_item(
     if not success:
         raise HTTPException(status_code=404, detail=f"Transformation '{file_key}' not found")
     return {"message": f"Transformation '{file_key}' deleted successfully"}
+
+
+@router.put("/rename")
+def rename_history_item(
+    request: RenameRequest,
+    db: Session = Depends(get_session),
+):
+    """Rename a transformation record and its associated files."""
+    success = rename_transformation(db, request.old_file_key, request.new_file_key)
+    if not success:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Transformation '{request.old_file_key}' not found or new name already exists"
+        )
+    return {
+        "message": f"Transformation renamed from '{request.old_file_key}' to '{request.new_file_key}'",
+        "new_file_key": request.new_file_key,
+    }

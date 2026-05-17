@@ -13,11 +13,21 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
     return localStorage.getItem("darkMode") === "true";
   });
 
+  const applyDarkMode = () => {
+    document.documentElement.setAttribute("data-theme", "dark");
+    localStorage.setItem("darkMode", "true");
+  };
+
+  const applyLightMode = () => {
+    document.documentElement.removeAttribute("data-theme");
+    localStorage.setItem("darkMode", "false");
+  };
+
   useEffect(() => {
     if (isDarkMode) {
-      document.documentElement.setAttribute("data-theme", "dark");
+      applyDarkMode();
     } else {
-      document.documentElement.removeAttribute("data-theme");
+      applyLightMode();
     }
     localStorage.setItem("darkMode", String(isDarkMode));
   }, [isDarkMode]);
@@ -33,109 +43,79 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
   return (
     <div style={styles.container} className="topbar-container">
       <style>{`
-        .topbar-link {
-          color: #333;
-          font-size: 1.25rem;
-          font-weight: 500;
-          cursor: pointer;
-          font-family: 'Alata', sans-serif;
-          padding: 0.5rem 1rem;
+        .nav-link {
+          color: var(--color-text-secondary);
+          transition: color 0.15s ease;
           text-decoration: none;
-          margin-top: 5px;
-          margin-bottom: 5px;
-          margin-right: 15px;
-          transition: color 0.2s ease;
+          font-family: inherit;
         }
-        .topbar-link:hover {
-          color: #4384E2;
+        .nav-link:hover {
+          color: var(--color-text-primary);
         }
-        .topbar-link.active {
-          color: #4384E2;
+        .nav-link.active {
+          color: var(--color-brand-primary);
         }
-        [data-theme="dark"] .topbar-link {
-          color: #ffffff;
-        }
-        [data-theme="dark"] .topbar-link:hover {
-          color: #82b6ff;
-        }
-        [data-theme="dark"] .topbar-link.active {
-          color: #82b6ff;
-        }
-        [data-theme="dark"] .topbar-container {
-          background-color: #1a1a1a !important;
-        }
-
-        .signin-btn {
-          position: relative;
+        .nav-icon-btn {
+          background: transparent;
+          border: 1px solid var(--color-border-subtle);
+          color: var(--color-text-secondary);
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
           display: inline-flex;
           align-items: center;
-          padding: 0.45rem 1.25rem;
-          background: linear-gradient(135deg, #4790fdff 0%, #4790fdff 100%);
-          color: #fff;
-          border: none;
-          border-radius: 999px;
-          font-size: 1.08rem;
-          font-weight: 600;
-          letter-spacing: 0.3px;
+          justify-content: center;
           cursor: pointer;
-          font-family: 'Alata', sans-serif;
-          box-shadow: 0 2px 10px rgba(67, 132, 226, 0.3);
-          transition: box-shadow 0.25s ease, transform 0.2s ease, background 0.25s ease;
-          overflow: hidden;
+          transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
         }
-        .signin-btn::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 60%);
-          border-radius: inherit;
-          pointer-events: none;
-        }
-        .signin-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 3px 12px rgba(67, 132, 226, 0.35);
-          background: linear-gradient(135deg, #3c7ad6 0%, #78aef8 100%);
-        }
-        .signin-btn:active {
-          transform: translateY(0px);
-          box-shadow: 0 2px 8px rgba(67, 132, 226, 0.3);
-        }
-        [data-theme="dark"] .signin-btn {
-          background: linear-gradient(135deg, #2a5cb5 0%, #4384e2 100%);
-          box-shadow: 0 2px 14px rgba(67, 132, 226, 0.25);
-        }
-        [data-theme="dark"] .signin-btn:hover {
-          background: linear-gradient(135deg, #3272cc 0%, #5a9ef5 100%);
-          box-shadow: 0 6px 22px rgba(67, 132, 226, 0.4);
+        .nav-icon-btn:hover {
+          color: var(--color-text-primary);
+          background-color: var(--color-bg-elevated);
+          border-color: var(--color-border-subtle);
         }
       `}</style>
-
       {/* Logo */}
-      <div style={styles.logoSection}>
-        <img
-          src="/Declutter logo.png"
-          alt="DeClutter Logo"
-          style={styles.logo}
-        />
-      </div>
+      <Link to="/" style={styles.logoSection}>
+        <span style={{ color: "var(--color-brand-primary)" }}>De</span>
+        <span style={{ color: "var(--color-text-primary)" }}>Clutter</span>
+      </Link>
 
-      {/* Nav links */}
+      {/* Navigation links in center */}
       <nav style={styles.navSection}>
-        <Link to="/" className={`topbar-link${isActive("/") ? " active" : ""}`}>
+        <Link
+          to="/"
+          style={{
+            ...styles.navLink,
+            ...(isActive("/") && { color: "var(--color-brand-primary)" }),
+          }}
+          className={`nav-link${isActive("/") ? " active" : ""}`}
+        >
           Home
         </Link>
         <Link
           to="/about"
-          className={`topbar-link${isActive("/about") ? " active" : ""}`}
+          style={{
+            ...styles.navLink,
+            ...(isActive("/about") && { color: "var(--color-brand-primary)" }),
+          }}
+          className={`nav-link${isActive("/about") ? " active" : ""}`}
         >
           About
         </Link>
         <Link
           to="/blog"
-          className={`topbar-link${isActive("/blog") ? " active" : ""}`}
+          style={{
+            ...styles.navLink,
+            ...(isActive("/blog") && { color: "var(--color-brand-primary)" }),
+          }}
+          className={`nav-link${isActive("/blog") ? " active" : ""}`}
         >
           Blog
         </Link>
+      </nav>
+
+      {/* Right side - Sign In & Dark Mode */}
+      <div style={styles.rightSection}>
         {showSignIn && (
           <button
             className="signin-btn"
@@ -148,20 +128,42 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
           </button>
         )}
         <button
-          style={{
-            ...styles.toggleButton,
-            backgroundColor: isDarkMode ? "#333" : "#ddd",
-          }}
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          title="Toggle dark mode"
+          className="nav-icon-btn"
+          style={styles.toggleButton}
+          onClick={toggleDarkMode}
+          title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label="Toggle theme"
         >
-          <img
-            src={isDarkMode ? "/light-mode.png" : "/dark-mode.png"}
-            alt="Toggle dark mode"
-            style={styles.toggleIcon}
-          />
+          {isDarkMode ? (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+          ) : (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
         </button>
-      </nav>
+      </div>
     </div>
   );
 }
@@ -169,42 +171,81 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
 const styles = {
   container: {
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: "0",
-    backgroundColor: "#ffffff",
+    justifyContent: "space-between",
+    height: "60px",
+    padding: "0 24px",
+    backgroundColor: "var(--color-bg-surface)",
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
     fontFamily: "'Alata', sans-serif",
-    transition: "background-color 0.3s ease",
+    borderBottom: "1px solid var(--color-border-low)",
   } as React.CSSProperties,
   logoSection: {
-    display: "flex",
+    display: "inline-flex",
     alignItems: "center",
-  } as React.CSSProperties,
-  logo: {
-    height: "40px",
-    width: "auto",
+    textDecoration: "none",
+    fontSize: "22px",
+    fontWeight: 700,
+    letterSpacing: "-0.01em",
+    flex: "0 0 auto",
+    gap: "0",
+    color: "inherit",
   } as React.CSSProperties,
   navSection: {
     display: "flex",
-    gap: "6rem",
     alignItems: "center",
+    gap: "40px",
+    flex: "1 1 auto",
+    justifyContent: "center",
   } as React.CSSProperties,
-  toggleButton: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    border: "none",
+  navLink: {
+    color: "var(--color-text-secondary)",
+    fontSize: "0.95rem",
+    fontWeight: 500,
     cursor: "pointer",
+    transition: "color 0.15s ease",
+    fontFamily: "inherit",
+    padding: "8px 0",
+    textDecoration: "none",
+    lineHeight: 1,
+  } as React.CSSProperties,
+  rightSection: {
     display: "flex",
     alignItems: "center",
+    gap: "24px",
+    flex: "0 0 auto",
+  } as React.CSSProperties,
+  signInButton: {
+    backgroundColor: "var(--color-brand-primary)",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "10px",
+    padding: "10px 20px",
+    fontSize: "0.95rem",
+    fontWeight: "500",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    transition: "background-color 0.15s ease",
+    letterSpacing: "0.01em",
+  } as React.CSSProperties,
+  toggleButton: {
+    background: "transparent",
+    border: "1px solid var(--color-border-subtle)",
+    color: "var(--color-text-secondary)",
+    width: "36px",
+    height: "36px",
+    borderRadius: "50%",
+    display: "inline-flex",
+    alignItems: "center",
     justifyContent: "center",
-    transition: "background-color 0.3s ease",
-    margin: "4px",
-    marginRight: "15px",
+    cursor: "pointer",
+    transition: "color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease",
   } as React.CSSProperties,
   toggleIcon: {
-    width: "24px",
-    height: "24px",
+    width: "18px",
+    height: "18px",
   } as React.CSSProperties,
 };
 

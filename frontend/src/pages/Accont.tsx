@@ -650,7 +650,7 @@ function Account() {
 
   if (isLoading) {
     return (
-      <Layout>
+      <Layout hideFooter>
         <div style={styles.pageContainer}>
           <div style={styles.contentWrapper}>
             <div style={styles.loadingContainer}>Loading user data...</div>
@@ -663,7 +663,7 @@ function Account() {
   // If no user found, show message
   if (!firebaseUser) {
     return (
-      <Layout>
+      <Layout hideFooter>
         <div style={styles.pageContainer}>
           <div style={styles.contentWrapper}>
             <div style={styles.errorContainer}>
@@ -676,7 +676,7 @@ function Account() {
   }
 
   return (
-    <Layout>
+    <Layout hideFooter>
       <div style={styles.pageContainer}>
         <div style={styles.contentWrapper}>
           {/* My Account Section */}

@@ -137,7 +137,7 @@ function Projects() {
   const hasProjects = !isLoading && projects.length > 0;
 
   return (
-    <Layout>
+    <Layout hideFooter>
       <style>{`
         .projects-page {
           width: 100%;

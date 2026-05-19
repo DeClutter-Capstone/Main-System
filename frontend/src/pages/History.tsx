@@ -1,12 +1,38 @@
 import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
-import HistoryCard from "../components/HistoryCard";
+import GenerationCard, {
+  generationCardStyles,
+} from "../components/GenerationCard";
 import {
   fetchHistory,
   deleteHistoryItem,
   renameHistoryItem,
   type HistoryItem,
 } from "../services/historyAPI";
+
+// History file_keys look like "industrial_bedroom_001" — render those in
+// monospace muted style. Once the user renames to a real label, drop it.
+const AUTO_NAME_RE = /^[a-z0-9]+_[a-z0-9_]+_\d+$/i;
+
+function sanitizeFilename(value: string): string {
+  return value.replace(/[^a-z0-9-_]+/gi, "_").replace(/^_+|_+$/g, "");
+}
+
+async function downloadImage(url: string, baseName: string): Promise<void> {
+  const res = await fetch(url, { mode: "cors", cache: "no-store" });
+  if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+  const blob = await res.blob();
+  const ext = blob.type.split("/")[1] || "png";
+  const safe = sanitizeFilename(baseName) || "redesign";
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = `${safe}.${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(objectUrl);
+}
 
 function History() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -67,8 +93,13 @@ function History() {
     }
   };
 
-  const handleDownload = (id: string) => {
-    console.log(`Downloaded card: ${id}`);
+  const handleDownload = async (card: HistoryItem) => {
+    try {
+      await downloadImage(card.image, card.title);
+    } catch (e) {
+      console.error("Download failed:", e);
+      alert("Could not download image");
+    }
   };
 
   const handleRename = async (id: string, oldName: string, newName: string) => {
@@ -139,7 +170,8 @@ function History() {
   });
 
   return (
-    <Layout>
+    <Layout hideFooter>
+      <style>{generationCardStyles}</style>
       <div style={containerStyle}>
         {/* Header Section */}
         <div style={headerStyle}>
@@ -230,17 +262,46 @@ function History() {
               <div style={{ padding: 16 }}>Loading...</div>
             ) : (
               filteredCards.map((card) => (
-                <HistoryCard
+                <GenerationCard
                   key={card.id}
                   image={card.image}
-                  title={card.title}
+                  name={card.title}
+                  isAutoName={AUTO_NAME_RE.test(card.title)}
+                  styleLabel={card.style}
                   date={card.date}
-                  style={card.style}
-                  isDeleting={deletingIds.has(card.id)}
-                  onDelete={() => handleDelete(card.id, card.title)}
-                  onDownload={() => handleDownload(card.id)}
-                  onRename={(newName) =>
-                    handleRename(card.id, card.title, newName)
+                  onRename={(newName) => {
+                    if (newName) handleRename(card.id, card.title, newName);
+                  }}
+                  actions={
+                    <>
+                      <button
+                        className="gen-card__icon-btn"
+                        onClick={() => handleDownload(card)}
+                        aria-label="Download image"
+                        title="Download"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 3v12" />
+                          <path d="m7 10 5 5 5-5" />
+                          <path d="M5 21h14" />
+                        </svg>
+                      </button>
+                      <button
+                        className="gen-card__icon-btn gen-card__icon-btn--danger"
+                        disabled={deletingIds.has(card.id)}
+                        onClick={() => handleDelete(card.id, card.title)}
+                        aria-label="Delete generation"
+                        title="Delete"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18" />
+                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                        </svg>
+                      </button>
+                    </>
                   }
                 />
               ))
@@ -383,8 +444,9 @@ const contentAreaStyle: React.CSSProperties = {
 
 const cardsGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(3, 1fr)",
-  gap: "16px",
+  // Match the Projects gen-card density so the cards look identical.
+  gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+  gap: "14px",
   width: "100%",
 };
 

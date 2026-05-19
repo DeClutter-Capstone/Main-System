@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Layout from "../components/Layout";
+import { generationCardStyles } from "../components/GenerationCard";
 import {
   assignGeneration,
   clearProjectThumbnail,
@@ -644,7 +645,7 @@ const ProjectsPage: React.FC = () => {
   // ─── Render ──────────────────────────────────────────────
   if (!project) {
     return (
-      <Layout>
+      <Layout hideFooter>
         <div className="pp-page">
           <div className="pp-page__inner">
             <p className="pp-empty-text">Project not found.</p>
@@ -654,13 +655,15 @@ const ProjectsPage: React.FC = () => {
           </div>
         </div>
         <style>{baseStyles}</style>
+        <style>{generationCardStyles}</style>
       </Layout>
     );
   }
 
   return (
-    <Layout>
+    <Layout hideFooter>
       <style>{baseStyles}</style>
+      <style>{generationCardStyles}</style>
       <div className="pp-page">
         <div className="pp-page__inner">
           {/* ─── Header ─── */}
@@ -1230,20 +1233,17 @@ const baseStyles = `
   /* Grid */
   .pp-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+    /* ~5 cards per row at full width — roughly 40% smaller than the old
+       3-column layout. auto-fill lets it reflow gracefully on narrow viewports. */
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
   }
   .pp-grid--in-group {
     margin-top: 12px;
   }
-  @media (max-width: 1024px) {
-    .pp-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
   @media (max-width: 640px) {
     .pp-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     }
     .pp-header {
       flex-direction: column;
@@ -1252,229 +1252,6 @@ const baseStyles = `
       width: 100%;
       flex-wrap: wrap;
     }
-  }
-
-  /* Generation card */
-  .gen-card {
-    display: flex;
-    flex-direction: column;
-    border-radius: 12px;
-    overflow: hidden;
-    background-color: var(--color-card);
-    border: 1px solid var(--color-border-subtle);
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-  }
-  .gen-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    border-color: var(--color-brand-primary);
-  }
-  .gen-card__image {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    background-color: var(--color-bg-elevated);
-    overflow: hidden;
-  }
-  .gen-card__image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .gen-card__menu {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-  }
-  .gen-card__menu-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 999px;
-    background-color: rgba(0, 0, 0, 0.55);
-    color: var(--color-text-inverse);
-    border: none;
-    cursor: pointer;
-    backdrop-filter: blur(4px);
-    transition: background-color 0.15s ease;
-  }
-  .gen-card__menu-trigger:hover {
-    background-color: rgba(0, 0, 0, 0.75);
-  }
-  .gen-card__menu-trigger svg {
-    width: 16px;
-    height: 16px;
-  }
-  .gen-card__menu-list {
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
-    min-width: 200px;
-    padding: 6px;
-    background-color: var(--color-bg-surface);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: 10px;
-    box-shadow: var(--shadow-lg);
-    z-index: 20;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .gen-card__menu-label {
-    padding: 6px 10px 4px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--color-text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .gen-card__menu-empty {
-    padding: 6px 10px;
-    font-size: 13px;
-    color: var(--color-text-tertiary);
-  }
-  .gen-card__menu-item {
-    padding: 8px 10px;
-    text-align: left;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
-    font-size: 13px;
-    font-family: inherit;
-    color: var(--color-text-primary);
-    cursor: pointer;
-    transition: background-color 0.1s ease;
-  }
-  .gen-card__menu-item:hover:not(:disabled) {
-    background-color: var(--color-bg-elevated);
-  }
-  .gen-card__menu-item:disabled {
-    color: var(--color-text-tertiary);
-    cursor: default;
-  }
-  .gen-card__menu-divider {
-    height: 1px;
-    background-color: var(--color-border-subtle);
-    margin: 4px 0;
-  }
-  .gen-card__body {
-    padding: 12px 14px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .gen-card__name {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 4px 6px;
-    margin: -4px -6px 0;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    text-align: left;
-    cursor: text;
-    transition: background-color 0.15s ease;
-    min-width: 0;
-  }
-  .gen-card__name:hover {
-    background-color: var(--color-bg-elevated);
-  }
-  .gen-card__name:hover .gen-card__name-pencil {
-    opacity: 1;
-  }
-  .gen-card__name-text {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .gen-card__name-text--auto {
-    color: var(--color-text-secondary);
-    font-weight: 500;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 13px;
-  }
-  .gen-card__name-pencil {
-    width: 13px;
-    height: 13px;
-    color: var(--color-text-tertiary);
-    opacity: 0;
-    transition: opacity 0.15s ease;
-    flex-shrink: 0;
-  }
-  .gen-card__name-input {
-    width: 100%;
-    padding: 6px 8px;
-    margin: -6px -8px 0;
-    border: 1px solid var(--color-brand-primary);
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    background-color: var(--color-bg-surface);
-    outline: none;
-    box-shadow: 0 0 0 3px var(--color-focus-ring);
-  }
-  .gen-card__meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .gen-card__style {
-    padding: 3px 10px;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--color-brand-primary);
-    background-color: var(--color-brand-soft);
-    border-radius: 999px;
-  }
-  .gen-card__date {
-    font-size: 12px;
-    color: var(--color-text-secondary);
-  }
-  .gen-card__actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 4px;
-  }
-  .gen-card__icon-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background-color: transparent;
-    border: 1px solid var(--color-border-subtle);
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-  .gen-card__icon-btn:hover {
-    color: var(--color-brand-primary);
-    border-color: var(--color-brand-primary);
-    background-color: var(--color-brand-soft);
-  }
-  .gen-card__icon-btn--danger:hover {
-    color: var(--color-danger);
-    border-color: var(--color-danger);
-    background-color: var(--color-danger-soft);
-  }
-  .gen-card__icon-btn svg {
-    width: 16px;
-    height: 16px;
   }
 
   /* Groups */

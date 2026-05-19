@@ -433,7 +433,7 @@ function Generate() {
   };
 
   return (
-    <Layout>
+    <Layout hideFooter>
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }

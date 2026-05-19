@@ -4,14 +4,16 @@ import type { ReactNode } from "react";
 
 interface LayoutProps {
   children: ReactNode;
+  /** Set to true on pages that shouldn't show the global footer. */
+  hideFooter?: boolean;
 }
 
-function Layout({ children }: LayoutProps) {
+function Layout({ children, hideFooter = false }: LayoutProps) {
   return (
     <div style={styles.container}>
       <NavBar />
       <main style={styles.mainContent}>{children}</main>
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   );
 }

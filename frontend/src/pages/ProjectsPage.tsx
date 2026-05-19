@@ -695,6 +695,9 @@ const ProjectsPage: React.FC = () => {
                   {project.title}
                 </h1>
               )}
+              {project.description && (
+                <p className="pp-description">{project.description}</p>
+              )}
               <div className="pp-meta">
                 <span>Created {project.createdDate}</span>
                 <span className="pp-meta__dot">·</span>
@@ -1114,6 +1117,14 @@ const baseStyles = `
     box-shadow: 0 0 0 3px var(--color-focus-ring);
     max-width: 600px;
     width: 100%;
+  }
+  .pp-description {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    max-width: 720px;
+    white-space: pre-wrap;
   }
   .pp-meta {
     display: flex;

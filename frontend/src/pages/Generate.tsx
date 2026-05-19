@@ -22,9 +22,16 @@ function Generate() {
   const [showProgress, setShowProgress] = useState(false);
   const [isJumping, setIsJumping] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
+  // ── Result viewer (Output ↔ Before/After) ──
+  const [viewMode, setViewMode] = useState<"output" | "compare">("output");
+  const [croppedInput, setCroppedInput] = useState<string | null>(null);
+  const [resultAspectRatio, setResultAspectRatio] = useState<number>(1);
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const [isSliderActive, setIsSliderActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rafRef = useRef<number | null>(null);
   const progressStartRef = useRef<number>(0);
+  const sliderContainerRef = useRef<HTMLDivElement>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
 
@@ -34,11 +41,34 @@ function Generate() {
     };
   }, []);
 
+  // Mirror the homepage's slider drag handling: document-level mousemove
+  // while a handle is grabbed, mouseup releases.
+  useEffect(() => {
+    if (!isSliderActive) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!sliderContainerRef.current) return;
+      const rect = sliderContainerRef.current.getBoundingClientRect();
+      setSliderPosition(
+        Math.max(
+          0,
+          Math.min(100, ((e.clientX - rect.left) / rect.width) * 100),
+        ),
+      );
+    };
+    const handleMouseUp = () => setIsSliderActive(false);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isSliderActive]);
+
   const getStage = (p: number) => {
     if (p >= 100) return "Done!";
-    if (p < 20) return "Analyzing your room...";
-    if (p < 45) return "Detecting objects and clutter...";
-    if (p < 65) return "Applying minimalist style...";
+    if (p < 25) return "Analyzing your room...";
+    if (p < 50) return "Removing clutter and simplifying...";
+    if (p < 72) return "Applying minimalist style...";
     return "Finalizing your design...";
   };
 
@@ -50,16 +80,26 @@ function Generate() {
     setStage("Analyzing your room...");
     progressStartRef.current = performance.now();
 
+    // Timeline (real generation averages ~23s):
+    //   0–5s   : 0 → 30%   (ease-out, feels like it kicked off)
+    //   5–18s  : 30 → 75%  (linear crawl, the bulk of the work)
+    //   18s+   : 75 → 82%  (asymptotic, never quite reaches 82)
+    // The bar holds < 82% until the real API response triggers the jump.
     const tick = () => {
       const elapsed = (performance.now() - progressStartRef.current) / 1000;
       let p: number;
-      if (elapsed < 13) {
-        const t = elapsed / 13;
-        p = 78 * (1 - Math.pow(1 - t, 3));
+      if (elapsed < 5) {
+        const t = elapsed / 5;
+        p = 30 * (1 - Math.pow(1 - t, 2)); // ease-out quad
+      } else if (elapsed < 18) {
+        const t = (elapsed - 5) / 13;
+        p = 30 + 45 * t; // linear 30 → 75
       } else {
-        p = 78 + (1 - Math.exp(-(elapsed - 13) / 18));
+        // Asymptotic creep toward 82, never reaching it. At elapsed=18 → 75;
+        // at elapsed≈18+15s → ~80; the bar slows to a near-stop.
+        p = 75 + 7 * (1 - Math.exp(-(elapsed - 18) / 14));
       }
-      p = Math.min(p, 79);
+      p = Math.min(p, 81.9);
       setProgress(p);
       setStage(getStage(p));
       rafRef.current = requestAnimationFrame(tick);
@@ -75,6 +115,66 @@ function Generate() {
   };
 
   const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+  // Center-crop `inputSrc` so it matches the natural dimensions of
+  // `outputSrc` exactly. Returns a PNG data URL with the cropped pixels.
+  // No resizing or warping of the GPT output happens — only the input is
+  // trimmed at the edges to align with the output's aspect.
+  const cropInputToOutput = async (
+    inputSrc: string,
+    outputSrc: string,
+  ): Promise<{ croppedDataUrl: string; width: number; height: number }> => {
+    const loadImg = (src: string) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Failed to load ${src}`));
+        img.src = src;
+      });
+
+    const [inputImg, outputImg] = await Promise.all([
+      loadImg(inputSrc),
+      loadImg(outputSrc),
+    ]);
+
+    const W = outputImg.naturalWidth;
+    const H = outputImg.naturalHeight;
+    const inW = inputImg.naturalWidth;
+    const inH = inputImg.naturalHeight;
+    const targetRatio = W / H;
+    const inRatio = inW / inH;
+
+    let sx: number;
+    let sy: number;
+    let sw: number;
+    let sh: number;
+    if (inRatio > targetRatio) {
+      // Input is wider — trim the left/right.
+      sh = inH;
+      sw = sh * targetRatio;
+      sx = (inW - sw) / 2;
+      sy = 0;
+    } else {
+      // Input is taller (or equal) — trim the top/bottom.
+      sw = inW;
+      sh = sw / targetRatio;
+      sx = 0;
+      sy = (inH - sh) / 2;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas 2D context unavailable");
+    ctx.drawImage(inputImg, sx, sy, sw, sh, 0, 0, W, H);
+    return {
+      croppedDataUrl: canvas.toDataURL("image/png"),
+      width: W,
+      height: H,
+    };
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -285,12 +385,33 @@ function Generate() {
       setIsJumping(true);
       setProgress(100);
       setStage("Done!");
+
+      // Use the 600ms "Done!" hold to prepare the matched-dimension input
+      // crop so the Before/After slider works pixel-for-pixel.
+      const cropPromise = uploadedImage
+        ? cropInputToOutput(uploadedImage, outputUrl).catch((err) => {
+            console.error("Input crop failed:", err);
+            return null;
+          })
+        : Promise.resolve(null);
+
       await wait(600);
       setIsFadingOut(true);
       await wait(320);
       setShowProgress(false);
       setIsFadingOut(false);
       setIsJumping(false);
+
+      const cropped = await cropPromise;
+      if (cropped) {
+        setCroppedInput(cropped.croppedDataUrl);
+        setResultAspectRatio(cropped.width / cropped.height);
+      } else {
+        setCroppedInput(null);
+        setResultAspectRatio(1);
+      }
+      setViewMode("output");
+      setSliderPosition(50);
       setGeneratedImage(outputUrl);
       toast.success("Image generated successfully!");
 
@@ -392,6 +513,44 @@ function Generate() {
         textarea::placeholder,
         input::placeholder {
           color: var(--color-text-tertiary);
+        }
+        @keyframes resultFadeIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        .compare-fade {
+          animation: resultFadeIn 0.2s ease;
+        }
+        .view-toggle-btn {
+          padding: 6px 14px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          font-family: inherit;
+          color: var(--color-text-secondary);
+          background-color: transparent;
+          border: none;
+          border-radius: 999px;
+          cursor: pointer;
+          transition: background-color 0.15s ease, color 0.15s ease;
+        }
+        .view-toggle-btn:hover:not(.active):not(:disabled) {
+          color: var(--color-text-primary);
+        }
+        .view-toggle-btn.active {
+          background-color: var(--color-card);
+          color: var(--color-text-primary);
+          box-shadow: var(--shadow-sm);
+        }
+        .view-toggle-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+        .compare-handle:hover {
+          transform: translate(-50%, -50%) scale(1.08);
+          box-shadow: 0 6px 22px rgba(67, 132, 226, 0.45);
+        }
+        .compare-handle {
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
         .advanced-toggle {
           transition: all 0.15s ease !important;
@@ -746,13 +905,119 @@ function Generate() {
           <section style={styles.resultSection}>
             <div style={styles.resultLabel}>Result</div>
             <h2 style={styles.resultHeading}>Your {selectedStyle} Room</h2>
-            <div style={styles.resultImageWrapper}>
-              <img
-                src={generatedImage}
-                alt={`Your ${selectedStyle} room`}
-                style={styles.resultImage}
-              />
+
+            {/* View-mode toggle. Only renders when the cropped input is
+                ready so we never offer Compare without both images. */}
+            <div
+              style={styles.viewToggle}
+              role="tablist"
+              aria-label="Result view mode"
+            >
+              <button
+                role="tab"
+                aria-selected={viewMode === "compare"}
+                onClick={() => setViewMode("compare")}
+                disabled={!croppedInput}
+                className={`view-toggle-btn${viewMode === "compare" ? " active" : ""}`}
+                title={
+                  croppedInput
+                    ? "Drag the divider to compare"
+                    : "Comparison unavailable"
+                }
+              >
+                Before/After
+              </button>
+              <button
+                role="tab"
+                aria-selected={viewMode === "output"}
+                onClick={() => setViewMode("output")}
+                className={`view-toggle-btn${viewMode === "output" ? " active" : ""}`}
+              >
+                Output
+              </button>
             </div>
+
+            {viewMode === "compare" && croppedInput ? (
+              <div
+                key="compare"
+                ref={sliderContainerRef}
+                style={{
+                  ...styles.compareContainer,
+                  aspectRatio: `${resultAspectRatio}`,
+                }}
+                className="compare-fade"
+              >
+                <img
+                  src={croppedInput}
+                  alt="Before"
+                  style={styles.compareBaseImg}
+                  draggable={false}
+                />
+                <img
+                  src={generatedImage}
+                  alt="After"
+                  style={{
+                    ...styles.compareAfterImg,
+                    // Hide the right portion with clip-path so the after
+                    // image always renders at the container's full size —
+                    // no ref-based width, no first-frame mis-layout.
+                    clipPath: `inset(0 ${100 - sliderPosition}% 0 0)`,
+                  }}
+                  draggable={false}
+                />
+                <span
+                  style={{
+                    ...styles.compareLabel,
+                    left: "14px",
+                    opacity: sliderPosition > 15 ? 1 : 0,
+                  }}
+                >
+                  After
+                </span>
+                <span
+                  style={{
+                    ...styles.compareLabel,
+                    right: "14px",
+                    opacity: sliderPosition < 85 ? 1 : 0,
+                  }}
+                >
+                  Before
+                </span>
+                <div
+                  style={{
+                    ...styles.compareDivider,
+                    left: `${sliderPosition}%`,
+                  }}
+                />
+                <div
+                  className="compare-handle"
+                  style={{
+                    ...styles.compareHandle,
+                    left: `${sliderPosition}%`,
+                  }}
+                  onMouseDown={() => setIsSliderActive(true)}
+                  onMouseUp={() => setIsSliderActive(false)}
+                  onTouchStart={() => setIsSliderActive(true)}
+                  onTouchEnd={() => setIsSliderActive(false)}
+                  aria-label="Drag to compare"
+                >
+                  <span style={styles.compareHandleChevron}>‹</span>
+                  <span style={styles.compareHandleChevron}>›</span>
+                </div>
+              </div>
+            ) : (
+              <div
+                key="output"
+                style={styles.resultImageWrapper}
+                className="compare-fade"
+              >
+                <img
+                  src={generatedImage}
+                  alt={`Your ${selectedStyle} room`}
+                  style={styles.resultImage}
+                />
+              </div>
+            )}
             <button
               style={styles.downloadButton}
               className="generate-btn"
@@ -863,11 +1128,15 @@ const styles = {
     fontWeight: "500",
   } as React.CSSProperties,
   heroUploadedPreview: {
-    width: "100%",
-    height: "100%",
-    minHeight: "360px",
-    objectFit: "cover",
+    // Render the uploaded photo at ~80% of the upload zone so it never feels
+    // edge-to-edge zoomed; the surrounding hero box acts as breathing room.
+    maxWidth: "80%",
+    maxHeight: "80%",
+    width: "auto",
+    height: "auto",
+    objectFit: "contain",
     display: "block",
+    borderRadius: "8px",
   } as React.CSSProperties,
   removeButton: {
     position: "absolute",
@@ -1280,6 +1549,103 @@ const styles = {
     objectFit: "contain",
     display: "block",
   } as React.CSSProperties,
+
+  // ---- VIEW TOGGLE + BEFORE/AFTER SLIDER ----
+  viewToggle: {
+    display: "inline-flex",
+    alignSelf: "flex-start",
+    padding: "4px",
+    backgroundColor: "var(--color-bg-elevated)",
+    border: "1px solid var(--color-border-subtle)",
+    borderRadius: "999px",
+    gap: "2px",
+  } as React.CSSProperties,
+  compareContainer: {
+    position: "relative",
+    width: "100%",
+    maxHeight: "75vh",
+    overflow: "hidden",
+    borderRadius: "16px",
+    border: "1px solid var(--color-border-subtle)",
+    backgroundColor: "var(--color-bg-elevated)",
+    cursor: "col-resize",
+    touchAction: "none",
+    userSelect: "none",
+    WebkitUserSelect: "none",
+  } as React.CSSProperties,
+  compareBaseImg: {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    // Contain so the whole photo is visible — no edge-cropping when the
+    // container's rendered aspect differs from the image's (e.g. when the
+    // 75vh maxHeight kicks in on tall portraits).
+    objectFit: "contain",
+    userSelect: "none",
+    pointerEvents: "none",
+  } as React.CSSProperties,
+  compareAfterImg: {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    userSelect: "none",
+    pointerEvents: "none",
+    display: "block",
+  } as React.CSSProperties,
+  compareLabel: {
+    position: "absolute",
+    top: "14px",
+    zIndex: 5,
+    background: "rgba(0,0,0,0.55)",
+    backdropFilter: "blur(4px)",
+    color: "var(--color-text-inverse)",
+    fontSize: "0.7rem",
+    fontWeight: 700,
+    letterSpacing: "2px",
+    padding: "4px 10px",
+    borderRadius: "20px",
+    textTransform: "uppercase",
+    pointerEvents: "none",
+    transition: "opacity 0.3s",
+  } as React.CSSProperties,
+  compareDivider: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: "2px",
+    background: "rgba(255,255,255,0.8)",
+    transform: "translateX(-50%)",
+    zIndex: 3,
+    pointerEvents: "none",
+  } as React.CSSProperties,
+  compareHandle: {
+    position: "absolute",
+    top: "50%",
+    width: "46px",
+    height: "46px",
+    backgroundColor: "#d3e5fd",
+    borderRadius: "50%",
+    cursor: "col-resize",
+    transform: "translate(-50%, -50%)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.4rem",
+    zIndex: 4,
+    boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+  } as React.CSSProperties,
+  compareHandleChevron: {
+    fontSize: "20px",
+    fontWeight: 700,
+    color: "#1a3a6e",
+    lineHeight: 1,
+    userSelect: "none",
+    pointerEvents: "none",
+  } as React.CSSProperties,
+
   downloadButton: {
     alignSelf: "center",
     minWidth: "260px",

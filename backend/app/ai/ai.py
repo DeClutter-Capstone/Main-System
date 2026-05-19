@@ -65,17 +65,37 @@ ROOM_CONTEXT = {
 
 
 def build_prompt(room_type: str, style_name: str, extra_prompt: str = "") -> str:
-    """Compose the image-edit prompt. `room_type` and `style_name` are used
-    verbatim (after light cosmetic cleanup) so user-supplied values like
-    "studio apartment" or "hotel lobby" flow into the prompt naturally."""
-    room_label = (room_type or "room").replace("_", " ").strip()
-    style_label = (style_name or "").replace("_", " ").strip()
+    """Compose the image-edit prompt.
 
-    prompt = (
-        f"Redesign this {room_label} in a {style_label} style. "
-        "Remove clutter. Keep the same camera angle and architectural structure. "
-        "Change only furniture, colors, and decor. Photorealistic."
-    )
+    Minimalist is special-cased with a strict "only remove, never add" rule
+    — it's the flagship style and the whole point of DeClutter. Other
+    styles (Modern, Scandinavian, Industrial, Bohemian, Rustic, Spa, or any
+    user-supplied label) are free to add the decor that *defines* them, so
+    long as the room's structure (walls, windows, layout) stays intact.
+    """
+    room_label = (room_type or "room").replace("_", " ").strip().lower()
+    style_label = (style_name or "minimalist").replace("_", " ").strip().lower()
+
+    if style_label == "minimalist":
+        prompt = (
+            f"Transform this {room_label} into a minimalist version. "
+            "Remove all clutter, laundry, decorative items, throw pillows, rugs, "
+            "excessive ornaments, and non-essential objects. If furniture is "
+            "overly ornate, simplify its appearance. Do not add any new furniture, "
+            f"objects, decorations, or elements that are not already present in the {room_label}. "
+            "Keep the same room layout, same walls, same windows, same structural "
+            "elements, same lighting. Only remove and simplify — never add."
+        )
+    else:
+        style_desc = STYLE_DESCRIPTIONS.get(style_label, "")
+        descriptor = f" — {style_desc}" if style_desc else ""
+        prompt = (
+            f"Redesign this {room_label} in a {style_label} style{descriptor}. "
+            "Keep the same camera angle, same room layout, same walls, same windows, "
+            "and same structural elements. You may change or add furniture, decor, "
+            "textiles, lighting fixtures, and accessories so the space clearly reflects "
+            f"the {style_label} aesthetic. Photorealistic."
+        )
 
     if extra_prompt:
         prompt += f" {extra_prompt}"
@@ -85,11 +105,14 @@ def build_prompt(room_type: str, style_name: str, extra_prompt: str = "") -> str
 
 def generate_image(input_image_path: Path, room_type: str, style_name: str, extra_prompt: str = "") -> str:
     """
-    Call OpenAI gpt-image-2 to transform a room image.
-    Returns raw base64-encoded PNG string.
+    Call OpenAI gpt-image-1.5 to transform a room image.
+
+    Passes `size="auto"` so GPT picks the output dimensions that best fit
+    the content — the frontend then center-crops the original input to
+    match whatever shape comes back.
     """
     prompt = build_prompt(room_type, style_name, extra_prompt)
-    print(f"OpenAI prompt: {prompt}")
+    print(f"OpenAI prompt (auto size): {prompt}")
 
     with open(input_image_path, "rb") as image_file:
         response = client.images.edit(
@@ -97,7 +120,7 @@ def generate_image(input_image_path: Path, room_type: str, style_name: str, extr
             image=image_file,
             prompt=prompt,
             n=1,
-            size="1024x1024",
+            size="auto",
         )
 
     return response.data[0].b64_json

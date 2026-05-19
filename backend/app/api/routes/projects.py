@@ -1,8 +1,9 @@
 from datetime import datetime
+from pathlib import Path
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import desc, func
 from sqlmodel import Session, select
 
@@ -26,6 +27,17 @@ from app.schemas.projects_schema import (
 )
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+# Custom-uploaded project thumbnails live under storage/thumbnails/ and are
+# served back as /storage/thumbnails/{project_id}.{ext} via the static mount
+# already configured in app.main.
+THUMBNAIL_DIR = (
+    Path(__file__).parent.parent.parent.parent / "storage" / "thumbnails"
+)
+THUMBNAIL_DIR.mkdir(parents=True, exist_ok=True)
+
+_ALLOWED_THUMB_EXTS = {"jpg", "jpeg", "png", "webp"}
+_MAX_THUMB_BYTES = 5 * 1024 * 1024  # 5 MB
 
 
 def _serialize_generation(t: Transformation) -> GenerationResponse:
@@ -68,8 +80,21 @@ def _serialize_summary(
         generation_count=generation_count,
         latest_output_image=latest_output,
         shared_style=shared_style,
-        thumbnail_transformation_id=p.thumbnail_transformation_id,
+        thumbnail_image_path=p.thumbnail_image_path,
     )
+
+
+def _resolve_project_thumbnail(db: Session, project: Project) -> Optional[str]:
+    """Custom upload wins; otherwise fall back to the most recent generation."""
+    if project.thumbnail_image_path:
+        return project.thumbnail_image_path
+    latest = db.exec(
+        select(Transformation)
+        .where(Transformation.project_id == project.project_id)
+        .order_by(desc(Transformation.created_at))
+        .limit(1)
+    ).first()
+    return _output_path(latest) if latest else None
 
 
 def _owned_project(
@@ -108,24 +133,7 @@ def list_projects(
         if isinstance(count, tuple):
             count = count[0]
 
-        # Prefer the user's chosen thumbnail; fall back to the most-recent
-        # generation if no override is set (or the override has been deleted).
-        thumb_path: Optional[str] = None
-        if project.thumbnail_transformation_id:
-            chosen = db.get(Transformation, project.thumbnail_transformation_id)
-            if chosen and chosen.project_id == project.project_id:
-                thumb_path = _output_path(chosen)
-
-        if thumb_path is None:
-            latest = db.exec(
-                select(Transformation)
-                .where(Transformation.project_id == project.project_id)
-                .order_by(desc(Transformation.created_at))
-                .limit(1)
-            ).first()
-            if latest:
-                thumb_path = _output_path(latest)
-        latest_path = thumb_path
+        latest_path = _resolve_project_thumbnail(db, project)
 
         distinct_styles = db.exec(
             select(Transformation.style_name)
@@ -178,7 +186,7 @@ def get_project(
         project_description=project.project_description,
         project_creation_time=project.project_creation_time,
         project_last_updated=project.project_last_updated,
-        thumbnail_transformation_id=project.thumbnail_transformation_id,
+        thumbnail_image_path=project.thumbnail_image_path,
         generations=[_serialize_generation(t) for t in generations],
         groups=[GroupResponse.model_validate(g) for g in groups],
     )
@@ -197,21 +205,6 @@ def update_project(
     if payload.project_description is not None:
         project.project_description = payload.project_description.strip() or None
 
-    # Only apply thumbnail changes when the field is explicitly included in
-    # the request body. Passing it as `null` clears the override; passing a
-    # UUID validates that the generation belongs to this project.
-    if "thumbnail_transformation_id" in payload.model_fields_set:
-        if payload.thumbnail_transformation_id is None:
-            project.thumbnail_transformation_id = None
-        else:
-            chosen = db.get(Transformation, payload.thumbnail_transformation_id)
-            if not chosen or chosen.project_id != project_id:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Thumbnail must reference a generation in this project",
-                )
-            project.thumbnail_transformation_id = payload.thumbnail_transformation_id
-
     project.project_last_updated = datetime.utcnow()
     db.add(project)
     db.commit()
@@ -225,24 +218,95 @@ def update_project(
     if isinstance(count, tuple):
         count = count[0]
 
-    # Resolve thumbnail path the same way list_projects does so the frontend
-    # can immediately reflect a change without a full refetch.
-    thumb_path: Optional[str] = None
-    if project.thumbnail_transformation_id:
-        chosen = db.get(Transformation, project.thumbnail_transformation_id)
-        if chosen and chosen.project_id == project_id:
-            thumb_path = _output_path(chosen)
-    if thumb_path is None:
-        latest = db.exec(
-            select(Transformation)
-            .where(Transformation.project_id == project_id)
-            .order_by(desc(Transformation.created_at))
-            .limit(1)
-        ).first()
-        if latest:
-            thumb_path = _output_path(latest)
+    return _serialize_summary(
+        project, int(count), _resolve_project_thumbnail(db, project)
+    )
 
-    return _serialize_summary(project, int(count), thumb_path)
+
+def _summary_for(db: Session, project: Project) -> ProjectSummary:
+    count = db.exec(
+        select(func.count()).select_from(Transformation).where(
+            Transformation.project_id == project.project_id
+        )
+    ).one()
+    if isinstance(count, tuple):
+        count = count[0]
+    return _serialize_summary(
+        project, int(count), _resolve_project_thumbnail(db, project)
+    )
+
+
+def _delete_existing_thumbnail_file(project: Project) -> None:
+    """Best-effort removal of the on-disk thumbnail file for a project."""
+    if not project.thumbnail_image_path:
+        return
+    # Stored as /storage/thumbnails/<file>; map back to a path under STORAGE_DIR.
+    prefix = "/storage/thumbnails/"
+    if not project.thumbnail_image_path.startswith(prefix):
+        return
+    filename = project.thumbnail_image_path[len(prefix):]
+    path = THUMBNAIL_DIR / filename
+    try:
+        if path.exists():
+            path.unlink()
+    except Exception as exc:
+        print(f"[thumbnail] failed to unlink {path}: {exc}")
+
+
+@router.post("/{project_id}/thumbnail", response_model=ProjectSummary)
+async def upload_project_thumbnail(
+    project_id: UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """Upload a custom thumbnail image for the project."""
+    project = _owned_project(project_id, db, user)
+
+    ext = (file.filename or "").rsplit(".", 1)[-1].lower() if file.filename else ""
+    if ext not in _ALLOWED_THUMB_EXTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type. Allowed: {sorted(_ALLOWED_THUMB_EXTS)}",
+        )
+
+    contents = await file.read()
+    if len(contents) > _MAX_THUMB_BYTES:
+        raise HTTPException(status_code=400, detail="Thumbnail must be under 5 MB")
+    if not contents:
+        raise HTTPException(status_code=400, detail="Empty file")
+
+    # Remove any prior thumbnail file before writing the new one.
+    _delete_existing_thumbnail_file(project)
+
+    filename = f"{project_id}.{ext}"
+    dest = THUMBNAIL_DIR / filename
+    dest.write_bytes(contents)
+
+    project.thumbnail_image_path = f"/storage/thumbnails/{filename}"
+    project.project_last_updated = datetime.utcnow()
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+
+    return _summary_for(db, project)
+
+
+@router.delete("/{project_id}/thumbnail", response_model=ProjectSummary)
+def clear_project_thumbnail(
+    project_id: UUID,
+    db: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """Remove the custom thumbnail; the project falls back to its latest generation."""
+    project = _owned_project(project_id, db, user)
+    _delete_existing_thumbnail_file(project)
+    project.thumbnail_image_path = None
+    project.project_last_updated = datetime.utcnow()
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+    return _summary_for(db, project)
 
 
 @router.delete("/{project_id}", status_code=200)
@@ -252,6 +316,7 @@ def delete_project(
     user: User = Depends(get_current_user),
 ):
     project = _owned_project(project_id, db, user)
+    _delete_existing_thumbnail_file(project)
 
     # Detach generations and groups instead of deleting them
     gens = db.exec(

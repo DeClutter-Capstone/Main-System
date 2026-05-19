@@ -36,11 +36,6 @@ class Transformation(SQLModel, table=True):
     file_key: Optional[str] = Field(default=None, index=True)
 
     input_image: Optional["InputImage"] = Relationship(back_populates="transformations")
-    # Pin the back-relationship to Transformation.project_id so SQLAlchemy
-    # doesn't try to use Project.thumbnail_transformation_id as the join.
-    project: Optional["Project"] = Relationship(
-        back_populates="transformations",
-        sa_relationship_kwargs={"foreign_keys": "[Transformation.project_id]"},
-    )
+    project: Optional["Project"] = Relationship(back_populates="transformations")
     group: Optional["Group"] = Relationship(back_populates="transformations")
     generated_images: List["GeneratedImage"] = Relationship(back_populates="transformation")

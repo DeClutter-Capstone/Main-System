@@ -13,9 +13,6 @@ class ProjectCreate(BaseModel):
 class ProjectUpdate(BaseModel):
     project_name: Optional[str] = None
     project_description: Optional[str] = None
-    # Pass an explicit None (via the request body) to clear the thumbnail
-    # override and fall back to "latest generation" behavior.
-    thumbnail_transformation_id: Optional[UUID] = None
 
 
 class ProjectSummary(BaseModel):
@@ -28,7 +25,9 @@ class ProjectSummary(BaseModel):
     generation_count: int
     latest_output_image: Optional[str] = None
     shared_style: Optional[str] = None  # populated when every generation shares one style
-    thumbnail_transformation_id: Optional[UUID] = None
+    # Path to a custom uploaded thumbnail, if the user uploaded one.
+    # null = the listing falls back to the latest generation's image.
+    thumbnail_image_path: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -82,7 +81,7 @@ class ProjectDetailResponse(BaseModel):
     project_description: Optional[str] = None
     project_creation_time: datetime
     project_last_updated: datetime
-    thumbnail_transformation_id: Optional[UUID] = None
+    thumbnail_image_path: Optional[str] = None
     generations: List[GenerationResponse]
     groups: List[GroupResponse]
 

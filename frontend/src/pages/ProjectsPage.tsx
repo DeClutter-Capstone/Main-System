@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import Layout from "../components/Layout";
 import {
   assignGeneration,
+  clearProjectThumbnail,
   createGroup as apiCreateGroup,
   deleteGeneration as apiDeleteGeneration,
   deleteGroup as apiDeleteGroup,
@@ -12,6 +13,7 @@ import {
   renameGroup as apiRenameGroup,
   updateGeneration,
   updateProject,
+  uploadProjectThumbnail,
   type GenerationDTO,
   type GroupDTO,
   type ProjectDetail,
@@ -24,7 +26,8 @@ interface Project {
   createdDate: string;
   updatedDate: string;
   thumbnail?: string;
-  thumbnailTransformationId?: string;
+  // Path to a user-uploaded thumbnail (null/undefined when using auto-fallback).
+  customThumbnail?: string;
 }
 
 interface Generation {
@@ -61,7 +64,7 @@ function detailToProject(d: ProjectDetail): Project {
     description: d.project_description ?? undefined,
     createdDate: formatDate(d.project_creation_time),
     updatedDate: formatDate(d.project_last_updated),
-    thumbnailTransformationId: d.thumbnail_transformation_id ?? undefined,
+    customThumbnail: d.thumbnail_image_path ?? undefined,
   };
 }
 
@@ -129,8 +132,14 @@ const ProjectsPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
-  // null = "Latest generation" (default behavior); a string = chosen generation id
-  const [editThumbnailId, setEditThumbnailId] = useState<string | null>(null);
+  // Thumbnail editing state for the modal:
+  //   pendingFile  → a newly-picked File ready to upload on save
+  //   removeCustom → user clicked "Use latest generation" to clear the existing upload
+  //   previewUrl   → object URL of the pending file, for the modal preview
+  const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
+  const [editThumbnailPreview, setEditThumbnailPreview] = useState<string | null>(null);
+  const [removeCustomThumbnail, setRemoveCustomThumbnail] = useState(false);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
   const [renamingGenId, setRenamingGenId] = useState<string | null>(null);
   const [genDraftName, setGenDraftName] = useState("");
@@ -238,27 +247,69 @@ const ProjectsPage: React.FC = () => {
     setDraftName("");
   };
 
+  const resetThumbnailEditState = () => {
+    if (editThumbnailPreview) URL.revokeObjectURL(editThumbnailPreview);
+    setEditThumbnailFile(null);
+    setEditThumbnailPreview(null);
+    setRemoveCustomThumbnail(false);
+    if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
+  };
+
   const openEditModal = () => {
     if (!project) return;
     setEditName(project.title);
     setEditDescription(project.description ?? "");
-    setEditThumbnailId(project.thumbnailTransformationId ?? null);
+    resetThumbnailEditState();
     setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    resetThumbnailEditState();
+  };
+
+  const handleThumbnailFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5 MB");
+      return;
+    }
+    if (editThumbnailPreview) URL.revokeObjectURL(editThumbnailPreview);
+    setEditThumbnailFile(file);
+    setEditThumbnailPreview(URL.createObjectURL(file));
+    setRemoveCustomThumbnail(false);
+  };
+
+  const handleRemoveThumbnail = () => {
+    if (editThumbnailPreview) URL.revokeObjectURL(editThumbnailPreview);
+    setEditThumbnailFile(null);
+    setEditThumbnailPreview(null);
+    setRemoveCustomThumbnail(true);
+    if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
   };
 
   const saveEditModal = async () => {
     if (!project || !editName.trim()) return;
     try {
-      const currentThumb = project.thumbnailTransformationId ?? null;
-      // Only include the thumbnail field when the user actually changed it
-      // so the backend (which keys off model_fields_set) knows to update.
-      const thumbChanged = editThumbnailId !== currentThumb;
       await updateProject(project.id, {
         project_name: editName.trim(),
         project_description: editDescription.trim() || undefined,
-        ...(thumbChanged ? { thumbnail_transformation_id: editThumbnailId } : {}),
       });
-      setShowEditModal(false);
+      // Thumbnail changes go through dedicated endpoints (multipart upload
+      // or DELETE), not the JSON update route.
+      if (editThumbnailFile) {
+        await uploadProjectThumbnail(project.id, editThumbnailFile);
+      } else if (removeCustomThumbnail && project.customThumbnail) {
+        await clearProjectThumbnail(project.id);
+      }
+      closeEditModal();
       await refetch();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save project");
@@ -846,53 +897,75 @@ const ProjectsPage: React.FC = () => {
               />
             </div>
 
-            {generations.length > 0 && (
-              <div className="pp-modal__field">
-                <label className="pp-modal__label">
-                  Thumbnail{" "}
-                  <span style={{ fontWeight: 400, color: "var(--color-text-tertiary)" }}>
-                    (defaults to the latest generation)
-                  </span>
-                </label>
-                <div className="pp-thumb-grid">
-                  <button
-                    type="button"
-                    className={`pp-thumb pp-thumb--latest ${editThumbnailId === null ? "pp-thumb--selected" : ""}`}
-                    onClick={() => setEditThumbnailId(null)}
-                    aria-pressed={editThumbnailId === null}
-                  >
-                    <div className="pp-thumb__inner pp-thumb__inner--latest">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="12 6 12 12 16 14" />
-                        <circle cx="12" cy="12" r="9" />
-                      </svg>
-                      <span>Latest</span>
+            {(() => {
+              // Decide which image to show in the preview:
+              //  1. The pending pick (file the user just chose)
+              //  2. Cleared → render the "Latest" placeholder
+              //  3. The existing custom upload
+              //  4. Default → "Latest" placeholder
+              const showsCustom =
+                editThumbnailPreview != null ||
+                (!removeCustomThumbnail && project?.customThumbnail);
+              const previewSrc =
+                editThumbnailPreview ??
+                (removeCustomThumbnail ? undefined : project?.customThumbnail);
+              return (
+                <div className="pp-modal__field">
+                  <label className="pp-modal__label">
+                    Thumbnail{" "}
+                    <span style={{ fontWeight: 400, color: "var(--color-text-tertiary)" }}>
+                      (defaults to the latest generation)
+                    </span>
+                  </label>
+                  <div className="pp-thumb-upload">
+                    <div className="pp-thumb-upload__preview" aria-hidden="true">
+                      {showsCustom && previewSrc ? (
+                        <img src={previewSrc} alt="Thumbnail preview" />
+                      ) : (
+                        <div className="pp-thumb-upload__placeholder">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="12 6 12 12 16 14" />
+                            <circle cx="12" cy="12" r="9" />
+                          </svg>
+                          <span>Latest</span>
+                        </div>
+                      )}
                     </div>
-                  </button>
-                  {sortedGenerations.map((g) => {
-                    const selected = editThumbnailId === g.id;
-                    return (
+                    <div className="pp-thumb-upload__controls">
+                      <input
+                        ref={thumbnailInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleThumbnailFileChange}
+                        style={{ display: "none" }}
+                      />
                       <button
-                        key={g.id}
                         type="button"
-                        className={`pp-thumb ${selected ? "pp-thumb--selected" : ""}`}
-                        onClick={() => setEditThumbnailId(g.id)}
-                        aria-pressed={selected}
-                        title={g.displayName ?? g.style}
+                        className="pp-btn pp-btn--outline pp-btn--small"
+                        onClick={() => thumbnailInputRef.current?.click()}
                       >
-                        <img src={g.image} alt={g.displayName ?? g.style} />
-                        {selected && (
-                          <span className="pp-thumb__badge" aria-hidden="true">✓</span>
-                        )}
+                        {showsCustom ? "Replace image" : "Upload image"}
                       </button>
-                    );
-                  })}
+                      {showsCustom && (
+                        <button
+                          type="button"
+                          className="pp-btn pp-btn--danger pp-btn--small"
+                          onClick={handleRemoveThumbnail}
+                        >
+                          Use latest generation
+                        </button>
+                      )}
+                      <p className="pp-thumb-upload__hint">
+                        PNG, JPG, or WebP. Up to 5&nbsp;MB.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="pp-modal__actions">
-              <button className="pp-btn pp-btn--outline" onClick={() => setShowEditModal(false)}>
+              <button className="pp-btn pp-btn--outline" onClick={closeEditModal}>
                 Cancel
               </button>
               <button
@@ -1661,77 +1734,58 @@ const baseStyles = `
     margin-top: 4px;
   }
 
-  /* Thumbnail picker (Edit Project modal) */
-  .pp-thumb-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-    gap: 8px;
-    max-height: 240px;
-    overflow-y: auto;
-    padding: 2px;
+  /* Thumbnail upload (Edit Project modal) */
+  .pp-thumb-upload {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
   }
-  .pp-thumb {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    padding: 0;
-    border: 2px solid transparent;
-    border-radius: 10px;
+  .pp-thumb-upload__preview {
+    flex-shrink: 0;
+    width: 96px;
+    height: 96px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border-subtle);
     background-color: var(--color-bg-elevated);
-    cursor: pointer;
     overflow: hidden;
-    transition: border-color 0.15s ease, transform 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .pp-thumb:hover {
-    transform: translateY(-1px);
-    border-color: var(--color-border-subtle);
-  }
-  .pp-thumb img {
+  .pp-thumb-upload__preview img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
   }
-  .pp-thumb--selected {
-    border-color: var(--color-brand-primary);
-    box-shadow: 0 0 0 3px var(--color-focus-ring);
-  }
-  .pp-thumb__badge {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 22px;
-    height: 22px;
-    border-radius: 999px;
-    background-color: var(--color-brand-primary);
-    color: var(--color-text-inverse);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  }
-  .pp-thumb__inner--latest {
-    width: 100%;
-    height: 100%;
+  .pp-thumb-upload__placeholder {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 4px;
     color: var(--color-text-secondary);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
   }
-  .pp-thumb__inner--latest svg {
+  .pp-thumb-upload__placeholder svg {
     width: 22px;
     height: 22px;
   }
-  .pp-thumb--latest.pp-thumb--selected .pp-thumb__inner--latest {
-    color: var(--color-brand-primary);
+  .pp-thumb-upload__controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
+  }
+  .pp-thumb-upload__hint {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    line-height: 1.4;
   }
 `;
 

@@ -12,7 +12,7 @@ export interface ProjectSummary {
   generation_count: number;
   latest_output_image: string | null;
   shared_style: string | null;
-  thumbnail_transformation_id: string | null;
+  thumbnail_image_path: string | null;
 }
 
 export interface GenerationDTO {
@@ -41,7 +41,7 @@ export interface ProjectDetail {
   project_description: string | null;
   project_creation_time: string;
   project_last_updated: string;
-  thumbnail_transformation_id: string | null;
+  thumbnail_image_path: string | null;
   generations: GenerationDTO[];
   groups: GroupDTO[];
 }
@@ -74,13 +74,18 @@ async function jsonOrThrow<T>(res: Response, fallbackMsg: string): Promise<T> {
 
 // ─── Projects ─────────────────────────────────────────────────────────────
 
+function normalizeSummary(p: ProjectSummary): ProjectSummary {
+  return {
+    ...p,
+    latest_output_image: absolute(p.latest_output_image),
+    thumbnail_image_path: absolute(p.thumbnail_image_path),
+  };
+}
+
 export async function listProjects(): Promise<ProjectSummary[]> {
   const res = await authedFetch(`${BACKEND_BASE}/api/projects/`);
   const data = await jsonOrThrow<ProjectSummary[]>(res, "Failed to load projects");
-  return data.map((p) => ({
-    ...p,
-    latest_output_image: absolute(p.latest_output_image),
-  }));
+  return data.map(normalizeSummary);
 }
 
 export async function createProject(payload: {
@@ -93,7 +98,7 @@ export async function createProject(payload: {
     body: JSON.stringify(payload),
   });
   const data = await jsonOrThrow<ProjectSummary>(res, "Failed to create project");
-  return { ...data, latest_output_image: absolute(data.latest_output_image) };
+  return normalizeSummary(data);
 }
 
 export async function getProject(projectId: string): Promise<ProjectDetail> {
@@ -101,6 +106,7 @@ export async function getProject(projectId: string): Promise<ProjectDetail> {
   const data = await jsonOrThrow<ProjectDetail>(res, "Failed to load project");
   return {
     ...data,
+    thumbnail_image_path: absolute(data.thumbnail_image_path),
     generations: data.generations.map((g) => ({
       ...g,
       output_image_path: absolute(g.output_image_path),
@@ -114,7 +120,6 @@ export async function updateProject(
   payload: {
     project_name?: string;
     project_description?: string;
-    thumbnail_transformation_id?: string | null;
   },
 ): Promise<ProjectSummary> {
   const res = await authedFetch(`${BACKEND_BASE}/api/projects/${projectId}`, {
@@ -123,7 +128,32 @@ export async function updateProject(
     body: JSON.stringify(payload),
   });
   const data = await jsonOrThrow<ProjectSummary>(res, "Failed to update project");
-  return { ...data, latest_output_image: absolute(data.latest_output_image) };
+  return normalizeSummary(data);
+}
+
+export async function uploadProjectThumbnail(
+  projectId: string,
+  file: File,
+): Promise<ProjectSummary> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await authedFetch(
+    `${BACKEND_BASE}/api/projects/${projectId}/thumbnail`,
+    { method: "POST", body: form },
+  );
+  const data = await jsonOrThrow<ProjectSummary>(res, "Failed to upload thumbnail");
+  return normalizeSummary(data);
+}
+
+export async function clearProjectThumbnail(
+  projectId: string,
+): Promise<ProjectSummary> {
+  const res = await authedFetch(
+    `${BACKEND_BASE}/api/projects/${projectId}/thumbnail`,
+    { method: "DELETE" },
+  );
+  const data = await jsonOrThrow<ProjectSummary>(res, "Failed to clear thumbnail");
+  return normalizeSummary(data);
 }
 
 export async function updateGeneration(

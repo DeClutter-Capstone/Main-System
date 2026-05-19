@@ -87,11 +87,16 @@ _MIGRATIONS = [
     ADD COLUMN IF NOT EXISTS display_name TEXT
     """,
 
-    # project: optional thumbnail override (FK to a transformation in the project)
+    # project: user-uploaded thumbnail image path (replaces the older
+    # thumbnail_transformation_id FK approach). Idempotent: drops the old
+    # column if present, then ensures the new TEXT column exists.
     """
     ALTER TABLE project
-    ADD COLUMN IF NOT EXISTS thumbnail_transformation_id UUID
-    REFERENCES transformation(transformation_id) ON DELETE SET NULL
+    DROP COLUMN IF EXISTS thumbnail_transformation_id
+    """,
+    """
+    ALTER TABLE project
+    ADD COLUMN IF NOT EXISTS thumbnail_image_path TEXT
     """,
 ]
 

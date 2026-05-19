@@ -3,6 +3,7 @@ import React from "react";
 interface Project {
   id: string;
   title: string;
+  description?: string;
   updatedDate: string;
   thumbnail?: string;
 }
@@ -21,8 +22,10 @@ interface ProjectCardProps {
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, generations, onClick }) => {
+  // Prefer the explicit thumbnail (already resolved by the backend) and only
+  // fall back to the latest generation's image if there isn't one.
   const mostRecent = generations[0];
-  const thumbnail = mostRecent?.image ?? project.thumbnail;
+  const thumbnail = project.thumbnail ?? mostRecent?.image;
   const count = generations.length;
 
   const uniqueStyles = Array.from(new Set(generations.map((g) => g.style).filter(Boolean)));
@@ -62,6 +65,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, generations, onClick
 
       <div className="project-card__body">
         <h3 className="project-card__title">{project.title}</h3>
+        {project.description && (
+          <p className="project-card__description">{project.description}</p>
+        )}
         <div className="project-card__meta">
           <span>Updated {project.updatedDate}</span>
           {sharedStyle && <span className="project-card__style">{sharedStyle}</span>}
@@ -139,6 +145,16 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, generations, onClick
           font-weight: 600;
           color: var(--color-text-primary);
           line-height: 1.3;
+          margin: 0;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .project-card__description {
+          font-size: 13px;
+          line-height: 1.45;
+          color: var(--color-text-secondary);
           margin: 0;
           display: -webkit-box;
           -webkit-line-clamp: 2;

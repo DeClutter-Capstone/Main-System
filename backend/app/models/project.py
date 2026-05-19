@@ -17,6 +17,20 @@ class Project(SQLModel, table=True):
     project_creation_time: datetime = Field(default_factory=datetime.utcnow)
     project_last_updated: datetime = Field(default_factory=datetime.utcnow)
 
+    # When set, points at one of this project's transformations and overrides
+    # the default "latest generation" thumbnail behavior. Cleared by the DB
+    # (ON DELETE SET NULL) if the referenced transformation is removed.
+    thumbnail_transformation_id: Optional[UUID] = Field(
+        default=None,
+        foreign_key="transformation.transformation_id",
+    )
+
     input_images: List["InputImage"] = Relationship(back_populates="project")
-    transformations: List["Transformation"] = Relationship(back_populates="project")
+    # Disambiguate: Project ↔ Transformation has TWO FK paths now
+    # (Transformation.project_id and Project.thumbnail_transformation_id).
+    # Pin this relationship to the "owning" FK on Transformation.
+    transformations: List["Transformation"] = Relationship(
+        back_populates="project",
+        sa_relationship_kwargs={"foreign_keys": "[Transformation.project_id]"},
+    )
     groups: List["Group"] = Relationship(back_populates="project")

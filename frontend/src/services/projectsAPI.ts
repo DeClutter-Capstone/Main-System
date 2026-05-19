@@ -12,6 +12,7 @@ export interface ProjectSummary {
   generation_count: number;
   latest_output_image: string | null;
   shared_style: string | null;
+  thumbnail_transformation_id: string | null;
 }
 
 export interface GenerationDTO {
@@ -20,6 +21,8 @@ export interface GenerationDTO {
   group_id: string | null;
   room_type: string;
   style_name: string;
+  display_name: string | null;
+  file_key: string | null;
   prompt: string | null;
   output_image_path: string | null;
   input_image_path: string | null;
@@ -38,6 +41,7 @@ export interface ProjectDetail {
   project_description: string | null;
   project_creation_time: string;
   project_last_updated: string;
+  thumbnail_transformation_id: string | null;
   generations: GenerationDTO[];
   groups: GroupDTO[];
 }
@@ -107,7 +111,11 @@ export async function getProject(projectId: string): Promise<ProjectDetail> {
 
 export async function updateProject(
   projectId: string,
-  payload: { project_name?: string; project_description?: string },
+  payload: {
+    project_name?: string;
+    project_description?: string;
+    thumbnail_transformation_id?: string | null;
+  },
 ): Promise<ProjectSummary> {
   const res = await authedFetch(`${BACKEND_BASE}/api/projects/${projectId}`, {
     method: "PUT",
@@ -116,6 +124,26 @@ export async function updateProject(
   });
   const data = await jsonOrThrow<ProjectSummary>(res, "Failed to update project");
   return { ...data, latest_output_image: absolute(data.latest_output_image) };
+}
+
+export async function updateGeneration(
+  generationId: string,
+  payload: { display_name?: string | null },
+): Promise<GenerationDTO> {
+  const res = await authedFetch(
+    `${BACKEND_BASE}/api/generations/${generationId}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+  const data = await jsonOrThrow<GenerationDTO>(res, "Failed to rename generation");
+  return {
+    ...data,
+    output_image_path: absolute(data.output_image_path),
+    input_image_path: absolute(data.input_image_path),
+  };
 }
 
 export async function deleteProject(projectId: string): Promise<void> {

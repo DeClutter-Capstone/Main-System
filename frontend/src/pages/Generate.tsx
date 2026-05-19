@@ -184,9 +184,10 @@ function Generate() {
   ];
 
   const stylesHiddenByRoom: Record<string, string[]> = {
-    Kitchen: ["Bohemian"],
-    Bathroom: ["Industrial", "Bohemian", "Rustic"],
-    Office: ["Bohemian", "Rustic"],
+    Bedroom: ["Spa"],
+    "Living Room": ["Spa"],
+    Kitchen: ["Bohemian", "Spa"],
+    Bathroom: ["Bohemian", "Rustic"],
   };
 
   const isStyleVisible = (styleId: string, room: string): boolean => {
@@ -504,7 +505,6 @@ function Generate() {
               <option value="Living Room">Living Room</option>
               <option value="Kitchen">Kitchen</option>
               <option value="Bathroom">Bathroom</option>
-              <option value="Office">Office</option>
               <option value="Other">Other</option>
             </select>
             {roomType === "Other" && (
@@ -756,13 +756,28 @@ function Generate() {
             <button
               style={styles.downloadButton}
               className="generate-btn"
-              onClick={() => {
-                const link = document.createElement("a");
-                link.href = generatedImage;
-                link.download = `declutter-${selectedStyle.toLowerCase()}-${Date.now()}.png`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+              onClick={async () => {
+                try {
+                  const res = await fetch(generatedImage, {
+                    mode: "cors",
+                    cache: "no-store",
+                  });
+                  if (!res.ok)
+                    throw new Error(`Fetch failed: ${res.status}`);
+                  const blob = await res.blob();
+                  const ext = blob.type.split("/")[1] || "png";
+                  const blobUrl = URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.href = blobUrl;
+                  link.download = `declutter-${selectedStyle.toLowerCase()}-${Date.now()}.${ext}`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(blobUrl);
+                } catch (err) {
+                  console.error("Download error:", err);
+                  toast.error("Could not download image");
+                }
               }}
             >
               Download image

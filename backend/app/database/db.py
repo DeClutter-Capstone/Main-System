@@ -80,6 +80,19 @@ _MIGRATIONS = [
     ALTER TABLE transformation
     ALTER COLUMN style_name TYPE TEXT USING style_name::text
     """,
+
+    # transformation: user-chosen display name
+    """
+    ALTER TABLE transformation
+    ADD COLUMN IF NOT EXISTS display_name TEXT
+    """,
+
+    # project: optional thumbnail override (FK to a transformation in the project)
+    """
+    ALTER TABLE project
+    ADD COLUMN IF NOT EXISTS thumbnail_transformation_id UUID
+    REFERENCES transformation(transformation_id) ON DELETE SET NULL
+    """,
 ]
 
 

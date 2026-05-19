@@ -10,6 +10,7 @@ import {
   deleteProject as apiDeleteProject,
   getProject,
   renameGroup as apiRenameGroup,
+  updateGeneration,
   updateProject,
   type GenerationDTO,
   type GroupDTO,
@@ -23,6 +24,7 @@ interface Project {
   createdDate: string;
   updatedDate: string;
   thumbnail?: string;
+  thumbnailTransformationId?: string;
 }
 
 interface Generation {
@@ -30,6 +32,8 @@ interface Generation {
   image: string;
   originalImage?: string;
   style: string;
+  displayName?: string;
+  fileKey?: string;
   roomType?: string;
   date: string;
   groupId?: string;
@@ -57,6 +61,7 @@ function detailToProject(d: ProjectDetail): Project {
     description: d.project_description ?? undefined,
     createdDate: formatDate(d.project_creation_time),
     updatedDate: formatDate(d.project_last_updated),
+    thumbnailTransformationId: d.thumbnail_transformation_id ?? undefined,
   };
 }
 
@@ -66,32 +71,46 @@ function dtoToGeneration(g: GenerationDTO): Generation {
     image: g.output_image_path ?? "",
     originalImage: g.input_image_path ?? undefined,
     style: g.style_name,
+    displayName: g.display_name ?? undefined,
+    fileKey: g.file_key ?? undefined,
     roomType: g.room_type,
     date: g.created_at,
     groupId: g.group_id ?? undefined,
   };
 }
 
+function autoName(gen: Generation): string {
+  // Fallback when no custom display_name: same auto-name History uses
+  // (e.g. "industrial_bedroom_001"), and finally the style name if even
+  // that's missing on legacy rows.
+  return gen.fileKey ?? gen.style;
+}
+
 function dtoToGroup(g: GroupDTO): Group {
   return { id: g.group_id, name: g.group_name };
 }
 
-async function downloadImage(url: string, filename: string) {
-  try {
-    const resp = await fetch(url, { mode: "cors" });
-    if (!resp.ok) throw new Error("download failed");
-    const blob = await resp.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = objectUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(objectUrl);
-  } catch {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
+function sanitizeFilename(value: string): string {
+  return value.replace(/[^a-z0-9-_]+/gi, "_").replace(/^_+|_+$/g, "");
+}
+
+async function downloadImage(url: string, baseName: string) {
+  // `cache: "no-store"` forces a fresh CORS request so we don't get a
+  // previously-cached opaque <img> response (which would have no CORS
+  // headers and silently fail the .blob() call for some images).
+  const res = await fetch(url, { mode: "cors", cache: "no-store" });
+  if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+  const blob = await res.blob();
+  const ext = blob.type.split("/")[1] || "png";
+  const safe = sanitizeFilename(baseName) || "redesign";
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = `${safe}.${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(objectUrl);
 }
 
 const ProjectsPage: React.FC = () => {
@@ -110,6 +129,12 @@ const ProjectsPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  // null = "Latest generation" (default behavior); a string = chosen generation id
+  const [editThumbnailId, setEditThumbnailId] = useState<string | null>(null);
+
+  const [renamingGenId, setRenamingGenId] = useState<string | null>(null);
+  const [genDraftName, setGenDraftName] = useState("");
+  const genNameInputRef = useRef<HTMLInputElement>(null);
 
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
@@ -155,6 +180,14 @@ const ProjectsPage: React.FC = () => {
       nameInputRef.current.select();
     }
   }, [isEditingName]);
+
+  // Focus the generation rename input when it appears
+  useEffect(() => {
+    if (renamingGenId && genNameInputRef.current) {
+      genNameInputRef.current.focus();
+      genNameInputRef.current.select();
+    }
+  }, [renamingGenId]);
 
   const sortedGenerations = useMemo(
     () =>
@@ -209,15 +242,21 @@ const ProjectsPage: React.FC = () => {
     if (!project) return;
     setEditName(project.title);
     setEditDescription(project.description ?? "");
+    setEditThumbnailId(project.thumbnailTransformationId ?? null);
     setShowEditModal(true);
   };
 
   const saveEditModal = async () => {
     if (!project || !editName.trim()) return;
     try {
+      const currentThumb = project.thumbnailTransformationId ?? null;
+      // Only include the thumbnail field when the user actually changed it
+      // so the backend (which keys off model_fields_set) knows to update.
+      const thumbChanged = editThumbnailId !== currentThumb;
       await updateProject(project.id, {
         project_name: editName.trim(),
         project_description: editDescription.trim() || undefined,
+        ...(thumbChanged ? { thumbnail_transformation_id: editThumbnailId } : {}),
       });
       setShowEditModal(false);
       await refetch();
@@ -242,6 +281,48 @@ const ProjectsPage: React.FC = () => {
   };
 
   // ─── Generation actions ──────────────────────────────────
+  const startGenRename = (gen: Generation) => {
+    setRenamingGenId(gen.id);
+    // Pre-fill with the current name (custom or auto) so the user can tweak
+    // rather than re-type from scratch.
+    setGenDraftName(gen.displayName ?? autoName(gen));
+    setCardMenuOpenFor(null);
+  };
+
+  const cancelGenRename = () => {
+    setRenamingGenId(null);
+    setGenDraftName("");
+  };
+
+  const commitGenRename = async () => {
+    if (!renamingGenId) return;
+    const trimmed = genDraftName.trim();
+    const target = generations.find((g) => g.id === renamingGenId);
+    if (!target) {
+      cancelGenRename();
+      return;
+    }
+    const next = trimmed || undefined;
+    if (next === (target.displayName ?? undefined)) {
+      cancelGenRename();
+      return;
+    }
+    const previous = generations;
+    setGenerations(
+      generations.map((g) =>
+        g.id === renamingGenId ? { ...g, displayName: next } : g,
+      ),
+    );
+    setRenamingGenId(null);
+    setGenDraftName("");
+    try {
+      await updateGeneration(target.id, { display_name: trimmed || null });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to rename generation");
+      setGenerations(previous);
+    }
+  };
+
   const handleRegenerate = (gen: Generation) => {
     navigate("/generate", {
       state: {
@@ -267,9 +348,22 @@ const ProjectsPage: React.FC = () => {
     }
   };
 
-  const handleDownloadGeneration = (gen: Generation) => {
-    const safeStyle = (gen.style || "redesign").toLowerCase().replace(/\s+/g, "-");
-    downloadImage(gen.image, `${safeStyle}-${gen.id}.png`);
+  const handleDownloadGeneration = async (gen: Generation) => {
+    if (!gen.image) {
+      toast.error("No image to download");
+      return;
+    }
+    // Prefer the custom name, then the History-style auto-name, then the style.
+    const baseName =
+      gen.displayName?.trim() ||
+      gen.fileKey ||
+      `${gen.style.toLowerCase()}-${gen.id.slice(0, 8)}`;
+    try {
+      await downloadImage(gen.image, baseName);
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error("Could not download image");
+    }
   };
 
   const handleMoveToGroup = async (genId: string, groupId: string | undefined) => {
@@ -347,10 +441,12 @@ const ProjectsPage: React.FC = () => {
   // ─── Render helpers ──────────────────────────────────────
   const renderGenerationCard = (gen: Generation) => {
     const menuOpen = cardMenuOpenFor === gen.id;
+    const isRenaming = renamingGenId === gen.id;
+    const displayLabel = gen.displayName ?? autoName(gen);
     return (
       <article key={gen.id} className="gen-card">
         <div className="gen-card__image">
-          <img src={gen.image} alt={`${gen.style} redesign`} />
+          <img src={gen.image} alt={`${displayLabel} redesign`} />
           <div className="gen-card__menu" data-menu-root>
             <button
               className="gen-card__menu-trigger"
@@ -370,6 +466,13 @@ const ProjectsPage: React.FC = () => {
             </button>
             {menuOpen && (
               <div className="gen-card__menu-list" role="menu">
+                <button
+                  className="gen-card__menu-item"
+                  onClick={() => startGenRename(gen)}
+                >
+                  Rename
+                </button>
+                <div className="gen-card__menu-divider" />
                 <div className="gen-card__menu-label">Move to group</div>
                 {groups.length === 0 && (
                   <div className="gen-card__menu-empty">No groups yet</div>
@@ -408,6 +511,37 @@ const ProjectsPage: React.FC = () => {
           </div>
         </div>
         <div className="gen-card__body">
+          {isRenaming ? (
+            <input
+              ref={genNameInputRef}
+              className="gen-card__name-input"
+              value={genDraftName}
+              onChange={(e) => setGenDraftName(e.target.value)}
+              onBlur={commitGenRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitGenRename();
+                if (e.key === "Escape") cancelGenRename();
+              }}
+              placeholder="Name this generation…"
+              aria-label="Generation name"
+            />
+          ) : (
+            <button
+              className="gen-card__name"
+              onClick={() => startGenRename(gen)}
+              title="Click to rename"
+            >
+              <span
+                className={`gen-card__name-text${gen.displayName ? "" : " gen-card__name-text--auto"}`}
+              >
+                {displayLabel}
+              </span>
+              <svg className="gen-card__name-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </button>
+          )}
           <div className="gen-card__meta">
             <span className="gen-card__style">{gen.style}</span>
             <span className="gen-card__date">{gen.date}</span>
@@ -711,6 +845,52 @@ const ProjectsPage: React.FC = () => {
                 onChange={(e) => setEditDescription(e.target.value)}
               />
             </div>
+
+            {generations.length > 0 && (
+              <div className="pp-modal__field">
+                <label className="pp-modal__label">
+                  Thumbnail{" "}
+                  <span style={{ fontWeight: 400, color: "var(--color-text-tertiary)" }}>
+                    (defaults to the latest generation)
+                  </span>
+                </label>
+                <div className="pp-thumb-grid">
+                  <button
+                    type="button"
+                    className={`pp-thumb pp-thumb--latest ${editThumbnailId === null ? "pp-thumb--selected" : ""}`}
+                    onClick={() => setEditThumbnailId(null)}
+                    aria-pressed={editThumbnailId === null}
+                  >
+                    <div className="pp-thumb__inner pp-thumb__inner--latest">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="12 6 12 12 16 14" />
+                        <circle cx="12" cy="12" r="9" />
+                      </svg>
+                      <span>Latest</span>
+                    </div>
+                  </button>
+                  {sortedGenerations.map((g) => {
+                    const selected = editThumbnailId === g.id;
+                    return (
+                      <button
+                        key={g.id}
+                        type="button"
+                        className={`pp-thumb ${selected ? "pp-thumb--selected" : ""}`}
+                        onClick={() => setEditThumbnailId(g.id)}
+                        aria-pressed={selected}
+                        title={g.displayName ?? g.style}
+                      >
+                        <img src={g.image} alt={g.displayName ?? g.style} />
+                        {selected && (
+                          <span className="pp-thumb__badge" aria-hidden="true">✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="pp-modal__actions">
               <button className="pp-btn pp-btn--outline" onClick={() => setShowEditModal(false)}>
                 Cancel
@@ -1114,6 +1294,65 @@ const baseStyles = `
     flex-direction: column;
     gap: 10px;
   }
+  .gen-card__name {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 6px;
+    margin: -4px -6px 0;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    text-align: left;
+    cursor: text;
+    transition: background-color 0.15s ease;
+    min-width: 0;
+  }
+  .gen-card__name:hover {
+    background-color: var(--color-bg-elevated);
+  }
+  .gen-card__name:hover .gen-card__name-pencil {
+    opacity: 1;
+  }
+  .gen-card__name-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .gen-card__name-text--auto {
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+  }
+  .gen-card__name-pencil {
+    width: 13px;
+    height: 13px;
+    color: var(--color-text-tertiary);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    flex-shrink: 0;
+  }
+  .gen-card__name-input {
+    width: 100%;
+    padding: 6px 8px;
+    margin: -6px -8px 0;
+    border: 1px solid var(--color-brand-primary);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-surface);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+  }
   .gen-card__meta {
     display: flex;
     align-items: center;
@@ -1420,6 +1659,79 @@ const baseStyles = `
     justify-content: flex-end;
     gap: 10px;
     margin-top: 4px;
+  }
+
+  /* Thumbnail picker (Edit Project modal) */
+  .pp-thumb-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 2px;
+  }
+  .pp-thumb {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    background-color: var(--color-bg-elevated);
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .pp-thumb:hover {
+    transform: translateY(-1px);
+    border-color: var(--color-border-subtle);
+  }
+  .pp-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .pp-thumb--selected {
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+  }
+  .pp-thumb__badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background-color: var(--color-brand-primary);
+    color: var(--color-text-inverse);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+  .pp-thumb__inner--latest {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .pp-thumb__inner--latest svg {
+    width: 22px;
+    height: 22px;
+  }
+  .pp-thumb--latest.pp-thumb--selected .pp-thumb__inner--latest {
+    color: var(--color-brand-primary);
   }
 `;
 

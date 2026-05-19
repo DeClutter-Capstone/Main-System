@@ -10,7 +10,11 @@ from app.models.group import Group
 from app.models.project import Project
 from app.models.transformation import Transformation
 from app.models.user import User
-from app.schemas.projects_schema import AssignGenerationRequest, GenerationResponse
+from app.schemas.projects_schema import (
+    AssignGenerationRequest,
+    GenerationResponse,
+    GenerationUpdate,
+)
 
 
 router = APIRouter(prefix="/generations", tags=["generations"])
@@ -27,6 +31,8 @@ def _serialize(t: Transformation) -> GenerationResponse:
         group_id=t.group_id,
         room_type=t.room_type,
         style_name=t.style_name,
+        display_name=t.display_name,
+        file_key=t.file_key,
         prompt=t.prompt,
         output_image_path=t.output_image_path
             or (f"/storage/output/{t.file_key}.png" if t.file_key else None),
@@ -34,6 +40,31 @@ def _serialize(t: Transformation) -> GenerationResponse:
             or (f"/storage/input/{t.file_key}.png" if t.file_key else None),
         created_at=t.created_at,
     )
+
+
+@router.put("/{generation_id}", response_model=GenerationResponse)
+def update_generation(
+    generation_id: UUID,
+    payload: GenerationUpdate,
+    db: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """Update mutable fields on a generation (currently the display name)."""
+    gen = db.get(Transformation, generation_id)
+    if not gen or (gen.user_id and gen.user_id != user.user_id):
+        raise HTTPException(status_code=404, detail="Generation not found")
+
+    if "display_name" in payload.model_fields_set:
+        if payload.display_name is None:
+            gen.display_name = None
+        else:
+            trimmed = payload.display_name.strip()
+            gen.display_name = trimmed or None
+
+    db.add(gen)
+    db.commit()
+    db.refresh(gen)
+    return _serialize(gen)
 
 
 @router.put("/{generation_id}/assign", response_model=GenerationResponse)

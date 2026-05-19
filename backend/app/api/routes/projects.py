@@ -35,12 +35,21 @@ def _serialize_generation(t: Transformation) -> GenerationResponse:
         group_id=t.group_id,
         room_type=t.room_type,
         style_name=t.style_name,
+        display_name=t.display_name,
+        file_key=t.file_key,
         prompt=t.prompt,
         output_image_path=t.output_image_path
             or (f"/storage/output/{t.file_key}.png" if t.file_key else None),
         input_image_path=t.input_image_path
             or (f"/storage/input/{t.file_key}.png" if t.file_key else None),
         created_at=t.created_at,
+    )
+
+
+def _output_path(t: Transformation) -> Optional[str]:
+    return (
+        t.output_image_path
+        or (f"/storage/output/{t.file_key}.png" if t.file_key else None)
     )
 
 
@@ -59,6 +68,7 @@ def _serialize_summary(
         generation_count=generation_count,
         latest_output_image=latest_output,
         shared_style=shared_style,
+        thumbnail_transformation_id=p.thumbnail_transformation_id,
     )
 
 
@@ -98,18 +108,24 @@ def list_projects(
         if isinstance(count, tuple):
             count = count[0]
 
-        latest = db.exec(
-            select(Transformation)
-            .where(Transformation.project_id == project.project_id)
-            .order_by(desc(Transformation.created_at))
-            .limit(1)
-        ).first()
-        latest_path = None
-        if latest:
-            latest_path = (
-                latest.output_image_path
-                or (f"/storage/output/{latest.file_key}.png" if latest.file_key else None)
-            )
+        # Prefer the user's chosen thumbnail; fall back to the most-recent
+        # generation if no override is set (or the override has been deleted).
+        thumb_path: Optional[str] = None
+        if project.thumbnail_transformation_id:
+            chosen = db.get(Transformation, project.thumbnail_transformation_id)
+            if chosen and chosen.project_id == project.project_id:
+                thumb_path = _output_path(chosen)
+
+        if thumb_path is None:
+            latest = db.exec(
+                select(Transformation)
+                .where(Transformation.project_id == project.project_id)
+                .order_by(desc(Transformation.created_at))
+                .limit(1)
+            ).first()
+            if latest:
+                thumb_path = _output_path(latest)
+        latest_path = thumb_path
 
         distinct_styles = db.exec(
             select(Transformation.style_name)
@@ -162,6 +178,7 @@ def get_project(
         project_description=project.project_description,
         project_creation_time=project.project_creation_time,
         project_last_updated=project.project_last_updated,
+        thumbnail_transformation_id=project.thumbnail_transformation_id,
         generations=[_serialize_generation(t) for t in generations],
         groups=[GroupResponse.model_validate(g) for g in groups],
     )
@@ -179,6 +196,22 @@ def update_project(
         project.project_name = payload.project_name.strip() or project.project_name
     if payload.project_description is not None:
         project.project_description = payload.project_description.strip() or None
+
+    # Only apply thumbnail changes when the field is explicitly included in
+    # the request body. Passing it as `null` clears the override; passing a
+    # UUID validates that the generation belongs to this project.
+    if "thumbnail_transformation_id" in payload.model_fields_set:
+        if payload.thumbnail_transformation_id is None:
+            project.thumbnail_transformation_id = None
+        else:
+            chosen = db.get(Transformation, payload.thumbnail_transformation_id)
+            if not chosen or chosen.project_id != project_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Thumbnail must reference a generation in this project",
+                )
+            project.thumbnail_transformation_id = payload.thumbnail_transformation_id
+
     project.project_last_updated = datetime.utcnow()
     db.add(project)
     db.commit()
@@ -191,7 +224,25 @@ def update_project(
     ).one()
     if isinstance(count, tuple):
         count = count[0]
-    return _serialize_summary(project, int(count), None)
+
+    # Resolve thumbnail path the same way list_projects does so the frontend
+    # can immediately reflect a change without a full refetch.
+    thumb_path: Optional[str] = None
+    if project.thumbnail_transformation_id:
+        chosen = db.get(Transformation, project.thumbnail_transformation_id)
+        if chosen and chosen.project_id == project_id:
+            thumb_path = _output_path(chosen)
+    if thumb_path is None:
+        latest = db.exec(
+            select(Transformation)
+            .where(Transformation.project_id == project_id)
+            .order_by(desc(Transformation.created_at))
+            .limit(1)
+        ).first()
+        if latest:
+            thumb_path = _output_path(latest)
+
+    return _serialize_summary(project, int(count), thumb_path)
 
 
 @router.delete("/{project_id}", status_code=200)

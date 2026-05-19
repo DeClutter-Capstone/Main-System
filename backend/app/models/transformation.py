@@ -18,6 +18,10 @@ class Transformation(SQLModel, table=True):
     room_type: str
     style_name: str
 
+    # User-chosen label for the generation (e.g. "Bedroom — calm option").
+    # Null falls back to the style name in the UI.
+    display_name: Optional[str] = Field(default=None)
+
     input_image_id: Optional[UUID] = Field(default=None, foreign_key="inputimage.input_image_id")
     project_id: Optional[UUID] = Field(default=None, foreign_key="project.project_id", index=True)
     group_id: Optional[UUID] = Field(default=None, foreign_key="groups.group_id", index=True)
@@ -32,6 +36,11 @@ class Transformation(SQLModel, table=True):
     file_key: Optional[str] = Field(default=None, index=True)
 
     input_image: Optional["InputImage"] = Relationship(back_populates="transformations")
-    project: Optional["Project"] = Relationship(back_populates="transformations")
+    # Pin the back-relationship to Transformation.project_id so SQLAlchemy
+    # doesn't try to use Project.thumbnail_transformation_id as the join.
+    project: Optional["Project"] = Relationship(
+        back_populates="transformations",
+        sa_relationship_kwargs={"foreign_keys": "[Transformation.project_id]"},
+    )
     group: Optional["Group"] = Relationship(back_populates="transformations")
     generated_images: List["GeneratedImage"] = Relationship(back_populates="transformation")

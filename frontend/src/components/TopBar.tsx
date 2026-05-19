@@ -61,20 +61,25 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
           color: var(--color-brand-primary);
         }
         .signin-btn {
-          background-color: var(--color-brand-primary);
-          color: #ffffff;
-          border: none;
+          background-color: transparent;
+          color: var(--color-brand-primary);
+          border: 1.5px solid color-mix(in srgb, var(--color-brand-primary) 60%, transparent);
           border-radius: 10px;
           padding: 10px 20px;
           font-size: 0.95rem;
           font-weight: 500;
           cursor: pointer;
           font-family: inherit;
-          transition: background-color 0.15s ease;
+          transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
           letter-spacing: 0.01em;
         }
         .signin-btn:hover {
-          background-color: var(--color-brand-dark);
+          background-color: color-mix(in srgb, var(--color-brand-primary) 8%, transparent);
+          border-color: var(--color-brand-primary);
+        }
+        .signin-btn:active {
+          background-color: color-mix(in srgb, var(--color-brand-primary) 14%, transparent);
+          border-color: var(--color-brand-primary);
         }
         .nav-icon-btn {
           background: transparent;
@@ -239,19 +244,6 @@ const styles = {
     alignItems: "center",
     gap: "24px",
     flex: "0 0 auto",
-  } as React.CSSProperties,
-  signInButton: {
-    backgroundColor: "var(--color-brand-primary)",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "10px",
-    padding: "10px 20px",
-    fontSize: "0.95rem",
-    fontWeight: "500",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    transition: "background-color 0.15s ease",
-    letterSpacing: "0.01em",
   } as React.CSSProperties,
   toggleButton: {
     background: "transparent",

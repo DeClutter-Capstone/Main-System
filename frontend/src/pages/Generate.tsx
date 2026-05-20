@@ -968,8 +968,9 @@ function Generate() {
                 <span
                   style={{
                     ...styles.compareLabel,
-                    left: "14px",
-                    opacity: sliderPosition > 15 ? 1 : 0,
+                    top: "12px",
+                    left: "12px",
+                    opacity: sliderPosition > 12 ? 1 : 0,
                   }}
                 >
                   After
@@ -977,8 +978,9 @@ function Generate() {
                 <span
                   style={{
                     ...styles.compareLabel,
-                    right: "14px",
-                    opacity: sliderPosition < 85 ? 1 : 0,
+                    top: "12px",
+                    right: "12px",
+                    opacity: sliderPosition < 88 ? 1 : 0,
                   }}
                 >
                   Before
@@ -1563,11 +1565,9 @@ const styles = {
   compareContainer: {
     position: "relative",
     width: "100%",
-    maxHeight: "75vh",
     overflow: "hidden",
     borderRadius: "16px",
     border: "1px solid var(--color-border-subtle)",
-    backgroundColor: "var(--color-bg-elevated)",
     cursor: "col-resize",
     touchAction: "none",
     userSelect: "none",
@@ -1578,10 +1578,7 @@ const styles = {
     inset: 0,
     width: "100%",
     height: "100%",
-    // Contain so the whole photo is visible — no edge-cropping when the
-    // container's rendered aspect differs from the image's (e.g. when the
-    // 75vh maxHeight kicks in on tall portraits).
-    objectFit: "contain",
+    objectFit: "cover",
     userSelect: "none",
     pointerEvents: "none",
   } as React.CSSProperties,
@@ -1590,7 +1587,7 @@ const styles = {
     inset: 0,
     width: "100%",
     height: "100%",
-    objectFit: "contain",
+    objectFit: "cover",
     userSelect: "none",
     pointerEvents: "none",
     display: "block",

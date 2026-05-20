@@ -34,6 +34,27 @@ def get_session():
 # so that custom user-supplied values (e.g. "studio apartment") can be stored.
 
 _MIGRATIONS = [
+    # user: Firebase profile metadata used by account summary exports
+    """
+    ALTER TABLE "user"
+    ADD COLUMN IF NOT EXISTS photo_url TEXT
+    """,
+    """
+    ALTER TABLE "user"
+    ADD COLUMN IF NOT EXISTS account_created_at TIMESTAMP
+    """,
+    """
+    ALTER TABLE "user"
+    ADD COLUMN IF NOT EXISTS last_sign_in_at TIMESTAMP
+    """,
+    """
+    ALTER TABLE "user"
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS ix_user_created_at ON "user" (created_at)
+    """,
+
     # project: add user_id if missing
     """
     ALTER TABLE project

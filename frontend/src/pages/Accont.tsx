@@ -81,6 +81,7 @@ function Account() {
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] =
     useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   const navigate = useNavigate();
 
@@ -120,7 +121,7 @@ function Account() {
         method,
       );
       loadSavedAccounts(user.uid);
-      syncUser(user.uid, user.displayName || user.email || "", user.email || "").then(() =>
+      syncUser(user).then(() =>
         trackLoginActivity(user.uid, navigator.userAgent, method)
       );
       setFirebaseUser(user);
@@ -144,15 +145,30 @@ function Account() {
   }, [navigate]);
 
   // Sync user into PostgreSQL
-  const syncUser = async (uid: string, user_name: string, email: string) => {
+  const getProfilePhotoUrl = (user: User) =>
+    user.photoURL ||
+    user.providerData.find((p) => p.providerId === "google.com")?.photoURL ||
+    null;
+
+  const syncUser = async (user: User) => {
     try {
       await fetch("http://localhost:8000/api/users/sync", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-firebase-uid": uid,
+          "x-firebase-uid": user.uid,
         },
-        body: JSON.stringify({ user_name, email }),
+        body: JSON.stringify({
+          user_name: user.displayName || user.email || "",
+          email: user.email || "",
+          photo_url: getProfilePhotoUrl(user),
+          account_created_at: user.metadata.creationTime
+            ? new Date(user.metadata.creationTime).toISOString()
+            : null,
+          last_sign_in_at: user.metadata.lastSignInTime
+            ? new Date(user.metadata.lastSignInTime).toISOString()
+            : null,
+        }),
       });
     } catch (error) {
       console.error("Error syncing user:", error);
@@ -619,6 +635,62 @@ function Account() {
     }
   };
 
+  const getDownloadFilename = (res: Response) => {
+    const disposition = res.headers.get("Content-Disposition");
+    const match = disposition?.match(/filename="?([^"]+)"?/i);
+    if (match?.[1]) return match[1];
+    const fallback = firebaseUser?.email || firebaseUser?.uid || "account";
+    return `Account_Summary_${fallback.replace(/[^a-z0-9_-]+/gi, "_")}.pdf`;
+  };
+
+  const downloadAccountSummary = async () => {
+    if (!firebaseUser) {
+      toast.error("User not found");
+      return;
+    }
+
+    try {
+      setIsGeneratingSummary(true);
+      await syncUser(firebaseUser);
+
+      const res = await fetch("http://localhost:8000/api/users/me/summary.pdf", {
+        method: "GET",
+        headers: { "x-firebase-uid": firebaseUser.uid },
+      });
+
+      if (!res.ok) {
+        let message = "Failed to generate account summary";
+        try {
+          const body = await res.json();
+          message = body.detail || message;
+        } catch {
+          // PDF endpoint may not return JSON on failure.
+        }
+        throw new Error(message);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = getDownloadFilename(res);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Account summary downloaded");
+    } catch (error) {
+      console.error("Error generating account summary:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate account summary",
+      );
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
   const handleMenuClick = async (action: string) => {
     console.log(`${action} clicked`);
 
@@ -642,6 +714,8 @@ function Account() {
     } else if (action === "Login activity") {
       loadLoginActivity(firebaseUser?.uid || "");
       setIsLoginActivityModalOpen(true);
+    } else if (action === "Download my data") {
+      downloadAccountSummary();
     } else if (action === "Delete account") {
       setIsDeleteAccountModalOpen(true);
     }
@@ -793,10 +867,15 @@ function Account() {
                   Login activity
                 </button>
                 <button
-                  style={styles.menuItem}
+                  style={{
+                    ...styles.menuItem,
+                    opacity: isGeneratingSummary ? 0.65 : 1,
+                    cursor: isGeneratingSummary ? "not-allowed" : "pointer",
+                  }}
                   onClick={() => handleMenuClick("Download my data")}
+                  disabled={isGeneratingSummary}
                 >
-                  Download my data
+                  {isGeneratingSummary ? "Generating summary..." : "Account Summary"}
                 </button>
                 <button
                   style={{ ...styles.menuItem, borderBottomWidth: 0 }}

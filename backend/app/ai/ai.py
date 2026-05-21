@@ -103,20 +103,39 @@ def build_prompt(room_type: str, style_name: str, extra_prompt: str = "") -> str
     return prompt
 
 
-def generate_image(input_image_path: Path, room_type: str, style_name: str, extra_prompt: str = "") -> str:
+# Generation quality → model. Auto and v1.5 both use the default flow
+# (gpt-image-1.5). Anything unknown/missing falls back to auto.
+_QUALITY_MODELS = {
+    "auto": "gpt-image-1.5",
+    "v1.0": "gpt-image-1-mini",
+    "v1.5": "gpt-image-1.5",
+    "v2.0": "gpt-image-2",
+}
+
+
+def generate_image(
+    input_image_path: Path,
+    room_type: str,
+    style_name: str,
+    extra_prompt: str = "",
+    quality: str = "auto",
+) -> str:
     """
-    Call OpenAI gpt-image-1.5 to transform a room image.
+    Call OpenAI to transform a room image. `quality` selects the model
+    (auto/v1.5 → gpt-image-1.5, v1.0 → gpt-image-1-mini, v2.0 → gpt-image-2);
+    unknown values default to auto.
 
     Passes `size="auto"` so GPT picks the output dimensions that best fit
     the content — the frontend then center-crops the original input to
     match whatever shape comes back.
     """
+    model = _QUALITY_MODELS.get((quality or "auto").lower(), "gpt-image-1.5")
     prompt = build_prompt(room_type, style_name, extra_prompt)
-    print(f"OpenAI prompt (auto size): {prompt}")
+    print(f"OpenAI prompt (model={model}, auto size): {prompt}")
 
     with open(input_image_path, "rb") as image_file:
         response = client.images.edit(
-            model="gpt-image-1.5",
+            model=model,
             image=image_file,
             prompt=prompt,
             n=1,

@@ -25,6 +25,7 @@ export async function requestTransformation(
   styleName: string,
   prompt?: string,
   projectId?: string,
+  quality?: string,
 ): Promise<TransformationResponse> {
   const formData = new FormData();
   formData.append("image_file", imageFile);
@@ -35,6 +36,9 @@ export async function requestTransformation(
   }
   if (projectId) {
     formData.append("project_id", projectId);
+  }
+  if (quality) {
+    formData.append("quality", quality);
   }
 
   const auth = await authHeader();

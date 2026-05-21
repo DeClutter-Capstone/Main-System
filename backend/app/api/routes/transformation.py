@@ -36,6 +36,7 @@ def create_transformation(
     project_id: Optional[str] = Form(None),
     input_image_id: Optional[str] = Form(None),
     prompt: Optional[str] = Form(None),
+    quality: Optional[str] = Form(None),
     db: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
@@ -64,6 +65,7 @@ def create_transformation(
             style_name=style_name,
             image_url=image_url,
             prompt=prompt or "",
+            quality=quality or "auto",
         )
 
         return {

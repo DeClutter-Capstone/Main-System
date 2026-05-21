@@ -12,6 +12,15 @@ function Generate() {
   const [assignProject, setAssignProject] = useState("N/A");
   const [customPrompt, setCustomPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("Minimalist");
+  // Always resets to "Auto" on every page load (never persisted). Auto uses v1.5.
+  const [quality, setQuality] = useState<"Auto" | "v1.0" | "v1.5" | "v2.0">("Auto");
+  // Subtle one-line hint shown under the selector for whichever model is picked.
+  const qualityHints: Record<typeof quality, string> = {
+    Auto: "Auto picks v1.5 — balanced quality and speed",
+    "v1.0": "Fastest",
+    "v1.5": "Most balanced",
+    "v2.0": "Highest quality",
+  };
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -372,6 +381,7 @@ function Generate() {
         selectedStyle,
         customPrompt,
         projectIdToAssign,
+        quality,
       );
 
       const backendBase =
@@ -551,6 +561,26 @@ function Generate() {
         }
         .compare-handle {
           transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .quality-pill {
+          padding: 6px 18px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          font-family: inherit;
+          color: var(--color-text-secondary);
+          background-color: transparent;
+          border: 1px solid transparent;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+        .quality-pill:hover:not(.selected) {
+          background-color: var(--color-brand-soft);
+          color: var(--color-text-primary);
+        }
+        .quality-pill.selected {
+          background-color: var(--color-brand-primary);
+          color: var(--color-text-inverse);
         }
         .advanced-toggle {
           transition: all 0.15s ease !important;
@@ -803,6 +833,31 @@ function Generate() {
               );
             })}
           </div>
+        </section>
+
+        {/* GENERATION QUALITY */}
+        <section style={styles.qualitySection}>
+          <label style={styles.label}>Generation Quality</label>
+          <div style={styles.qualityControl} role="radiogroup">
+            {(["Auto", "v1.0", "v1.5", "v2.0"] as const).map((opt) => {
+              const isSelected = quality === opt;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => setQuality(opt)}
+                  className={`quality-pill${isSelected ? " selected" : ""}`}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          <span style={styles.qualitySubtitle}>
+            {qualityHints[quality]}
+          </span>
         </section>
 
         {/* ADVANCED OPTIONS (collapsible) */}
@@ -1371,6 +1426,27 @@ const styles = {
     textAlign: "center",
     marginTop: "0.5rem",
     marginBottom: "0.125rem",
+  } as React.CSSProperties,
+
+  // ---- GENERATION QUALITY ----
+  qualitySection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.5rem",
+    width: "100%",
+  } as React.CSSProperties,
+  qualityControl: {
+    display: "inline-flex",
+    alignSelf: "flex-start",
+    padding: "3px",
+    gap: "2px",
+    backgroundColor: "var(--color-bg-elevated)",
+    border: "1px solid var(--color-border-subtle)",
+    borderRadius: "10px",
+  } as React.CSSProperties,
+  qualitySubtitle: {
+    fontSize: "0.8rem",
+    color: "var(--color-text-tertiary)",
   } as React.CSSProperties,
 
   // ---- ADVANCED OPTIONS ----

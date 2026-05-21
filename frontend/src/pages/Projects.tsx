@@ -1,9 +1,14 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Layout from "../components/Layout";
 import ProjectCard from "../components/ProjectCard";
-import { createProject, listProjects, type ProjectSummary } from "../services/projectsAPI";
+import {
+  createProject,
+  listProjects,
+  uploadProjectThumbnail,
+  type ProjectSummary,
+} from "../services/projectsAPI";
 
 interface Project {
   id: string;
@@ -68,6 +73,9 @@ function Projects() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,6 +117,29 @@ function Projects() {
     });
   }, [projects, searchQuery]);
 
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5 MB");
+      return;
+    }
+    if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+    setThumbnailFile(file);
+    setThumbnailPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveThumbnail = () => {
+    if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+    setThumbnailFile(null);
+    setThumbnailPreview(null);
+    if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
+  };
+
   const handleCreateProject = async () => {
     const name = projectName.trim();
     if (!name) return;
@@ -117,7 +148,20 @@ function Projects() {
         project_name: name,
         project_description: projectDescription.trim() || undefined,
       });
-      setSummaries((prev) => [created, ...prev]);
+      // Thumbnail upload needs the new project's id, so it runs after create.
+      let summary = created;
+      if (thumbnailFile) {
+        try {
+          summary = await uploadProjectThumbnail(created.project_id, thumbnailFile);
+        } catch (err) {
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : "Project created, but the thumbnail upload failed",
+          );
+        }
+      }
+      setSummaries((prev) => [summary, ...prev]);
       closeModal();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create project");
@@ -128,6 +172,7 @@ function Projects() {
     setShowCreateModal(false);
     setProjectName("");
     setProjectDescription("");
+    handleRemoveThumbnail();
   };
 
   const handleProjectClick = (projectId: string) => {
@@ -401,6 +446,62 @@ function Projects() {
           opacity: 0.5;
           cursor: not-allowed;
         }
+        .projects-modal__btn--small {
+          padding: 7px 12px;
+          font-size: 13px;
+        }
+        .projects-modal__thumb {
+          display: flex;
+          gap: 16px;
+          align-items: stretch;
+        }
+        .projects-modal__thumb-preview {
+          flex-shrink: 0;
+          width: 96px;
+          height: 96px;
+          border-radius: 12px;
+          border: 1px solid var(--color-border-subtle);
+          background-color: var(--color-bg-elevated);
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .projects-modal__thumb-preview img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .projects-modal__thumb-placeholder {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          color: var(--color-text-secondary);
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .projects-modal__thumb-placeholder svg {
+          width: 22px;
+          height: 22px;
+        }
+        .projects-modal__thumb-controls {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+          min-width: 0;
+        }
+        .projects-modal__thumb-hint {
+          margin: 4px 0 0;
+          font-size: 12px;
+          color: var(--color-text-tertiary);
+          line-height: 1.4;
+        }
       `}</style>
 
       <div className="projects-page">
@@ -517,6 +618,60 @@ function Projects() {
                 value={projectDescription}
                 onChange={(e) => setProjectDescription(e.target.value)}
               />
+            </div>
+
+            <div className="projects-modal__field">
+              <label className="projects-modal__label">
+                Thumbnail{" "}
+                <span style={{ fontWeight: 400, color: "var(--color-text-tertiary)" }}>
+                  (optional)
+                </span>
+              </label>
+              <div className="projects-modal__thumb">
+                <div className="projects-modal__thumb-preview" aria-hidden="true">
+                  {thumbnailPreview ? (
+                    <img src={thumbnailPreview} alt="Thumbnail preview" />
+                  ) : (
+                    <div className="projects-modal__thumb-placeholder">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="9" cy="9" r="1.5" />
+                        <path d="m3 17 5-5 5 5 4-4 4 4" />
+                      </svg>
+                      <span>None</span>
+                    </div>
+                  )}
+                </div>
+                <div className="projects-modal__thumb-controls">
+                  <input
+                    ref={thumbnailInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThumbnailChange}
+                    style={{ display: "none" }}
+                  />
+                  <button
+                    type="button"
+                    className="projects-modal__btn projects-modal__btn--cancel projects-modal__btn--small"
+                    onClick={() => thumbnailInputRef.current?.click()}
+                  >
+                    {thumbnailFile ? "Replace image" : "Upload image"}
+                  </button>
+                  {thumbnailFile && (
+                    <button
+                      type="button"
+                      className="projects-modal__btn projects-modal__btn--cancel projects-modal__btn--small"
+                      onClick={handleRemoveThumbnail}
+                    >
+                      Remove
+                    </button>
+                  )}
+                  <p className="projects-modal__thumb-hint">
+                    PNG, JPG, or WebP. Up to 5&nbsp;MB. Defaults to the latest
+                    generation if left empty.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="projects-modal__actions">

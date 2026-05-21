@@ -55,6 +55,27 @@ _MIGRATIONS = [
     CREATE INDEX IF NOT EXISTS ix_user_created_at ON "user" (created_at)
     """,
 
+    # project: description is optional, but older schemas created the column
+    # NOT NULL. Relax it so projects can be created without a description.
+    """
+    ALTER TABLE project
+    ALTER COLUMN project_description DROP NOT NULL
+    """,
+
+    # activity: login-tracking metadata used by the account summary.
+    """
+    ALTER TABLE activity
+    ADD COLUMN IF NOT EXISTS device_info TEXT
+    """,
+    """
+    ALTER TABLE activity
+    ADD COLUMN IF NOT EXISTS login_method TEXT
+    """,
+    """
+    ALTER TABLE activity
+    ADD COLUMN IF NOT EXISTS ip_address TEXT
+    """,
+
     # project: add user_id if missing
     """
     ALTER TABLE project

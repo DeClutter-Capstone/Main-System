@@ -12,15 +12,50 @@ function Generate() {
   const [assignProject, setAssignProject] = useState("N/A");
   const [customPrompt, setCustomPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("Minimalist");
-  // Always resets to "Auto" on every page load (never persisted). Auto uses v1.5.
-  const [quality, setQuality] = useState<"Auto" | "v1.0" | "v1.5" | "v2.0">("Auto");
-  // Subtle one-line hint shown under the selector for whichever model is picked.
-  const qualityHints: Record<typeof quality, string> = {
-    Auto: "Auto picks v1.5 — balanced quality and speed",
-    "v1.0": "Fastest",
-    "v1.5": "Most balanced",
-    "v2.0": "Highest quality",
+  // Center node ("Recommended" → v1.5) is selected by default on every page load.
+  // The value sent to the backend (v1.0 / v1.5 / v2.0) is unchanged.
+  const [quality, setQuality] = useState<"v1.0" | "v1.5" | "v2.0">("v1.5");
+  // Left→right order of the three timeline nodes; used by both click and drag.
+  const qualityOrder = ["v1.0", "v1.5", "v2.0"] as const;
+  // Each node's accent color (theme variables → dark-mode safe), in node order.
+  const qualityColors = [
+    "var(--color-brand-primary)",
+    "var(--color-success)",
+    "var(--color-accent-purple)",
+  ] as const;
+  // Each node's position along the track as a 0→1 fraction (left→right).
+  const qualityFraction: Record<(typeof qualityOrder)[number], number> = {
+    "v1.0": 0,
+    "v1.5": 0.5,
+    "v2.0": 1,
   };
+  const isDraggingQuality = useRef(false);
+  // While dragging, the live 0→1 position so the blue fill follows the cursor.
+  // null when not dragging → the fill rests on the selected node's fraction.
+  const [qualityDragFraction, setQualityDragFraction] = useState<number | null>(
+    null,
+  );
+  // Convert a pointer X into a 0→1 fraction along the track region. The track
+  // runs between the outer node centers (inset 1/6 on each side of the row).
+  const pointerFraction = (clientX: number, row: HTMLElement) => {
+    const rect = row.getBoundingClientRect();
+    const left = rect.left + rect.width / 6;
+    const right = rect.left + (rect.width * 5) / 6;
+    return Math.max(0, Math.min(1, (clientX - left) / (right - left)));
+  };
+  // The fill width to render: the live drag fraction if dragging, else the
+  // resting position of the currently-selected node.
+  const fillFraction = qualityDragFraction ?? qualityFraction[quality];
+  // Which node reads as selected. While dragging, the nearest node to the
+  // cursor lights up live; otherwise it's the committed selection.
+  const activeQualityIndex =
+    qualityDragFraction !== null
+      ? qualityDragFraction < 0.25
+        ? 0
+        : qualityDragFraction < 0.75
+          ? 1
+          : 2
+      : qualityOrder.indexOf(quality);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -562,25 +597,96 @@ function Generate() {
         .compare-handle {
           transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
-        .quality-pill {
-          padding: 6px 18px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          font-family: inherit;
-          color: var(--color-text-secondary);
-          background-color: transparent;
-          border: 1px solid transparent;
-          border-radius: 8px;
+        .quality-timeline {
+          position: relative;
+          display: flex;
+          width: 100%;
+          margin: 1rem 0 0.75rem;
           cursor: pointer;
-          transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+          touch-action: none;
+          user-select: none;
         }
-        .quality-pill:hover:not(.selected) {
-          background-color: var(--color-brand-soft);
-          color: var(--color-text-primary);
+        .quality-track {
+          position: absolute;
+          top: 11.5px;
+          left: 16.666%;
+          right: 16.666%;
+          height: 3px;
+          border-radius: 999px;
+          background-color: var(--color-border-subtle);
+          z-index: 0;
         }
-        .quality-pill.selected {
+        .quality-track-fill {
+          position: absolute;
+          left: 0;
+          top: 0;
+          height: 100%;
+          border-radius: 999px;
           background-color: var(--color-brand-primary);
-          color: var(--color-text-inverse);
+          transition: width 0.15s ease, background-color 0.15s ease;
+        }
+        .quality-node-col {
+          position: relative;
+          z-index: 1;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          font-family: inherit;
+        }
+        .quality-dot {
+          position: relative;
+          width: 26px;
+          height: 26px;
+          box-sizing: border-box;
+          border-radius: 50%;
+          border: 2px solid var(--color-text-tertiary);
+          background-color: var(--color-card);
+          transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .quality-node-col:hover:not(.selected) .quality-dot {
+          border-color: var(--node-color);
+        }
+        .quality-node-col.selected .quality-dot {
+          background-color: var(--node-color);
+          border-color: var(--node-color);
+          box-shadow: 0 0 0 5px color-mix(in srgb, var(--node-color) 18%, transparent);
+        }
+        .quality-node-col.selected .quality-dot::after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+          background-color: var(--color-text-inverse);
+          transform: translate(-50%, -50%);
+        }
+        .quality-node-title {
+          margin-top: 0.6rem;
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: var(--color-text-secondary);
+          transition: color 0.15s ease;
+        }
+        .quality-node-col.selected .quality-node-title {
+          color: var(--node-color);
+        }
+        .quality-node-sub {
+          font-size: 0.8rem;
+          line-height: 1.4;
+          text-align: center;
+          color: var(--color-text-tertiary);
+          transition: color 0.15s ease;
+        }
+        .quality-node-col.selected .quality-node-sub {
+          color: var(--node-color);
         }
         .advanced-toggle {
           transition: all 0.15s ease !important;
@@ -838,26 +944,89 @@ function Generate() {
         {/* GENERATION QUALITY */}
         <section style={styles.qualitySection}>
           <label style={styles.label}>Generation Quality</label>
-          <div style={styles.qualityControl} role="radiogroup">
-            {(["Auto", "v1.0", "v1.5", "v2.0"] as const).map((opt) => {
-              const isSelected = quality === opt;
+          <span style={styles.qualitySubtitle}>
+            Recommended works best for most rooms
+          </span>
+          <div
+            className="quality-timeline"
+            role="radiogroup"
+            onPointerDown={(e) => {
+              isDraggingQuality.current = true;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              setQualityDragFraction(pointerFraction(e.clientX, e.currentTarget));
+            }}
+            onPointerMove={(e) => {
+              if (isDraggingQuality.current)
+                setQualityDragFraction(
+                  pointerFraction(e.clientX, e.currentTarget),
+                );
+            }}
+            onPointerUp={(e) => {
+              if (!isDraggingQuality.current) return;
+              isDraggingQuality.current = false;
+              e.currentTarget.releasePointerCapture(e.pointerId);
+              const f = pointerFraction(e.clientX, e.currentTarget);
+              const idx = f < 0.25 ? 0 : f < 0.75 ? 1 : 2;
+              setQuality(qualityOrder[idx]);
+              setQualityDragFraction(null);
+            }}
+            onPointerCancel={() => {
+              isDraggingQuality.current = false;
+              setQualityDragFraction(null);
+            }}
+          >
+            {/* Track: muted base + fill that grows left→right and takes the
+                active node's color (blue → green → purple) */}
+            <div className="quality-track">
+              <div
+                className="quality-track-fill"
+                style={{
+                  width: `${fillFraction * 100}%`,
+                  backgroundColor: qualityColors[activeQualityIndex],
+                }}
+              />
+            </div>
+            {(
+              [
+                {
+                  value: "v1.0",
+                  title: "Fastest",
+                  lines: ["Super fast results", "Moderate quality"],
+                },
+                {
+                  value: "v1.5",
+                  title: "Recommended",
+                  lines: ["Fast", "Better Images"],
+                },
+                {
+                  value: "v2.0",
+                  title: "Best Performance",
+                  lines: ["Slower", "Best Images"],
+                },
+              ] as const
+            ).map((node, idx) => {
+              const isSelected = idx === activeQualityIndex;
               return (
                 <button
-                  key={opt}
+                  key={node.value}
                   type="button"
                   role="radio"
                   aria-checked={isSelected}
-                  onClick={() => setQuality(opt)}
-                  className={`quality-pill${isSelected ? " selected" : ""}`}
+                  aria-label={node.title}
+                  onClick={() => setQuality(node.value)}
+                  className={`quality-node-col${isSelected ? " selected" : ""}`}
+                  style={
+                    { "--node-color": qualityColors[idx] } as React.CSSProperties
+                  }
                 >
-                  {opt}
+                  <span className="quality-dot" />
+                  <span className="quality-node-title">{node.title}</span>
+                  <span className="quality-node-sub">{node.lines[0]}</span>
+                  <span className="quality-node-sub">{node.lines[1]}</span>
                 </button>
               );
             })}
           </div>
-          <span style={styles.qualitySubtitle}>
-            {qualityHints[quality]}
-          </span>
         </section>
 
         {/* ADVANCED OPTIONS (collapsible) */}
@@ -1434,15 +1603,7 @@ const styles = {
     flexDirection: "column",
     gap: "0.5rem",
     width: "100%",
-  } as React.CSSProperties,
-  qualityControl: {
-    display: "inline-flex",
-    alignSelf: "flex-start",
-    padding: "3px",
-    gap: "2px",
-    backgroundColor: "var(--color-bg-elevated)",
-    border: "1px solid var(--color-border-subtle)",
-    borderRadius: "10px",
+    padding: "0.75rem 0",
   } as React.CSSProperties,
   qualitySubtitle: {
     fontSize: "0.8rem",

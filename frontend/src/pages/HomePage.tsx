@@ -40,7 +40,7 @@ const heroSlides = [
     subtitle:
       "Exposed brick, steel, and weathered wood turn every imperfection into a bold statement",
     style: "Industrial",
-    imageUrl: "/HomePageImages/industrial.jpg",
+    imageUrl: "/HomePageImages/industrial.png",
     accent: "#c8a882",
   },
   {
@@ -49,7 +49,7 @@ const heroSlides = [
     subtitle:
       "Rich colours, global patterns, and handcrafted pieces that tell your unique story",
     style: "Bohemian",
-    imageUrl: "/HomePageImages/bohemian.webp",
+    imageUrl: "/HomePageImages/bohemian.png",
     accent: "#e8a87c",
   },
   {
@@ -58,7 +58,7 @@ const heroSlides = [
     subtitle:
       "Soft earthy tones and natural materials that bring the healing energy of nature indoors",
     style: "Spa",
-    imageUrl: "/HomePageImages/spa.jpg",
+    imageUrl: "/HomePageImages/spa.png",
     accent: "#8fcfcf",
   },
 ];
@@ -94,7 +94,7 @@ const designStyles = [
   {
     key: "industrial",
     label: "Industrial",
-    image: "/HomePageImages/industrial.jpg",
+    image: "/HomePageImages/industrial.png",
     heading: "Industrial Style",
     description:
       "Industrial design draws inspiration from warehouses and urban lofts, celebrating raw, unfinished materials such as exposed brick, concrete, and steel — turning every imperfection into a design statement.",
@@ -103,7 +103,7 @@ const designStyles = [
   {
     key: "bohemian",
     label: "Bohemian",
-    image: "/HomePageImages/bohemian.webp",
+    image: "/HomePageImages/bohemian.png",
     heading: "Bohemian Style",
     description:
       "Bohemian design embraces a free-spirited, eclectic aesthetic that layers rich colours, global patterns, and mixed textures to create deeply personal and expressive spaces full of character.",
@@ -112,7 +112,7 @@ const designStyles = [
   {
     key: "spa",
     label: "Spa",
-    image: "/HomePageImages/spa.jpg",
+    image: "/HomePageImages/spa.png",
     heading: "Spa Style",
     description:
       "Spa design transforms living spaces into sanctuaries of calm and restoration. Soft earthy tones, natural stone, bamboo, and gentle lighting create an atmosphere of pure tranquility.",

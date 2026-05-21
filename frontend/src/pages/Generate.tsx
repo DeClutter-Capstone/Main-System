@@ -269,7 +269,7 @@ function Generate() {
     {
       id: "Industrial",
       name: "Industrial",
-      image: "/public/HomePageImages/industrial.jpg",
+      image: "/public/HomePageImages/industrial.png",
     },
     {
       id: "Bohemian",

@@ -1,5 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import type { User } from "firebase/auth";
+import { auth } from "../Firebase/Firebase";
 
 interface TopBarProps {
   showSignIn?: boolean;
@@ -12,6 +15,12 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem("darkMode") === "true";
   });
+  const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => setCurrentUser(user));
+    return unsub;
+  }, []);
 
   const applyDarkMode = () => {
     document.documentElement.setAttribute("data-theme", "dark");
@@ -99,6 +108,33 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
           background-color: var(--color-bg-elevated);
           border-color: var(--color-border-subtle);
         }
+        .avatar-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          overflow: hidden;
+          border: 2px solid var(--color-brand-primary);
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--color-brand-primary);
+          color: #fff;
+          font-size: 0.85rem;
+          font-weight: 700;
+          padding: 0;
+          flex-shrink: 0;
+          transition: box-shadow 0.15s ease;
+        }
+        .avatar-btn:hover {
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-primary) 30%, transparent);
+        }
+        .avatar-btn img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
       `}</style>
       {/* Logo */}
       <Link to="/" style={styles.logoSection}>
@@ -142,8 +178,21 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
 
       {/* Right side - Sign In & Dark Mode */}
       <div style={styles.rightSection}>
-        <div style={{ width: showSignIn ? "auto" : "90px", height: showSignIn ? "auto" : "40px" }}>
-          {showSignIn && (
+        <div>
+          {currentUser ? (
+            <button
+              className="avatar-btn"
+              onClick={() => navigate("/account")}
+              title="Go to account"
+              aria-label="Account"
+            >
+              {currentUser.photoURL ? (
+                <img src={currentUser.photoURL} alt="Profile" referrerPolicy="no-referrer" />
+              ) : (
+                (currentUser.displayName?.[0] ?? currentUser.email?.[0] ?? "U").toUpperCase()
+              )}
+            </button>
+          ) : showSignIn ? (
             <button
               className="signin-btn"
               onClick={() => {
@@ -153,7 +202,7 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
             >
               Sign in
             </button>
-          )}
+          ) : null}
         </div>
         <button
           className="nav-icon-btn"

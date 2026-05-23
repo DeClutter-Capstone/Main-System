@@ -127,6 +127,7 @@ function Account() {
   );
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [isGeneratingExportPdf, setIsGeneratingExportPdf] = useState(false);
+  const [isGeneratingExportZip, setIsGeneratingExportZip] = useState(false);
   const [hasPreviewLoaded, setHasPreviewLoaded] = useState(false);
 
   const navigate = useNavigate();
@@ -196,6 +197,7 @@ function Account() {
     setPreviewTotalCount(null);
     setIsLoadingPreview(false);
     setIsGeneratingExportPdf(false);
+    setIsGeneratingExportZip(false);
     setHasPreviewLoaded(false);
   }, [isExportModalOpen]);
 
@@ -729,12 +731,16 @@ function Account() {
     return params;
   };
 
-  const getDownloadFilename = (res: Response, fallbackPrefix: string) => {
+  const getDownloadFilename = (
+    res: Response,
+    fallbackPrefix: string,
+    fallbackExtension = "pdf",
+  ) => {
     const disposition = res.headers.get("Content-Disposition");
     const match = disposition?.match(/filename="?([^"]+)"?/i);
     if (match?.[1]) return match[1];
     const fallback = firebaseUser?.email || firebaseUser?.uid || "account";
-    return `${fallbackPrefix}_${fallback.replace(/[^a-z0-9_-]+/gi, "_")}.pdf`;
+    return `${fallbackPrefix}_${fallback.replace(/[^a-z0-9_-]+/gi, "_")}.${fallbackExtension}`;
   };
 
   const fetchTransformationsPreview = async () => {
@@ -824,7 +830,7 @@ function Account() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = getDownloadFilename(res, "Transformations_Export");
+      link.download = getDownloadFilename(res, "Transformations_Export", "pdf");
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -839,6 +845,58 @@ function Account() {
       );
     } finally {
       setIsGeneratingExportPdf(false);
+    }
+  };
+
+  const downloadTransformationsZip = async () => {
+    if (!firebaseUser) {
+      toast.error("User not found");
+      return;
+    }
+
+    const params = buildExportParams();
+    if (!params) return;
+
+    try {
+      setIsGeneratingExportZip(true);
+      const res = await fetch(
+        `http://localhost:8000/api/transformations/export.zip?${params.toString()}`,
+        {
+          method: "GET",
+          headers: { "x-firebase-uid": firebaseUser.uid },
+        },
+      );
+
+      if (!res.ok) {
+        let message = "Failed to generate export ZIP";
+        try {
+          const body = await res.json();
+          message = body.detail || message;
+        } catch {
+          // ignore
+        }
+        throw new Error(message);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = getDownloadFilename(res, "Transformations_Export", "zip");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Transformations exported as ZIP");
+    } catch (error) {
+      console.error("Error generating transformations ZIP:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate export ZIP",
+      );
+    } finally {
+      setIsGeneratingExportZip(false);
     }
   };
 
@@ -872,7 +930,7 @@ function Account() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = getDownloadFilename(res, "Account_Summary");
+      link.download = getDownloadFilename(res, "Account_Summary", "pdf");
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -1081,11 +1139,14 @@ function Account() {
                 <button
                   style={{
                     ...styles.menuItem,
-                    opacity: isGeneratingExportPdf ? 0.65 : 1,
-                    cursor: isGeneratingExportPdf ? "not-allowed" : "pointer",
+                    opacity: isGeneratingExportPdf || isGeneratingExportZip ? 0.65 : 1,
+                    cursor:
+                      isGeneratingExportPdf || isGeneratingExportZip
+                        ? "not-allowed"
+                        : "pointer",
                   }}
                   onClick={() => handleMenuClick("Export transformations")}
-                  disabled={isGeneratingExportPdf}
+                  disabled={isGeneratingExportPdf || isGeneratingExportZip}
                 >
                   {isGeneratingExportPdf
                     ? "Generating export..."
@@ -1733,16 +1794,38 @@ function Account() {
                     <button
                       style={styles.cancelButton}
                       onClick={() => setIsExportModalOpen(false)}
-                      disabled={isLoadingPreview || isGeneratingExportPdf}
+                      disabled={
+                        isLoadingPreview ||
+                        isGeneratingExportPdf ||
+                        isGeneratingExportZip
+                      }
                     >
                       Close
                     </button>
                     <button
                       style={styles.secondaryButton}
                       onClick={fetchTransformationsPreview}
-                      disabled={isLoadingPreview || isGeneratingExportPdf}
+                      disabled={
+                        isLoadingPreview ||
+                        isGeneratingExportPdf ||
+                        isGeneratingExportZip
+                      }
                     >
                       {isLoadingPreview ? "Loading..." : "Preview"}
+                    </button>
+                    <button
+                      style={styles.submitButton}
+                      onClick={downloadTransformationsZip}
+                      disabled={
+                        !hasPreviewLoaded ||
+                        previewItems.length === 0 ||
+                        isGeneratingExportPdf ||
+                        isGeneratingExportZip ||
+                        previewTotalCount === null ||
+                        previewTotalCount > EXPORT_MAX_ITEMS
+                      }
+                    >
+                      {isGeneratingExportZip ? "Generating ZIP..." : "Export as Zip"}
                     </button>
                     <button
                       style={styles.submitButton}
@@ -1751,6 +1834,7 @@ function Account() {
                         !hasPreviewLoaded ||
                         previewItems.length === 0 ||
                         isGeneratingExportPdf ||
+                        isGeneratingExportZip ||
                         previewTotalCount === null ||
                         previewTotalCount > EXPORT_MAX_ITEMS
                       }

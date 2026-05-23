@@ -1,4 +1,6 @@
+import io
 import os
+import zipfile
 from datetime import datetime, timedelta
 
 import httpx
@@ -131,3 +133,19 @@ async def test_pdf_export(client, db_engine):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("application/pdf")
     assert response.content[:4] == b"%PDF"
+
+
+async def test_zip_export(client, db_engine):
+    user = _seed_user(db_engine, uid="firebase-zip")
+    _seed_transformations(db_engine, user.user_id)
+
+    response = await client.get(
+        "/api/transformations/export.zip?mode=lastx&limit=1",
+        headers={"x-firebase-uid": user.firebase_uid},
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/zip")
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        names = set(archive.namelist())
+    assert "latest/missing_before.txt" in names
+    assert "latest/missing_after.txt" in names

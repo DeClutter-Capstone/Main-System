@@ -16,7 +16,9 @@ from app.schemas.transformation_export_schema import TransformationExportItem
 from app.services.transformations_export_service import (
     EXPORT_MAX_ITEMS,
     generate_transformations_export_pdf,
+    generate_transformations_export_zip,
     transformations_export_filename,
+    transformations_export_zip_filename,
 )
 
 
@@ -159,6 +161,21 @@ def _query_export_items(
     return items
 
 
+def _query_transformations(
+    db: Session,
+    filters: list,
+    limit: Optional[int],
+) -> list[Transformation]:
+    query = (
+        select(Transformation)
+        .where(*filters)
+        .order_by(desc(Transformation.created_at))
+    )
+    if limit:
+        query = query.limit(limit)
+    return list(db.exec(query).all())
+
+
 @router.get("/export", response_model=list[TransformationExportItem])
 def list_transformations_for_export(
     response: Response,
@@ -235,6 +252,52 @@ def export_transformations_pdf(
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@router.get("/export.zip")
+def export_transformations_zip(
+    mode: str = Query(...),
+    timeframe: Optional[str] = Query(None),
+    limit: Optional[int] = Query(None, ge=1),
+    start: Optional[str] = Query(None),
+    end: Optional[str] = Query(None),
+    db: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    filters, _, requested_limit = _build_filters(
+        user=user,
+        mode=mode,
+        timeframe=timeframe,
+        limit=limit,
+        start=start,
+        end=end,
+    )
+
+    total_count = _scalar_count(
+        db.exec(select(func.count()).select_from(Transformation).where(*filters)).one()
+    )
+    export_count = min(total_count, requested_limit) if requested_limit else total_count
+    if export_count > EXPORT_MAX_ITEMS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Export limit exceeded. Please narrow to {EXPORT_MAX_ITEMS} transformations or fewer.",
+        )
+
+    transformations = _query_transformations(db, filters, requested_limit)
+    try:
+        zip_bytes = generate_transformations_export_zip(transformations)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    filename = transformations_export_zip_filename(user)
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "Cache-Control": "no-store",

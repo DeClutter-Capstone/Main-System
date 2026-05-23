@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import html
 import re
+import zipfile
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
 
 import requests
+from PIL import Image
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -23,11 +25,13 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from app.models.transformation import Transformation
 from app.models.user import User
 from app.schemas.transformation_export_schema import TransformationExportItem
 
 
 EXPORT_MAX_ITEMS = 200
+EXPORT_MAX_ZIP_BYTES = 500 * 1024 * 1024
 
 STORAGE_DIR = Path(__file__).parent.parent.parent / "storage"
 
@@ -51,6 +55,12 @@ def transformations_export_filename(user: User, generated_at: Optional[datetime]
     stamp = (generated_at or datetime.utcnow()).strftime("%Y-%m-%d")
     base = user.email or user.user_name or user.firebase_uid
     return f"Transformations_Export_{_filename_part(base)}_{stamp}.pdf"
+
+
+def transformations_export_zip_filename(user: User, generated_at: Optional[datetime] = None) -> str:
+    stamp = (generated_at or datetime.utcnow()).strftime("%Y-%m-%d")
+    base = user.email or user.user_name or user.firebase_uid
+    return f"Transformations_Export_{_filename_part(base)}_{stamp}.zip"
 
 
 def _resolve_storage_path(path: str) -> Optional[Path]:
@@ -81,6 +91,86 @@ def _load_image_bytes(path_or_url: Optional[str]) -> Optional[bytes]:
     if resolved and resolved.exists():
         return resolved.read_bytes()
     return None
+
+
+def _image_bytes_to_jpeg(image_bytes: bytes) -> bytes:
+    try:
+        image = Image.open(BytesIO(image_bytes))
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+        output = BytesIO()
+        image.save(output, format="JPEG", quality=92)
+        return output.getvalue()
+    except Exception as exc:
+        print(f"[transformations_export] jpeg conversion failed: {exc}")
+        return image_bytes
+
+
+def _resolve_transformation_image_path(
+    transformation: Transformation, kind: str
+) -> Optional[str]:
+    if kind == "input":
+        return transformation.input_image_path or (
+            f"/storage/input/{transformation.file_key}.png" if transformation.file_key else None
+        )
+    return transformation.output_image_path or (
+        f"/storage/output/{transformation.file_key}.png" if transformation.file_key else None
+    )
+
+
+def generate_transformations_export_zip(
+    transformations: list[Transformation],
+) -> bytes:
+    buffer = BytesIO()
+    total_bytes = 0
+
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        if not transformations:
+            archive.writestr(
+                "README.txt",
+                "No transformations found for the selected timeframe.",
+            )
+            return buffer.getvalue()
+
+        for transformation in transformations:
+            folder_name = transformation.file_key or str(transformation.transformation_id)
+            folder_name = _filename_part(folder_name)
+
+            before_path = _resolve_transformation_image_path(transformation, "input")
+            after_path = _resolve_transformation_image_path(transformation, "output")
+
+            before_bytes = _load_image_bytes(before_path)
+            after_bytes = _load_image_bytes(after_path)
+
+            if before_bytes:
+                before_bytes = _image_bytes_to_jpeg(before_bytes)
+                total_bytes += len(before_bytes)
+                if total_bytes > EXPORT_MAX_ZIP_BYTES:
+                    raise ValueError(
+                        "Export ZIP exceeds the 500 MB limit. Please narrow your filter."
+                    )
+                archive.writestr(f"{folder_name}/before.jpg", before_bytes)
+            else:
+                archive.writestr(
+                    f"{folder_name}/missing_before.txt",
+                    "Before image not available for this transformation.",
+                )
+
+            if after_bytes:
+                after_bytes = _image_bytes_to_jpeg(after_bytes)
+                total_bytes += len(after_bytes)
+                if total_bytes > EXPORT_MAX_ZIP_BYTES:
+                    raise ValueError(
+                        "Export ZIP exceeds the 500 MB limit. Please narrow your filter."
+                    )
+                archive.writestr(f"{folder_name}/after.jpg", after_bytes)
+            else:
+                archive.writestr(
+                    f"{folder_name}/missing_after.txt",
+                    "After image not available for this transformation.",
+                )
+
+    return buffer.getvalue()
 
 
 def _image_flowable(

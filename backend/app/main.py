@@ -22,7 +22,14 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["Content-Disposition"],
+    expose_headers=[
+        "Content-Disposition",
+        "X-Total-Count",
+        "X-Preview-Limit",
+        "X-Export-Too-Large",
+        "X-Export-Max",
+        "X-Export-Filter",
+    ],
 )
 
 @app.on_event("startup")

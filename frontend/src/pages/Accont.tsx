@@ -34,6 +34,31 @@ interface LoginActivity {
   ip_address: string | null;
 }
 
+interface TransformationExportItem {
+  transformation_id: string;
+  room_type: string | null;
+  style_name: string | null;
+  project_id: string | null;
+  project_name: string | null;
+  prompt: string | null;
+  created_at: string;
+  input_image_url: string | null;
+  output_image_url: string | null;
+}
+
+const EXPORT_PREVIEW_LIMIT = 50;
+const EXPORT_MAX_ITEMS = 200;
+const IMAGE_PLACEHOLDER =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
+      <rect width="100%" height="100%" fill="#F3F4F6"/>
+      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9CA3AF" font-size="16">
+        Image unavailable
+      </text>
+    </svg>`,
+  );
+
 function Account() {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,6 +107,27 @@ function Account() {
     useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+
+  // Export transformations states
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportMode, setExportMode] = useState<"timeframe" | "lastx">(
+    "timeframe",
+  );
+  const [timeframe, setTimeframe] = useState<
+    "day" | "week" | "month" | "year" | "all" | "custom"
+  >("month");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [lastX, setLastX] = useState(25);
+  const [previewItems, setPreviewItems] = useState<TransformationExportItem[]>(
+    [],
+  );
+  const [previewTotalCount, setPreviewTotalCount] = useState<number | null>(
+    null,
+  );
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [isGeneratingExportPdf, setIsGeneratingExportPdf] = useState(false);
+  const [hasPreviewLoaded, setHasPreviewLoaded] = useState(false);
 
   const navigate = useNavigate();
 
@@ -143,6 +189,15 @@ function Account() {
 
     return () => unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    if (isExportModalOpen) return;
+    setPreviewItems([]);
+    setPreviewTotalCount(null);
+    setIsLoadingPreview(false);
+    setIsGeneratingExportPdf(false);
+    setHasPreviewLoaded(false);
+  }, [isExportModalOpen]);
 
   // Sync user into PostgreSQL
   const getProfilePhotoUrl = (user: User) =>
@@ -635,12 +690,156 @@ function Account() {
     }
   };
 
-  const getDownloadFilename = (res: Response) => {
+  const resolveImageUrl = (path: string | null) => {
+    if (!path) return null;
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    return `http://localhost:8000${path.startsWith("/") ? "" : "/"}${path}`;
+  };
+
+  const buildExportParams = () => {
+    const params = new URLSearchParams();
+    if (exportMode === "lastx") {
+      if (!Number.isFinite(lastX) || lastX < 1) {
+        toast.error("Please enter a valid number of transformations");
+        return null;
+      }
+      if (lastX > EXPORT_MAX_ITEMS) {
+        toast.error(`Export limit is ${EXPORT_MAX_ITEMS} transformations`);
+        return null;
+      }
+      params.set("mode", "lastx");
+      params.set("limit", String(lastX));
+      return params;
+    }
+
+    params.set("mode", "timeframe");
+    params.set("timeframe", timeframe);
+    if (timeframe === "custom") {
+      if (!customStartDate || !customEndDate) {
+        toast.error("Please select both start and end dates");
+        return null;
+      }
+      if (customStartDate > customEndDate) {
+        toast.error("Start date must be before end date");
+        return null;
+      }
+      params.set("start", customStartDate);
+      params.set("end", customEndDate);
+    }
+    return params;
+  };
+
+  const getDownloadFilename = (res: Response, fallbackPrefix: string) => {
     const disposition = res.headers.get("Content-Disposition");
     const match = disposition?.match(/filename="?([^"]+)"?/i);
     if (match?.[1]) return match[1];
     const fallback = firebaseUser?.email || firebaseUser?.uid || "account";
-    return `Account_Summary_${fallback.replace(/[^a-z0-9_-]+/gi, "_")}.pdf`;
+    return `${fallbackPrefix}_${fallback.replace(/[^a-z0-9_-]+/gi, "_")}.pdf`;
+  };
+
+  const fetchTransformationsPreview = async () => {
+    if (!firebaseUser) {
+      toast.error("User not found");
+      return;
+    }
+
+    const params = buildExportParams();
+    if (!params) return;
+    params.set("preview_limit", String(EXPORT_PREVIEW_LIMIT));
+
+    try {
+      setIsLoadingPreview(true);
+      setHasPreviewLoaded(false);
+      const res = await fetch(
+        `http://localhost:8000/api/transformations/export?${params.toString()}`,
+        {
+          method: "GET",
+          headers: { "x-firebase-uid": firebaseUser.uid },
+        },
+      );
+
+      if (!res.ok) {
+        let message = "Failed to fetch transformations";
+        try {
+          const body = await res.json();
+          message = body.detail || message;
+        } catch {
+          // ignore
+        }
+        throw new Error(message);
+      }
+
+      const data: TransformationExportItem[] = await res.json();
+      const totalHeader = res.headers.get("X-Total-Count");
+      setPreviewItems(data);
+      setPreviewTotalCount(
+        totalHeader ? Number.parseInt(totalHeader, 10) : data.length,
+      );
+      setHasPreviewLoaded(true);
+    } catch (error) {
+      console.error("Error loading transformations preview:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to load transformations",
+      );
+      setPreviewItems([]);
+      setPreviewTotalCount(null);
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const downloadTransformationsPdf = async () => {
+    if (!firebaseUser) {
+      toast.error("User not found");
+      return;
+    }
+
+    const params = buildExportParams();
+    if (!params) return;
+
+    try {
+      setIsGeneratingExportPdf(true);
+      const res = await fetch(
+        `http://localhost:8000/api/transformations/export.pdf?${params.toString()}`,
+        {
+          method: "GET",
+          headers: { "x-firebase-uid": firebaseUser.uid },
+        },
+      );
+
+      if (!res.ok) {
+        let message = "Failed to generate export PDF";
+        try {
+          const body = await res.json();
+          message = body.detail || message;
+        } catch {
+          // ignore
+        }
+        throw new Error(message);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = getDownloadFilename(res, "Transformations_Export");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Transformations export downloaded");
+    } catch (error) {
+      console.error("Error generating transformations export:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate export PDF",
+      );
+    } finally {
+      setIsGeneratingExportPdf(false);
+    }
   };
 
   const downloadAccountSummary = async () => {
@@ -673,7 +872,7 @@ function Account() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = getDownloadFilename(res);
+      link.download = getDownloadFilename(res, "Account_Summary");
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -716,6 +915,8 @@ function Account() {
       setIsLoginActivityModalOpen(true);
     } else if (action === "Download my data") {
       downloadAccountSummary();
+    } else if (action === "Export transformations") {
+      setIsExportModalOpen(true);
     } else if (action === "Delete account") {
       setIsDeleteAccountModalOpen(true);
     }
@@ -876,6 +1077,19 @@ function Account() {
                   disabled={isGeneratingSummary}
                 >
                   {isGeneratingSummary ? "Generating summary..." : "Account Summary"}
+                </button>
+                <button
+                  style={{
+                    ...styles.menuItem,
+                    opacity: isGeneratingExportPdf ? 0.65 : 1,
+                    cursor: isGeneratingExportPdf ? "not-allowed" : "pointer",
+                  }}
+                  onClick={() => handleMenuClick("Export transformations")}
+                  disabled={isGeneratingExportPdf}
+                >
+                  {isGeneratingExportPdf
+                    ? "Generating export..."
+                    : "Export Transformations"}
                 </button>
                 <button
                   style={{ ...styles.menuItem, borderBottomWidth: 0 }}
@@ -1293,6 +1507,262 @@ function Account() {
             </div>
           )}
 
+          {/* Export Transformations Modal */}
+          {isExportModalOpen && (
+            <div
+              style={styles.modalOverlay}
+              onClick={() => setIsExportModalOpen(false)}
+            >
+              <div
+                style={{
+                  ...styles.modalContent,
+                  maxWidth: "880px",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 style={styles.modalTitle}>Export Transformations</h3>
+                <div style={styles.modalBody}>
+                  <p style={styles.modalDescription}>
+                    Choose a filter, preview your transformations, then export to
+                    PDF.
+                  </p>
+
+                  <div style={styles.exportOptions}>
+                    <label style={styles.radioRow}>
+                      <input
+                        type="radio"
+                        checked={exportMode === "timeframe"}
+                        onChange={() => setExportMode("timeframe")}
+                      />
+                      <span style={styles.radioLabel}>Time frame</span>
+                    </label>
+                    {exportMode === "timeframe" && (
+                      <div style={styles.exportSubsection}>
+                        <label style={styles.label}>Preset</label>
+                        <select
+                          style={styles.select}
+                          value={timeframe}
+                          onChange={(e) =>
+                            setTimeframe(
+                              e.target.value as
+                                | "day"
+                                | "week"
+                                | "month"
+                                | "year"
+                                | "all"
+                                | "custom",
+                            )
+                          }
+                        >
+                          <option value="day">Last 24 hours</option>
+                          <option value="week">Last 7 days</option>
+                          <option value="month">Last 30 days</option>
+                          <option value="year">Last 12 months</option>
+                          <option value="all">All time</option>
+                          <option value="custom">Custom range</option>
+                        </select>
+
+                        {timeframe === "custom" && (
+                          <div style={styles.customDateRow}>
+                            <div style={styles.customDateField}>
+                              <label style={styles.label}>Start date</label>
+                              <input
+                                type="date"
+                                value={customStartDate}
+                                onChange={(e) =>
+                                  setCustomStartDate(e.target.value)
+                                }
+                                style={styles.input}
+                              />
+                            </div>
+                            <div style={styles.customDateField}>
+                              <label style={styles.label}>End date</label>
+                              <input
+                                type="date"
+                                value={customEndDate}
+                                onChange={(e) =>
+                                  setCustomEndDate(e.target.value)
+                                }
+                                style={styles.input}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <label style={styles.radioRow}>
+                      <input
+                        type="radio"
+                        checked={exportMode === "lastx"}
+                        onChange={() => setExportMode("lastx")}
+                      />
+                      <span style={styles.radioLabel}>Last X transformations</span>
+                    </label>
+                    {exportMode === "lastx" && (
+                      <div style={styles.exportSubsection}>
+                        <label style={styles.label}>Number of items</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={EXPORT_MAX_ITEMS}
+                          value={lastX}
+                          onChange={(e) => setLastX(Number(e.target.value))}
+                          style={styles.input}
+                        />
+                        <p style={styles.helpText}>
+                          Maximum export size is {EXPORT_MAX_ITEMS} transformations.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={styles.previewSection}>
+                    <div style={styles.previewHeader}>
+                      <h4 style={styles.previewTitle}>Preview</h4>
+                      {previewTotalCount !== null && (
+                        <span style={styles.previewCount}>
+                          {previewTotalCount} found
+                        </span>
+                      )}
+                    </div>
+
+                    {isLoadingPreview ? (
+                      <p style={styles.loadingText}>Loading preview...</p>
+                    ) : !hasPreviewLoaded ? (
+                      <p style={styles.previewEmptyText}>
+                        Click Preview to load transformations.
+                      </p>
+                    ) : previewItems.length === 0 ? (
+                      <p style={styles.previewEmptyText}>
+                        No transformations found for this filter.
+                      </p>
+                    ) : (
+                      <>
+                        <div style={styles.previewGrid}>
+                          {previewItems.map((item) => {
+                            const beforeUrl = resolveImageUrl(
+                              item.input_image_url,
+                            );
+                            const afterUrl = resolveImageUrl(
+                              item.output_image_url,
+                            );
+                            return (
+                              <div
+                                key={item.transformation_id}
+                                style={styles.previewCard}
+                              >
+                                <div style={styles.previewImages}>
+                                  <div style={styles.previewImageColumn}>
+                                    <span style={styles.previewLabel}>Before</span>
+                                    <img
+                                      src={beforeUrl || IMAGE_PLACEHOLDER}
+                                      alt="Before"
+                                      style={styles.previewImage}
+                                      onError={(e) => {
+                                        e.currentTarget.src = IMAGE_PLACEHOLDER;
+                                      }}
+                                    />
+                                  </div>
+                                  <div style={styles.previewImageColumn}>
+                                    <span style={styles.previewLabel}>After</span>
+                                    <img
+                                      src={afterUrl || IMAGE_PLACEHOLDER}
+                                      alt="After"
+                                      style={styles.previewImage}
+                                      onError={(e) => {
+                                        e.currentTarget.src = IMAGE_PLACEHOLDER;
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                                <div style={styles.previewMeta}>
+                                  <span style={styles.previewMetaItem}>
+                                    <strong>Style:</strong>{" "}
+                                    {item.style_name || "Unspecified"}
+                                  </span>
+                                  <span style={styles.previewMetaItem}>
+                                    <strong>Room:</strong>{" "}
+                                    {item.room_type || "Unspecified"}
+                                  </span>
+                                  <span style={styles.previewMetaItem}>
+                                    <strong>Created:</strong>{" "}
+                                    {formatDate(item.created_at)}
+                                  </span>
+                                  {item.project_name && (
+                                    <span style={styles.previewMetaItem}>
+                                      <strong>Project:</strong>{" "}
+                                      {item.project_name}
+                                    </span>
+                                  )}
+                                  {item.prompt && (
+                                    <span style={styles.previewMetaItem}>
+                                      <strong>Prompt:</strong> {item.prompt}
+                                    </span>
+                                  )}
+                                  {(!beforeUrl || !afterUrl) && (
+                                    <span style={styles.previewMetaItem}>
+                                      {beforeUrl ? "" : "Before image unavailable. "}
+                                      {afterUrl ? "" : "After image unavailable."}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {previewTotalCount !== null &&
+                          previewTotalCount > previewItems.length && (
+                            <p style={styles.previewNote}>
+                              Showing the first {previewItems.length} of{" "}
+                              {previewTotalCount} transformations.
+                            </p>
+                          )}
+                      </>
+                    )}
+                    {previewTotalCount !== null &&
+                      previewTotalCount > EXPORT_MAX_ITEMS && (
+                        <p style={styles.previewWarning}>
+                          Export limit is {EXPORT_MAX_ITEMS}. Narrow your filter
+                          before exporting.
+                        </p>
+                      )}
+                  </div>
+
+                  <div style={styles.modalActions}>
+                    <button
+                      style={styles.cancelButton}
+                      onClick={() => setIsExportModalOpen(false)}
+                      disabled={isLoadingPreview || isGeneratingExportPdf}
+                    >
+                      Close
+                    </button>
+                    <button
+                      style={styles.secondaryButton}
+                      onClick={fetchTransformationsPreview}
+                      disabled={isLoadingPreview || isGeneratingExportPdf}
+                    >
+                      {isLoadingPreview ? "Loading..." : "Preview"}
+                    </button>
+                    <button
+                      style={styles.submitButton}
+                      onClick={downloadTransformationsPdf}
+                      disabled={
+                        !hasPreviewLoaded ||
+                        previewItems.length === 0 ||
+                        isGeneratingExportPdf ||
+                        previewTotalCount === null ||
+                        previewTotalCount > EXPORT_MAX_ITEMS
+                      }
+                    >
+                      {isGeneratingExportPdf ? "Exporting..." : "Export PDF"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Edit Profile Photo Modal */}
           {isEditPhotoModalOpen && (
             <div style={styles.modalOverlay} onClick={handleClosePhotoModal}>
@@ -1585,6 +2055,17 @@ const styles = {
     transition: "border-color 0.2s ease",
     outline: "none",
   } as React.CSSProperties,
+  select: {
+    width: "100%",
+    padding: "10px 12px",
+    fontSize: "14px",
+    border: "1px solid #d0d0d0",
+    borderRadius: "6px",
+    backgroundColor: "#ffffff",
+    fontFamily: "inherit",
+    boxSizing: "border-box",
+    outline: "none",
+  } as React.CSSProperties,
   charCount: {
     fontSize: "12px",
     color: "#999999",
@@ -1623,6 +2104,18 @@ const styles = {
     transition: "all 0.2s ease",
     outline: "none",
   } as React.CSSProperties,
+  secondaryButton: {
+    padding: "10px 24px",
+    fontSize: "14px",
+    fontWeight: "500",
+    border: "1px solid #d0d0d0",
+    borderRadius: "6px",
+    backgroundColor: "#f8f8f8",
+    color: "#1a1a1a",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    outline: "none",
+  } as React.CSSProperties,
   passwordInputContainer: {
     position: "relative",
     display: "flex",
@@ -1645,6 +2138,123 @@ const styles = {
     fontSize: "12px",
     color: "#999999",
     margin: "8px 0 0 0",
+  } as React.CSSProperties,
+  exportOptions: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    marginBottom: "24px",
+  } as React.CSSProperties,
+  exportSubsection: {
+    padding: "12px 16px",
+    backgroundColor: "#f9fafb",
+    borderRadius: "8px",
+    border: "1px solid #e5e7eb",
+  } as React.CSSProperties,
+  radioRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    fontSize: "14px",
+    fontWeight: "500",
+    color: "#1a1a1a",
+  } as React.CSSProperties,
+  radioLabel: {
+    fontSize: "14px",
+    fontWeight: "500",
+    color: "#1a1a1a",
+  } as React.CSSProperties,
+  customDateRow: {
+    display: "flex",
+    gap: "16px",
+    marginTop: "12px",
+    flexWrap: "wrap",
+  } as React.CSSProperties,
+  customDateField: {
+    flex: 1,
+    minWidth: "180px",
+  } as React.CSSProperties,
+  previewSection: {
+    marginTop: "16px",
+    borderTop: "1px solid #e5e7eb",
+    paddingTop: "16px",
+  } as React.CSSProperties,
+  previewHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "12px",
+  } as React.CSSProperties,
+  previewTitle: {
+    fontSize: "15px",
+    fontWeight: "600",
+    margin: 0,
+    color: "#1a1a1a",
+  } as React.CSSProperties,
+  previewCount: {
+    fontSize: "12px",
+    color: "#6b7280",
+  } as React.CSSProperties,
+  previewGrid: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  } as React.CSSProperties,
+  previewCard: {
+    border: "1px solid #e5e7eb",
+    borderRadius: "10px",
+    padding: "16px",
+    backgroundColor: "#ffffff",
+  } as React.CSSProperties,
+  previewImages: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+    gap: "12px",
+    marginBottom: "12px",
+  } as React.CSSProperties,
+  previewImageColumn: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  } as React.CSSProperties,
+  previewLabel: {
+    fontSize: "12px",
+    color: "#6b7280",
+    fontWeight: "600",
+  } as React.CSSProperties,
+  previewImage: {
+    width: "100%",
+    height: "180px",
+    objectFit: "cover",
+    borderRadius: "8px",
+    border: "1px solid #e5e7eb",
+    backgroundColor: "#f3f4f6",
+  } as React.CSSProperties,
+  previewMeta: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    fontSize: "12px",
+    color: "#374151",
+  } as React.CSSProperties,
+  previewMetaItem: {
+    fontSize: "12px",
+    color: "#374151",
+  } as React.CSSProperties,
+  previewNote: {
+    fontSize: "12px",
+    color: "#6b7280",
+    marginTop: "10px",
+  } as React.CSSProperties,
+  previewWarning: {
+    fontSize: "12px",
+    color: "#b45309",
+    marginTop: "10px",
+  } as React.CSSProperties,
+  previewEmptyText: {
+    fontSize: "13px",
+    color: "#6b7280",
+    margin: 0,
   } as React.CSSProperties,
   modalDescription: {
     fontSize: "14px",

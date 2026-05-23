@@ -11,3 +11,4 @@ Pillow==11.3.0
 psycopg2-binary==2.9.9
 requests==2.32.3
 reportlab==4.2.5
+pytest==8.3.2

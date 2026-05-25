@@ -82,8 +82,23 @@ function Account() {
     useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.getAttribute("data-theme") === "dark",
+  );
 
   const navigate = useNavigate();
+
+  // Track dark mode changes
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute("data-theme") === "dark");
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   // Inject the Account-page CSS overrides only while this page is mounted,
   // so the global [data-theme="dark"] input[type="text"] rules don't bleed
@@ -122,7 +137,7 @@ function Account() {
       );
       loadSavedAccounts(user.uid);
       syncUser(user).then(() =>
-        trackLoginActivity(user.uid, navigator.userAgent, method)
+        trackLoginActivity(user.uid, navigator.userAgent, method),
       );
       setFirebaseUser(user);
       setIsLoading(false);
@@ -176,7 +191,11 @@ function Account() {
   };
 
   // Track login activity
-  const trackLoginActivity = async (uid: string, deviceInfo: string, loginMethod: string) => {
+  const trackLoginActivity = async (
+    uid: string,
+    deviceInfo: string,
+    loginMethod: string,
+  ) => {
     try {
       await fetch("http://localhost:8000/api/activity/login", {
         method: "POST",
@@ -184,7 +203,10 @@ function Account() {
           "Content-Type": "application/json",
           "x-firebase-uid": uid,
         },
-        body: JSON.stringify({ device_info: deviceInfo, login_method: loginMethod }),
+        body: JSON.stringify({
+          device_info: deviceInfo,
+          login_method: loginMethod,
+        }),
       });
     } catch (error) {
       console.error("Error tracking login activity:", error);
@@ -253,7 +275,6 @@ function Account() {
     if (userAgent.includes("Safari")) return "Safari";
     return "Unknown Browser";
   };
-
 
   const loadSavedAccounts = (currentUid: string) => {
     try {
@@ -653,10 +674,13 @@ function Account() {
       setIsGeneratingSummary(true);
       await syncUser(firebaseUser);
 
-      const res = await fetch("http://localhost:8000/api/users/me/summary.pdf", {
-        method: "GET",
-        headers: { "x-firebase-uid": firebaseUser.uid },
-      });
+      const res = await fetch(
+        "http://localhost:8000/api/users/me/summary.pdf",
+        {
+          method: "GET",
+          headers: { "x-firebase-uid": firebaseUser.uid },
+        },
+      );
 
       if (!res.ok) {
         let message = "Failed to generate account summary";
@@ -875,7 +899,9 @@ function Account() {
                   onClick={() => handleMenuClick("Download my data")}
                   disabled={isGeneratingSummary}
                 >
-                  {isGeneratingSummary ? "Generating summary..." : "Account Summary"}
+                  {isGeneratingSummary
+                    ? "Generating summary..."
+                    : "Account Summary"}
                 </button>
                 <button
                   style={{ ...styles.menuItem, borderBottomWidth: 0 }}
@@ -894,13 +920,18 @@ function Account() {
               onClick={() => setIsChangeUsernameModalOpen(false)}
             >
               <div
-                style={styles.modalContent}
+                style={isDark ? styles.modalContentDark : styles.modalContent}
+                className="modal-content"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h3 style={styles.modalTitle}>Change Username</h3>
+                <h3 style={isDark ? styles.modalTitleDark : styles.modalTitle}>
+                  Change Username
+                </h3>
                 <div style={styles.modalBody}>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>New Username</label>
+                    <label style={isDark ? styles.labelDark : styles.label}>
+                      New Username
+                    </label>
                     <input
                       type="text"
                       value={newUsername}
@@ -918,9 +949,15 @@ function Account() {
                       {newUsername.length}/50 characters
                     </p>
                   </div>
-                  <div style={styles.modalActions}>
+                  <div
+                    style={
+                      isDark ? styles.modalActionsDark : styles.modalActions
+                    }
+                  >
                     <button
-                      style={styles.cancelButton}
+                      style={
+                        isDark ? styles.cancelButtonDark : styles.cancelButton
+                      }
                       onClick={() => {
                         setIsChangeUsernameModalOpen(false);
                         setNewUsername("");
@@ -949,13 +986,18 @@ function Account() {
               onClick={() => setIsChangePasswordModalOpen(false)}
             >
               <div
-                style={styles.modalContent}
+                style={isDark ? styles.modalContentDark : styles.modalContent}
+                className="modal-content"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h3 style={styles.modalTitle}>Change Password</h3>
+                <h3 style={isDark ? styles.modalTitleDark : styles.modalTitle}>
+                  Change Password
+                </h3>
                 <div style={styles.modalBody}>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>Current Password</label>
+                    <label style={isDark ? styles.labelDark : styles.label}>
+                      Current Password
+                    </label>
                     <div style={styles.passwordInputContainer}>
                       <input
                         type={showCurrentPassword ? "text" : "password"}
@@ -977,7 +1019,9 @@ function Account() {
                   </div>
 
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>New Password</label>
+                    <label style={isDark ? styles.labelDark : styles.label}>
+                      New Password
+                    </label>
                     <div style={styles.passwordInputContainer}>
                       <input
                         type={showNewPassword ? "text" : "password"}
@@ -998,7 +1042,9 @@ function Account() {
                   </div>
 
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>Confirm Password</label>
+                    <label style={isDark ? styles.labelDark : styles.label}>
+                      Confirm Password
+                    </label>
                     <div style={styles.passwordInputContainer}>
                       <input
                         type={showConfirmPassword ? "text" : "password"}
@@ -1024,9 +1070,15 @@ function Account() {
                     </div>
                   </div>
 
-                  <div style={styles.modalActions}>
+                  <div
+                    style={
+                      isDark ? styles.modalActionsDark : styles.modalActions
+                    }
+                  >
                     <button
-                      style={styles.cancelButton}
+                      style={
+                        isDark ? styles.cancelButtonDark : styles.cancelButton
+                      }
                       onClick={() => {
                         setIsChangePasswordModalOpen(false);
                         setCurrentPassword("");
@@ -1065,18 +1117,33 @@ function Account() {
               }}
             >
               <div
-                style={styles.modalContent}
+                style={isDark ? styles.modalContentDark : styles.modalContent}
+                className="modal-content"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h3 style={styles.modalTitle}>Switch Account</h3>
+                <h3 style={isDark ? styles.modalTitleDark : styles.modalTitle}>
+                  Switch Account
+                </h3>
                 <div style={styles.modalBody}>
-                  <p style={styles.modalDescription}>
+                  <p
+                    style={
+                      isDark
+                        ? { ...styles.modalDescription, color: "#aaaaaa" }
+                        : styles.modalDescription
+                    }
+                  >
                     Choose how to switch accounts:
                   </p>
 
                   {/* Google Sign-In Section */}
                   <div style={styles.methodSection}>
-                    <h4 style={styles.methodTitle}>Quick Switch with Google</h4>
+                    <h4
+                      style={
+                        isDark ? styles.methodTitleDark : styles.methodTitle
+                      }
+                    >
+                      Quick Switch with Google
+                    </h4>
                     <button
                       style={{
                         ...styles.submitButton,
@@ -1094,7 +1161,13 @@ function Account() {
 
                   {/* Email Sign-In Section */}
                   <div style={styles.methodSection}>
-                    <h4 style={styles.methodTitle}>Or sign in with Email</h4>
+                    <h4
+                      style={
+                        isDark ? styles.methodTitleDark : styles.methodTitle
+                      }
+                    >
+                      Or sign in with Email
+                    </h4>
                     <button
                       style={{
                         ...styles.submitButton,
@@ -1156,23 +1229,43 @@ function Account() {
                   {/* Saved Accounts Section */}
                   {savedAccounts.length > 0 && (
                     <div style={styles.methodSection}>
-                      <h4 style={styles.methodTitle}>
+                      <h4
+                        style={
+                          isDark ? styles.methodTitleDark : styles.methodTitle
+                        }
+                      >
                         Or use an account signed in before:
                       </h4>
                       <div style={styles.accountList}>
                         {savedAccounts.map((account) => (
                           <button
                             key={account.uid}
-                            style={styles.switchAccountButton}
+                            style={
+                              isDark
+                                ? styles.switchAccountButtonDark
+                                : styles.switchAccountButton
+                            }
                             onClick={() => handleSwitchToSavedAccount(account)}
                             disabled={isSwitchingAccount}
                           >
                             <div style={styles.accountButtonContent}>
-                              <span style={styles.accountEmail}>
+                              <span
+                                style={
+                                  isDark
+                                    ? styles.accountEmailDark
+                                    : styles.accountEmail
+                                }
+                              >
                                 {account.email}
                               </span>
                               {account.displayName && (
-                                <span style={styles.accountName}>
+                                <span
+                                  style={
+                                    isDark
+                                      ? styles.accountNameDark
+                                      : styles.accountName
+                                  }
+                                >
                                   {account.displayName}
                                 </span>
                               )}
@@ -1183,9 +1276,15 @@ function Account() {
                     </div>
                   )}
 
-                  <div style={styles.modalActions}>
+                  <div
+                    style={
+                      isDark ? styles.modalActionsDark : styles.modalActions
+                    }
+                  >
                     <button
-                      style={styles.cancelButton}
+                      style={
+                        isDark ? styles.cancelButtonDark : styles.cancelButton
+                      }
                       onClick={() => {
                         setIsSwitchAccountModalOpen(false);
                         setIsSwitchEmailFormOpen(false);
@@ -1217,12 +1316,15 @@ function Account() {
             >
               <div
                 style={{
-                  ...styles.modalContent,
+                  ...(isDark ? styles.modalContentDark : styles.modalContent),
                   maxWidth: "600px",
                 }}
+                className="modal-content"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h3 style={styles.modalTitle}>Login Activity</h3>
+                <h3 style={isDark ? styles.modalTitleDark : styles.modalTitle}>
+                  Login Activity
+                </h3>
                 <div style={styles.modalBody}>
                   {isLoadingActivities ? (
                     <p style={styles.loadingText}>Loading activities...</p>
@@ -1234,28 +1336,67 @@ function Account() {
                     <>
                       <div style={styles.activityList}>
                         {loginActivities.map((activity) => (
-                          <div key={activity.activity_id} style={styles.activityItem}>
+                          <div
+                            key={activity.activity_id}
+                            style={
+                              isDark
+                                ? styles.activityItemDark
+                                : styles.activityItem
+                            }
+                          >
                             <div style={styles.activityHeader}>
-                              <span style={styles.activityDevice}>
-                                {getDeviceName(activity.device_info || "")} • {getBrowserName(activity.device_info || "")}
+                              <span
+                                style={
+                                  isDark
+                                    ? styles.activityDeviceDark
+                                    : styles.activityDevice
+                                }
+                              >
+                                {getDeviceName(activity.device_info || "")} •{" "}
+                                {getBrowserName(activity.device_info || "")}
                               </span>
-                              <span style={styles.activityTime}>
+                              <span
+                                style={
+                                  isDark
+                                    ? styles.activityTimeDark
+                                    : styles.activityTime
+                                }
+                              >
                                 {formatDate(activity.timestamp)}
                               </span>
                             </div>
                             <div style={styles.activityDetails}>
                               {activity.login_method && (
-                                <p style={styles.activityDetailItem}>
-                                  <span style={styles.detailLabel}>Method:</span>
-                                  <span style={styles.methodBadge}>
-                                    {activity.login_method === "google" ? "Google Sign-In" : "Email/Password"}
+                                <p
+                                  style={
+                                    isDark
+                                      ? styles.activityDetailItemDark
+                                      : styles.activityDetailItem
+                                  }
+                                >
+                                  <span
+                                    style={
+                                      isDark
+                                        ? {
+                                            ...styles.detailLabel,
+                                            color: "#888",
+                                          }
+                                        : styles.detailLabel
+                                    }
+                                  >
+                                    Method:
                                   </span>
-                                </p>
-                              )}
-                              {activity.ip_address && (
-                                <p style={styles.activityDetailItem}>
-                                  <span style={styles.detailLabel}>IP:</span>
-                                  <span>{activity.ip_address}</span>
+                                  <span
+                                    style={
+                                      isDark
+                                        ? styles.methodBadgeDark
+                                        : styles.methodBadge
+                                    }
+                                  >
+                                    {activity.login_method === "google"
+                                      ? "Google Sign-In"
+                                      : "Email/Password"}
+                                  </span>
                                 </p>
                               )}
                             </div>
@@ -1280,9 +1421,15 @@ function Account() {
                     </>
                   )}
 
-                  <div style={styles.modalActions}>
+                  <div
+                    style={
+                      isDark ? styles.modalActionsDark : styles.modalActions
+                    }
+                  >
                     <button
-                      style={styles.cancelButton}
+                      style={
+                        isDark ? styles.cancelButtonDark : styles.cancelButton
+                      }
                       onClick={() => setIsLoginActivityModalOpen(false)}
                     >
                       Close
@@ -1297,10 +1444,13 @@ function Account() {
           {isEditPhotoModalOpen && (
             <div style={styles.modalOverlay} onClick={handleClosePhotoModal}>
               <div
-                style={styles.modalContent}
+                style={isDark ? styles.modalContentDark : styles.modalContent}
+                className="edit-photo-modal"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h3 style={styles.modalTitle}>Edit Profile Photo</h3>
+                <h3 style={isDark ? styles.modalTitleDark : styles.modalTitle}>
+                  Edit Profile Photo
+                </h3>
                 <div style={styles.modalBody}>
                   <div style={styles.photoPreviewContainer}>
                     <img
@@ -1310,7 +1460,9 @@ function Account() {
                         "/profile logo.png"
                       }
                       alt="Profile preview"
-                      style={styles.photoPreview}
+                      style={
+                        isDark ? styles.photoPreviewDark : styles.photoPreview
+                      }
                     />
                   </div>
                   <label style={styles.photoUploadLabel}>
@@ -1320,19 +1472,45 @@ function Account() {
                       style={{ display: "none" }}
                       onChange={handlePhotoFileSelect}
                     />
-                    <span style={styles.chooseFileButton}>
+                    <span
+                      style={
+                        isDark
+                          ? styles.chooseFileButtonDark
+                          : styles.chooseFileButton
+                      }
+                    >
                       {selectedPhotoFile ? "Change photo" : "Choose photo"}
                     </span>
                   </label>
                   {selectedPhotoFile && (
-                    <p style={styles.selectedFileName}>
+                    <p
+                      style={
+                        isDark
+                          ? styles.selectedFileNameDark
+                          : styles.selectedFileName
+                      }
+                    >
                       {selectedPhotoFile.name}
                     </p>
                   )}
-                  <p style={styles.helpText}>Max size: 5MB. JPG, PNG, GIF.</p>
-                  <div style={styles.modalActions}>
+                  <p
+                    style={
+                      isDark
+                        ? { ...styles.helpText, color: "#aaaaaa" }
+                        : styles.helpText
+                    }
+                  >
+                    Max size: 5MB. JPG, PNG, GIF.
+                  </p>
+                  <div
+                    style={
+                      isDark ? styles.modalActionsDark : styles.modalActions
+                    }
+                  >
                     <button
-                      style={styles.cancelButton}
+                      style={
+                        isDark ? styles.cancelButtonDark : styles.cancelButton
+                      }
                       onClick={handleClosePhotoModal}
                       disabled={isUploadingPhoto}
                     >
@@ -1358,10 +1536,13 @@ function Account() {
               onClick={() => setIsDeleteAccountModalOpen(false)}
             >
               <div
-                style={styles.modalContent}
+                style={isDark ? styles.modalContentDark : styles.modalContent}
+                className="modal-content"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h3 style={styles.modalTitle}>Delete Account</h3>
+                <h3 style={isDark ? styles.modalTitleDark : styles.modalTitle}>
+                  Delete Account
+                </h3>
                 <div style={styles.modalBody}>
                   <p style={styles.deleteWarningText}>
                     ⚠️ Are you sure you want to delete your account?
@@ -1387,9 +1568,15 @@ function Account() {
                     </p>
                   </div>
 
-                  <div style={styles.modalActions}>
+                  <div
+                    style={
+                      isDark ? styles.modalActionsDark : styles.modalActions
+                    }
+                  >
                     <button
-                      style={styles.cancelButton}
+                      style={
+                        isDark ? styles.cancelButtonDark : styles.cancelButton
+                      }
                       onClick={() => setIsDeleteAccountModalOpen(false)}
                       disabled={isDeletingAccount}
                     >
@@ -1438,7 +1625,7 @@ const styles = {
   accountCard: {
     backgroundColor: "#ffffff",
     borderRadius: "12px",
-    border: "1px solid #999999",
+    border: "1px solid #646464ff",
     padding: "24px",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
     transition: "all 0.2s ease",
@@ -1550,6 +1737,18 @@ const styles = {
     display: "flex",
     flexDirection: "column",
   } as React.CSSProperties,
+  modalContentDark: {
+    backgroundColor: "#2a2a2a",
+    borderRadius: "12px",
+    boxShadow: "0 4px 24px rgba(0, 0, 0, 0.5)",
+    maxWidth: "450px",
+    width: "90%",
+    padding: "0",
+    zIndex: 1001,
+    maxHeight: "80vh",
+    display: "flex",
+    flexDirection: "column",
+  } as React.CSSProperties,
   modalTitle: {
     fontSize: "18px",
     fontWeight: "600",
@@ -1557,6 +1756,15 @@ const styles = {
     margin: "0",
     padding: "24px 24px 16px 24px",
     borderBottom: "1px solid #e0e0e0",
+    flexShrink: 0,
+  } as React.CSSProperties,
+  modalTitleDark: {
+    fontSize: "18px",
+    fontWeight: "600",
+    color: "#e8e8e8",
+    margin: "0",
+    padding: "24px 24px 16px 24px",
+    borderBottom: "1px solid #3a3a3a",
     flexShrink: 0,
   } as React.CSSProperties,
   modalBody: {
@@ -1572,6 +1780,13 @@ const styles = {
     fontSize: "14px",
     fontWeight: "500",
     color: "#1a1a1a",
+    marginBottom: "8px",
+  } as React.CSSProperties,
+  labelDark: {
+    display: "block",
+    fontSize: "14px",
+    fontWeight: "500",
+    color: "#e8e8e8",
     marginBottom: "8px",
   } as React.CSSProperties,
   input: {
@@ -1599,6 +1814,15 @@ const styles = {
     borderTop: "1px solid #e0e0e0",
     flexShrink: 0,
   } as React.CSSProperties,
+  modalActionsDark: {
+    display: "flex",
+    gap: "12px",
+    justifyContent: "flex-end",
+    marginTop: "24px",
+    paddingTop: "24px",
+    borderTop: "1px solid #3a3a3a",
+    flexShrink: 0,
+  } as React.CSSProperties,
   cancelButton: {
     padding: "10px 24px",
     fontSize: "14px",
@@ -1607,6 +1831,18 @@ const styles = {
     borderRadius: "6px",
     backgroundColor: "#ffffff",
     color: "#1a1a1a",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    outline: "none",
+  } as React.CSSProperties,
+  cancelButtonDark: {
+    padding: "10px 24px",
+    fontSize: "14px",
+    fontWeight: "500",
+    border: "1px solid #555",
+    borderRadius: "6px",
+    backgroundColor: "#3a3a3a",
+    color: "#e8e8e8",
     cursor: "pointer",
     transition: "all 0.2s ease",
     outline: "none",
@@ -1681,6 +1917,17 @@ const styles = {
     outline: "none",
     width: "100%",
   } as React.CSSProperties,
+  switchAccountButtonDark: {
+    backgroundColor: "#333333",
+    border: "1px solid #444",
+    borderRadius: "6px",
+    padding: "14px 16px",
+    textAlign: "left",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    outline: "none",
+    width: "100%",
+  } as React.CSSProperties,
   accountButtonContent: {
     display: "flex",
     flexDirection: "column",
@@ -1691,9 +1938,18 @@ const styles = {
     fontWeight: "500",
     color: "#1a1a1a",
   } as React.CSSProperties,
+  accountEmailDark: {
+    fontSize: "14px",
+    fontWeight: "500",
+    color: "#e8e8e8",
+  } as React.CSSProperties,
   accountName: {
     fontSize: "12px",
     color: "#999999",
+  } as React.CSSProperties,
+  accountNameDark: {
+    fontSize: "12px",
+    color: "#888888",
   } as React.CSSProperties,
   noAccountsText: {
     fontSize: "14px",
@@ -1718,6 +1974,13 @@ const styles = {
     margin: "0 0 12px 0",
     letterSpacing: "0.3px",
   } as React.CSSProperties,
+  methodTitleDark: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#aaaaaa",
+    margin: "0 0 12px 0",
+    letterSpacing: "0.3px",
+  } as React.CSSProperties,
   // Login Activity Styles
   activityList: {
     display: "flex",
@@ -1727,6 +1990,12 @@ const styles = {
   activityItem: {
     backgroundColor: "#f8f8f8",
     border: "1px solid #e0e0e0",
+    borderRadius: "8px",
+    padding: "16px",
+  } as React.CSSProperties,
+  activityItemDark: {
+    backgroundColor: "#333333",
+    border: "1px solid #666666",
     borderRadius: "8px",
     padding: "16px",
   } as React.CSSProperties,
@@ -1741,9 +2010,18 @@ const styles = {
     fontWeight: "600",
     color: "#1a1a1a",
   } as React.CSSProperties,
+  activityDeviceDark: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#e8e8e8",
+  } as React.CSSProperties,
   activityTime: {
     fontSize: "12px",
     color: "#999999",
+  } as React.CSSProperties,
+  activityTimeDark: {
+    fontSize: "12px",
+    color: "#777777",
   } as React.CSSProperties,
   activityDetails: {
     display: "flex",
@@ -1757,10 +2035,25 @@ const styles = {
     display: "flex",
     gap: "8px",
   } as React.CSSProperties,
+  activityDetailItemDark: {
+    fontSize: "13px",
+    color: "#aaaaaa",
+    margin: "0",
+    display: "flex",
+    gap: "8px",
+  } as React.CSSProperties,
   methodBadge: {
     fontSize: "12px",
     backgroundColor: "#e3f2fd",
     color: "#0066cc",
+    padding: "2px 8px",
+    borderRadius: "4px",
+    fontWeight: "500",
+  } as React.CSSProperties,
+  methodBadgeDark: {
+    fontSize: "12px",
+    backgroundColor: "#1c2940",
+    color: "#4a9eff",
     padding: "2px 8px",
     borderRadius: "4px",
     fontWeight: "500",
@@ -1845,6 +2138,14 @@ const styles = {
     border: "2px solid #999999",
     backgroundColor: "#f0f0f0",
   } as React.CSSProperties,
+  photoPreviewDark: {
+    width: "120px",
+    height: "120px",
+    borderRadius: "50%",
+    objectFit: "cover",
+    border: "2px solid #555",
+    backgroundColor: "#3a3a3a",
+  } as React.CSSProperties,
   photoUploadLabel: {
     display: "flex",
     justifyContent: "center",
@@ -1862,9 +2163,27 @@ const styles = {
     cursor: "pointer",
     transition: "all 0.2s ease",
   } as React.CSSProperties,
+  chooseFileButtonDark: {
+    padding: "10px 24px",
+    fontSize: "14px",
+    fontWeight: "500",
+    border: "1px solid #4a9eff",
+    borderRadius: "6px",
+    backgroundColor: "#3a3a3a",
+    color: "#4a9eff",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  } as React.CSSProperties,
   selectedFileName: {
     fontSize: "13px",
     color: "#666666",
+    textAlign: "center",
+    margin: "0 0 4px 0",
+    wordBreak: "break-all",
+  } as React.CSSProperties,
+  selectedFileNameDark: {
+    fontSize: "13px",
+    color: "#aaaaaa",
     textAlign: "center",
     margin: "0 0 4px 0",
     wordBreak: "break-all",
@@ -1881,17 +2200,18 @@ const ACCOUNT_PAGE_OVERRIDES_CSS = `
   }
   
   [data-theme="dark"] .account-card {
-    background-color: #38383893 !important;
-    border-color: #999999 !important;
+    background-color: #2e2e2e !important;
+    border-color: #888 !important;
   }
-  
+
   [data-theme="dark"] .section-card {
-    background-color: #555 !important;
-    border-color: #404040 !important;
+    background-color: #2e2e2e !important;
+    border-color: #888 !important;
   }
-  
+
   [data-theme="dark"] .menu-card {
-    background-color: #38383893 !important;
+    background-color: #2e2e2e !important;
+    border-color: #888 !important;
   }
   
   [data-theme="dark"] button[style*="color: #0066cc"] {
@@ -1921,17 +2241,8 @@ const ACCOUNT_PAGE_OVERRIDES_CSS = `
   }
 
 
-  /* Modal styling for dark theme */
-  [data-theme="dark"] div[style*="position: fixed"] {
-    background-color: rgba(0, 0, 0, 0.7) !important;
-  }
-
-  [data-theme="dark"] div[style*="backgroundColor: #ffffff"][style*="borderRadius: 12px"] {
-    background-color: #383838 !important;
-  }
-
-  [data-theme="dark"] h3[style*="color: #1a1a1a"] {
-    color: #e8e8e8 !important;
+  [data-theme="dark"] .menu-card button {
+    border-bottom-color: #888 !important;
   }
 
   [data-theme="dark"] input[type="text"] {
@@ -1944,11 +2255,6 @@ const ACCOUNT_PAGE_OVERRIDES_CSS = `
     color: #999 !important;
   }
 
-  [data-theme="dark"] button[style*="backgroundColor: #ffffff"][style*="color: #1a1a1a"] {
-    background-color: #444 !important;
-    color: #e8e8e8 !important;
-    border-color: #666 !important;
-  }
 
   [data-theme="dark"] button[style*="backgroundColor: #0066cc"] {
     background-color: #004fa3 !important;
@@ -2026,6 +2332,7 @@ const ACCOUNT_PAGE_OVERRIDES_CSS = `
   [data-theme="dark"] button[style*="backgroundColor: #d32f2f"]:hover {
     background-color: #9a1414 !important;
   }
+
 `;
 
 export default Account;

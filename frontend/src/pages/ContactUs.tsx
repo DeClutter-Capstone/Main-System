@@ -140,9 +140,7 @@ function ContactUs() {
   };
 
   const infoCards = [
-    { color: "#5B8DEF", label: "Email",    value: "hello@declutter.app",   sub: "We reply within 24 hours" },
-    { color: "#7c6ef5", label: "Location", value: "Eastern Mediterranean University", sub: "Famagusta, Cyprus" },
-    { color: "#2ec4b6", label: "Project",  value: "Capstone 2026",          sub: "AI-Powered Interior Design" },
+    { color: "#5B8DEF", label: "Email", value: "hello@declutter.app", sub: "We reply within 24 hours" },
   ];
 
   return (
@@ -164,25 +162,21 @@ function ContactUs() {
 
       <TopBar showSignIn={true} />
 
-      {/* Hero */}
-      <section style={s.hero}>
-        <div style={s.blobTR} />
-        <div style={s.blobBL} />
-        <div style={s.heroInner}>
-          <span style={s.badge}>Get in touch</span>
-          <h1 style={s.heroTitle} className="c-title">We'd love to hear from you</h1>
-          <p style={s.heroSub}>
-            Have a question, suggestion, or just want to say hi? Drop us a message and we'll get back to you.
-          </p>
-        </div>
-      </section>
-
       {/* Main */}
       <section style={s.main}>
         <div style={s.grid} className="c-grid">
 
           {/* Info cards */}
           <div style={s.infoCol}>
+            <div>
+              <span style={s.badge}>Get in touch</span>
+              <h2 style={{ fontSize: "1.8rem", fontWeight: 800, color: "var(--color-text-primary)", margin: "12px 0 10px", lineHeight: 1.2 }}>
+                We'd love to hear from you
+              </h2>
+              <p style={{ fontSize: "0.92rem", color: "var(--color-text-secondary)", lineHeight: 1.7, margin: "0 0 24px" }}>
+                Have a question, suggestion, or just want to say hi? Drop us a message and we'll get back to you.
+              </p>
+            </div>
             {infoCards.map(({ color, label, value, sub }) => (
               <div key={label} style={s.infoCard}>
                 <div style={accentBar(color)} />

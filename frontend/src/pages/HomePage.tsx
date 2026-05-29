@@ -155,6 +155,20 @@ function HomePage() {
   const [activeStyle, setActiveStyle] = useState(0);
   const [styleTransitioning, setStyleTransitioning] = useState(false);
   const [hoveredTab, setHoveredTab] = useState<number | null>(null);
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.getAttribute("data-theme") === "dark",
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute("data-theme") === "dark");
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   const sliderContainerRef1 = useRef<HTMLDivElement>(null);
   const sliderContainerRef2 = useRef<HTMLDivElement>(null);
@@ -518,7 +532,11 @@ function HomePage() {
               className="projects-card-preview"
             >
               <img
-                src="/HomePageImages/collection.png"
+                src={
+                  isDark
+                    ? "/HomePageImages/collection.png"
+                    : "/HomePageImages/collection-light.png"
+                }
                 alt="Project card preview"
                 style={projectsCardPreviewImgStyle}
                 className="collection-image-animated"
@@ -1011,19 +1029,25 @@ const projectsCardPreviewWrapStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "row",
   alignItems: "center",
-  gap: "1.2rem",
+  gap: "1.4rem",
   background: "#f5f7fa",
   border: "1px solid #e8eaed",
   borderRadius: "16px",
-  padding: "1rem 1.2rem",
+  padding: "0",
+  paddingTop: "0.8rem",
+  overflow: "hidden",
 };
 
 const projectsCardPreviewImgStyle: React.CSSProperties = {
-  width: "120px",
+  width: "210px",
+  height: "210px",
   flexShrink: 0,
-  borderRadius: "10px",
-  boxShadow: "0 8px 24px rgba(0,0,0,0.13)",
+  borderRadius: "14px",
   display: "block",
+  objectFit: "cover",
+  padding: "8px",
+  paddingLeft: "10px",
+  boxSizing: "border-box",
 };
 
 const projectsRightStyle: React.CSSProperties = {

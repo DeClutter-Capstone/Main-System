@@ -33,9 +33,9 @@ function Footer() {
         <div style={styles.column}>
           <h3 style={styles.columnTitle} className="footer-title">Product</h3>
           <nav style={styles.linksList}>
-            <a href="/faq" style={styles.link}>
-              FAQ
-            </a>
+            <a href="/generate" style={styles.link} className="footer-link">Generate</a>
+            <a href="/history" style={styles.link} className="footer-link">History</a>
+            <a href="/faq" style={styles.link} className="footer-link">FAQ</a>
           </nav>
         </div>
 

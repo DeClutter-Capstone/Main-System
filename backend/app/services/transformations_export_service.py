@@ -1,0 +1,432 @@
+from __future__ import annotations
+
+import html
+import re
+import zipfile
+from datetime import datetime
+from io import BytesIO
+from pathlib import Path
+from typing import Optional
+
+import requests
+from PIL import Image
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import (
+    Image as PdfImage,
+    KeepTogether,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
+
+from app.models.transformation import Transformation
+from app.models.user import User
+from app.schemas.transformation_export_schema import TransformationExportItem
+
+
+EXPORT_MAX_ITEMS = 200
+EXPORT_MAX_ZIP_BYTES = 500 * 1024 * 1024
+
+STORAGE_DIR = Path(__file__).parent.parent.parent / "storage"
+
+
+def _format_datetime(value: Optional[datetime]) -> str:
+    if not value:
+        return "Not available"
+    return value.strftime("%B %d, %Y at %I:%M %p")
+
+
+def _safe(value: Optional[str], fallback: str = "Not available") -> str:
+    return html.escape((value or "").strip() or fallback)
+
+
+def _filename_part(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_-]+", "_", value).strip("_")
+    return cleaned or "export"
+
+
+def transformations_export_filename(user: User, generated_at: Optional[datetime] = None) -> str:
+    stamp = (generated_at or datetime.utcnow()).strftime("%Y-%m-%d")
+    base = user.email or user.user_name or user.firebase_uid
+    return f"Transformations_Export_{_filename_part(base)}_{stamp}.pdf"
+
+
+def transformations_export_zip_filename(user: User, generated_at: Optional[datetime] = None) -> str:
+    stamp = (generated_at or datetime.utcnow()).strftime("%Y-%m-%d")
+    base = user.email or user.user_name or user.firebase_uid
+    return f"Transformations_Export_{_filename_part(base)}_{stamp}.zip"
+
+
+def _resolve_storage_path(path: str) -> Optional[Path]:
+    normalized = path.strip()
+    if normalized.startswith("/storage/"):
+        return STORAGE_DIR / normalized.replace("/storage/", "", 1)
+    if normalized.startswith("storage/"):
+        return STORAGE_DIR / normalized.replace("storage/", "", 1)
+    local = Path(normalized)
+    return local if local.exists() else None
+
+
+def _load_image_bytes(path_or_url: Optional[str]) -> Optional[bytes]:
+    if not path_or_url:
+        return None
+    if path_or_url.startswith("http://") or path_or_url.startswith("https://"):
+        try:
+            response = requests.get(path_or_url, timeout=8)
+            response.raise_for_status()
+            content_type = response.headers.get("content-type", "")
+            if content_type and not content_type.lower().startswith("image/"):
+                return None
+            return response.content
+        except Exception as exc:
+            print(f"[transformations_export] image fetch failed: {exc}")
+            return None
+    resolved = _resolve_storage_path(path_or_url)
+    if resolved and resolved.exists():
+        return resolved.read_bytes()
+    return None
+
+
+def _image_bytes_to_jpeg(image_bytes: bytes) -> bytes:
+    try:
+        image = Image.open(BytesIO(image_bytes))
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+        output = BytesIO()
+        image.save(output, format="JPEG", quality=92)
+        return output.getvalue()
+    except Exception as exc:
+        print(f"[transformations_export] jpeg conversion failed: {exc}")
+        return image_bytes
+
+
+def _resolve_transformation_image_path(
+    transformation: Transformation, kind: str
+) -> Optional[str]:
+    if kind == "input":
+        return transformation.input_image_path or (
+            f"/storage/input/{transformation.file_key}.png" if transformation.file_key else None
+        )
+    return transformation.output_image_path or (
+        f"/storage/output/{transformation.file_key}.png" if transformation.file_key else None
+    )
+
+
+def generate_transformations_export_zip(
+    transformations: list[Transformation],
+) -> bytes:
+    buffer = BytesIO()
+    total_bytes = 0
+
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        if not transformations:
+            archive.writestr(
+                "README.txt",
+                "No transformations found for the selected timeframe.",
+            )
+            return buffer.getvalue()
+
+        for transformation in transformations:
+            folder_name = transformation.file_key or str(transformation.transformation_id)
+            folder_name = _filename_part(folder_name)
+
+            before_path = _resolve_transformation_image_path(transformation, "input")
+            after_path = _resolve_transformation_image_path(transformation, "output")
+
+            before_bytes = _load_image_bytes(before_path)
+            after_bytes = _load_image_bytes(after_path)
+
+            if before_bytes:
+                before_bytes = _image_bytes_to_jpeg(before_bytes)
+                total_bytes += len(before_bytes)
+                if total_bytes > EXPORT_MAX_ZIP_BYTES:
+                    raise ValueError(
+                        "Export ZIP exceeds the 500 MB limit. Please narrow your filter."
+                    )
+                archive.writestr(f"{folder_name}/before.jpg", before_bytes)
+            else:
+                archive.writestr(
+                    f"{folder_name}/missing_before.txt",
+                    "Before image not available for this transformation.",
+                )
+
+            if after_bytes:
+                after_bytes = _image_bytes_to_jpeg(after_bytes)
+                total_bytes += len(after_bytes)
+                if total_bytes > EXPORT_MAX_ZIP_BYTES:
+                    raise ValueError(
+                        "Export ZIP exceeds the 500 MB limit. Please narrow your filter."
+                    )
+                archive.writestr(f"{folder_name}/after.jpg", after_bytes)
+            else:
+                archive.writestr(
+                    f"{folder_name}/missing_after.txt",
+                    "After image not available for this transformation.",
+                )
+
+    return buffer.getvalue()
+
+
+def _image_flowable(
+    image_bytes: Optional[bytes],
+    max_width: float,
+    max_height: float,
+    placeholder_style: ParagraphStyle,
+) -> Table | PdfImage:
+    if not image_bytes:
+        placeholder = Table(
+            [[Paragraph("Image unavailable", placeholder_style)]],
+            colWidths=[max_width],
+            rowHeights=[max_height],
+        )
+        placeholder.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F3F4F6")),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#E5E7EB")),
+                ]
+            )
+        )
+        return placeholder
+
+    try:
+        image_reader = ImageReader(BytesIO(image_bytes))
+        orig_width, orig_height = image_reader.getSize()
+        scale = min(max_width / orig_width, max_height / orig_height)
+        width = orig_width * scale
+        height = orig_height * scale
+        image_flowable = PdfImage(BytesIO(image_bytes), width=width, height=height)
+        image_flowable.hAlign = "CENTER"
+        return image_flowable
+    except Exception as exc:
+        print(f"[transformations_export] image parse failed: {exc}")
+        placeholder = Table(
+            [[Paragraph("Image unavailable", placeholder_style)]],
+            colWidths=[max_width],
+            rowHeights=[max_height],
+        )
+        placeholder.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F3F4F6")),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#E5E7EB")),
+                ]
+            )
+        )
+        return placeholder
+
+
+def _footer(canvas, doc) -> None:
+    canvas.saveState()
+    width, _ = A4
+    canvas.setFont("Helvetica", 8)
+    canvas.setFillColor(colors.HexColor("#6B7280"))
+    canvas.drawString(doc.leftMargin, 0.38 * inch, "Generated by DeClutter")
+    canvas.drawRightString(width - doc.rightMargin, 0.38 * inch, f"Page {doc.page}")
+    canvas.restoreState()
+
+
+def _basic_table_style(header: bool = False) -> TableStyle:
+    commands = [
+        ("BOX", (0, 0), (-1, -1), 0.45, colors.HexColor("#D1D5DB")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#E5E7EB")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#374151")),
+    ]
+    if header:
+        commands.extend(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111827")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ]
+        )
+    return TableStyle(commands)
+
+
+def generate_transformations_export_pdf(
+    items: list[TransformationExportItem],
+    user: User,
+    filter_label: str,
+) -> bytes:
+    generated_at = datetime.utcnow()
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=0.62 * inch,
+        leftMargin=0.62 * inch,
+        topMargin=0.65 * inch,
+        bottomMargin=0.72 * inch,
+        title="Transformation Export",
+        author="DeClutter",
+    )
+
+    base = getSampleStyleSheet()
+    styles_pdf = {
+        "title": ParagraphStyle(
+            "ExportTitle",
+            parent=base["Title"],
+            fontName="Helvetica-Bold",
+            fontSize=22,
+            leading=26,
+            textColor=colors.HexColor("#111827"),
+            spaceAfter=6,
+        ),
+        "subtitle": ParagraphStyle(
+            "ExportSubtitle",
+            parent=base["Normal"],
+            fontSize=9.5,
+            leading=13,
+            textColor=colors.HexColor("#6B7280"),
+            spaceAfter=14,
+        ),
+        "section": ParagraphStyle(
+            "SectionHeading",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=13,
+            leading=16,
+            textColor=colors.HexColor("#1F2937"),
+            spaceBefore=10,
+            spaceAfter=6,
+        ),
+        "body": ParagraphStyle(
+            "Body",
+            parent=base["BodyText"],
+            fontSize=9.5,
+            leading=13,
+            textColor=colors.HexColor("#374151"),
+        ),
+        "meta": ParagraphStyle(
+            "Meta",
+            parent=base["BodyText"],
+            fontSize=8.5,
+            leading=12,
+            textColor=colors.HexColor("#6B7280"),
+        ),
+        "image_label": ParagraphStyle(
+            "ImageLabel",
+            parent=base["BodyText"],
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            textColor=colors.HexColor("#374151"),
+            alignment=1,
+        ),
+        "image_placeholder": ParagraphStyle(
+            "ImagePlaceholder",
+            parent=base["BodyText"],
+            fontSize=9,
+            textColor=colors.HexColor("#9CA3AF"),
+            alignment=1,
+        ),
+    }
+
+    story = [
+        Paragraph("Transformation Export", styles_pdf["title"]),
+        Paragraph(
+            f"Generated on {_format_datetime(generated_at)} UTC",
+            styles_pdf["subtitle"],
+        ),
+    ]
+
+    summary_rows = [
+        ["User", _safe(user.user_name or user.email or user.firebase_uid)],
+        ["Filter", _safe(filter_label)],
+        ["Total transformations", str(len(items))],
+    ]
+    summary_table = Table(summary_rows, colWidths=[1.8 * inch, 4.4 * inch])
+    summary_table.setStyle(_basic_table_style())
+    story.extend([summary_table, Spacer(1, 12)])
+
+    story.append(Paragraph("Transformations", styles_pdf["section"]))
+    if not items:
+        story.append(Paragraph("No transformations found for this filter.", styles_pdf["body"]))
+        doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
+        return buffer.getvalue()
+
+    page_width, _ = A4
+    available_width = page_width - doc.leftMargin - doc.rightMargin
+    image_col_width = (available_width - 12) / 2
+    image_max_height = 2.6 * inch
+
+    for item in items:
+        before_bytes = _load_image_bytes(item.input_image_url)
+        after_bytes = _load_image_bytes(item.output_image_url)
+
+        before_image = _image_flowable(
+            before_bytes, image_col_width, image_max_height, styles_pdf["image_placeholder"]
+        )
+        after_image = _image_flowable(
+            after_bytes, image_col_width, image_max_height, styles_pdf["image_placeholder"]
+        )
+
+        image_table = Table(
+            [
+                [
+                    Paragraph("Before", styles_pdf["image_label"]),
+                    Paragraph("After", styles_pdf["image_label"]),
+                ],
+                [before_image, after_image],
+            ],
+            colWidths=[image_col_width, image_col_width],
+        )
+        image_table.setStyle(
+            TableStyle(
+                [
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
+
+        details = [
+            f"<b>Style</b>: {_safe(item.style_name, 'Unspecified')}",
+            f"<b>Room</b>: {_safe(item.room_type, 'Unspecified')}",
+            f"<b>Created</b>: {_format_datetime(item.created_at)} UTC",
+        ]
+        if item.project_name:
+            details.append(f"<b>Project</b>: {_safe(item.project_name)}")
+        if item.prompt:
+            details.append(f"<b>Prompt</b>: {_safe(item.prompt)}")
+        details.append(f"<b>Transformation ID</b>: {_safe(str(item.transformation_id))}")
+        if before_bytes is None:
+            details.append("Before image unavailable")
+        if after_bytes is None:
+            details.append("After image unavailable")
+
+        meta_block = Paragraph("<br/>".join(details), styles_pdf["meta"])
+
+        story.append(
+            KeepTogether(
+                [
+                    image_table,
+                    Spacer(1, 6),
+                    meta_block,
+                    Spacer(1, 12),
+                ]
+            )
+        )
+
+    doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
+    return buffer.getvalue()

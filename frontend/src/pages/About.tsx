@@ -90,9 +90,9 @@ function About() {
         .about-main {
           flex: 1;
           width: 100%;
-          max-width: 900px;
+          max-width: 1080px;
           margin: 0 auto;
-          padding: 6rem 1.5rem 4rem;
+          padding: 6rem 2rem 4rem;
         }
         .about-reveal {
           opacity: 0;
@@ -124,10 +124,11 @@ function About() {
           letter-spacing: -0.02em;
           line-height: 1.18;
           margin: 0 0 1.5rem;
-          max-width: 720px;
+          max-width: 780px;
         }
         .about-intro .about-heading {
-          font-size: 3rem;
+          font-size: 3.15rem;
+          max-width: 860px;
         }
         .about-heading .accent {
           color: var(--color-brand-primary);
@@ -137,17 +138,46 @@ function About() {
           color: var(--color-text-secondary);
           line-height: 1.75;
           margin: 0 0 1.15rem;
-          max-width: 640px;
+          max-width: 660px;
         }
         .about-body:last-of-type {
           margin-bottom: 0;
         }
+        /* Editorial chapter mark sitting above each numbered section's label. */
+        .about-chapter {
+          font-size: 4.5rem;
+          font-weight: 200;
+          line-height: 0.9;
+          letter-spacing: -0.05em;
+          color: color-mix(in srgb, var(--color-text-tertiary) 45%, transparent);
+          margin: 0 0 1.25rem;
+          font-variant-numeric: tabular-nums;
+          font-feature-settings: "tnum" 1;
+        }
+        /* Hairline divider with a small brand-blue mark centered on the line. */
         .about-divider {
-          height: 1px;
-          background-color: var(--color-border-subtle);
+          display: flex;
+          align-items: center;
           width: 100%;
           margin: 0 0 5rem;
-          opacity: 0.75;
+        }
+        .about-divider::before,
+        .about-divider::after {
+          content: "";
+          flex: 1;
+          height: 1px;
+          background-color: var(--color-border-subtle);
+          opacity: 0.85;
+        }
+        .about-divider::before { margin-right: 14px; }
+        .about-divider::after { margin-left: 14px; }
+        .about-divider-mark {
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background-color: var(--color-brand-primary);
+          flex-shrink: 0;
+          opacity: 0.7;
         }
         .about-team-intro {
           margin-bottom: 2.75rem;
@@ -226,6 +256,10 @@ function About() {
           .about-heading {
             font-size: 1.95rem;
           }
+          .about-chapter {
+            font-size: 3rem;
+            margin-bottom: 0.9rem;
+          }
           .about-divider {
             margin-bottom: 3.5rem;
           }
@@ -262,11 +296,14 @@ function About() {
           </Reveal>
         </section>
 
-        <div className="about-divider" />
+        <div className="about-divider" aria-hidden="true">
+          <span className="about-divider-mark" />
+        </div>
 
         {/* ── Mission ──────────────────────────────────────── */}
         <section className="about-section">
           <Reveal>
+            <p className="about-chapter">01</p>
             <p className="about-label">Mission</p>
             <h2 className="about-heading">The in-between question.</h2>
             <p className="about-body">
@@ -284,11 +321,14 @@ function About() {
           </Reveal>
         </section>
 
-        <div className="about-divider" />
+        <div className="about-divider" aria-hidden="true">
+          <span className="about-divider-mark" />
+        </div>
 
         {/* ── Vision ───────────────────────────────────────── */}
         <section className="about-section">
           <Reveal>
+            <p className="about-chapter">02</p>
             <p className="about-label">Vision</p>
             <h2 className="about-heading">
               What this looks like in a year.
@@ -309,12 +349,15 @@ function About() {
           </Reveal>
         </section>
 
-        <div className="about-divider" />
+        <div className="about-divider" aria-hidden="true">
+          <span className="about-divider-mark" />
+        </div>
 
         {/* ── Team ─────────────────────────────────────────── */}
         <section className="about-section">
           <Reveal>
             <div className="about-team-intro">
+              <p className="about-chapter">03</p>
               <p className="about-label">Team</p>
               <h2 className="about-heading">Four people, one capstone.</h2>
               <p className="about-body">

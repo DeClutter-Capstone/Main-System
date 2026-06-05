@@ -24,14 +24,14 @@ const team = [
     role: "Frontend and UI",
     photo: "/team/ahmed-salmi.jpg",
     body:
-      "Ahmed wrote a large part of the frontend and shaped the way the UI looks. He also handled the wiring between the screens and the backend endpoints Firas built, the boring but essential plumbing that makes the app feel like one thing.",
+      "Ahmed wrote a large part of the frontend. He also handled the wiring between the screens and the backend endpoints Firas built, the boring but essential plumbing that makes the app feel like one thing.",
   },
   {
     name: "Saad Ahmed",
-    role: "UI and style references",
+    role: "FrontendUI and style references",
     photo: "/team/saad.jpg",
     body:
-      "Saad worked on the early visual research that defined the catalogue of styles the app supports, and shaped parts of the UI alongside Ahmed. The references that anchor what Minimalist, Scandinavian, Industrial, and the rest look like to the model and to the user came through him, along with a number of the design decisions you see on the screens themselves.",
+      "Saad worked on the Frontend and the early visual research that defined the catalogue of styles the app supports, and shaped parts of the UI alongside Ahmed. The references that anchor what Minimalist, Scandinavian, Industrial, and the rest look like to the model and to the user came through him, along with a number of the design decisions you see on the screens themselves.",
   },
 ];
 

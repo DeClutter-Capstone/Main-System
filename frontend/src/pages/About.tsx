@@ -1,818 +1,348 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import TopBar from "../components/TopBar";
 import Footer from "../components/Footer";
 
+// TODO: drop each team member's photo URL or import path into the `photo`
+// field below. The empty string keeps the slot rendered but visually blank.
 const team = [
   {
     name: "Mohamed Elfaki",
-    role: "AI / ML",
-    description:
-      "Trains and fine-tunes the vision models behind every room transformation.",
-    initials: "ME",
-    color: "#4790fd",
+    role: "AI",
+    photo: "",
+    body:
+      "Mohamed works on the model. He's responsible for the system that looks at a photo of a room and figures out what each thing is, then puts the room back together without the parts that don't belong.",
   },
   {
     name: "Firas Nazar",
     role: "Backend",
-    description:
-      "Architects the FastAPI services, database layer, and Replicate integration.",
-    initials: "FN",
-    color: "#7c6ef5",
-  },
-  {
-    name: "Ahmed Salmi",
-    role: "Frontend",
-    description:
-      "Implements the React components and brings the design to life with code.",
-    initials: "AS",
-    color: "#f97316",
+    photo: "",
+    body:
+      "Firas wrote the API. He keeps the storage layer honest and the database from going sideways when twenty requests land at once.",
   },
   {
     name: "Saad Ahmed",
-    role: "UI/UX Design",
-    description:
-      "Crafts the user experience and visual design, ensuring the app is intuitive and delightful.",
-    initials: "SA",
-    color: "#2ec4b6",
+    role: "Frontend",
+    photo: "",
+    body:
+      "Saad wrote almost every screen you can click. The motion, the spacing, and the way the before/after slider behaves are his.",
+  },
+  {
+    name: "Ahmed Salmi",
+    role: "Mobile and integration",
+    photo: "",
+    body:
+      "Ahmed makes the pieces talk to each other. He owns the mobile build and the parts of the codebase nobody else wants to touch.",
   },
 ];
 
-const steps = [
-  {
-    number: "01",
-    title: "Upload",
-    body: "Snap a photo of any room and upload it directly in your browser.",
-  },
-  {
-    number: "02",
-    title: "Choose a style",
-    body: "Pick from Modern, Minimalist, Scandinavian, Industrial, Bohemian, or Spa.",
-  },
-  {
-    number: "03",
-    title: "Transform",
-    body: "Our AI model analyses the space and renders a full redesign in seconds.",
-  },
-  {
-    number: "04",
-    title: "Compare & Save",
-    body: "Slide between before and after, then save the result to your projects.",
-  },
-];
-
-function About() {
-  const [isDark, setIsDark] = useState(
-    document.documentElement.getAttribute("data-theme") === "dark",
-  );
-
+function useReveal<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [visible, setVisible] = useState(false);
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.getAttribute("data-theme") === "dark");
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
-    return () => observer.disconnect();
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -60px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
+  return [ref, visible] as const;
+}
 
-  const bg = isDark ? "#1e1e1e" : "#f7f7f7";
-  const surface = isDark ? "#2a2a2a" : "#ffffff";
-  const text = isDark ? "#f0f0f0" : "#1a1a1a";
-  const muted = isDark ? "#9a9a9a" : "#666666";
-  const border = isDark ? "#3a3a3a" : "#e4e4e4";
-
+function Reveal({
+  children,
+  delay = 0,
+}: {
+  children: ReactNode;
+  delay?: number;
+}) {
+  const [ref, visible] = useReveal<HTMLDivElement>();
   return (
     <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        backgroundColor: bg,
-        transition: "background-color 0.3s ease",
-        fontFamily: "'Alata', sans-serif",
-      }}
+      ref={ref}
+      className={`about-reveal${visible ? " visible" : ""}`}
+      style={{ transitionDelay: `${delay}ms` }}
     >
+      {children}
+    </div>
+  );
+}
+
+function About() {
+  return (
+    <div className="about-page">
       <style>{`
-        .about-stat-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
-        .about-stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(71,144,253,0.18) !important; }
-        .about-step-card { transition: transform 0.25s ease; }
-        .about-step-card:hover { transform: translateY(-3px); }
-        .about-team-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
-        .about-team-card:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(0,0,0,0.15) !important; }
-        @media (max-width: 768px) {
-          .about-hero-grid { grid-template-columns: 1fr !important; }
-          .about-stats-row { grid-template-columns: 1fr 1fr !important; }
-          .about-steps-grid { grid-template-columns: 1fr !important; }
-          .about-team-grid { grid-template-columns: 1fr 1fr !important; }
-          .about-hero-title { font-size: 2.4rem !important; }
+        .about-page {
+          font-family: 'Alata', sans-serif;
+          background-color: var(--color-bg-base);
+          color: var(--color-text-primary);
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
         }
-        @media (max-width: 480px) {
-          .about-stats-row { grid-template-columns: 1fr !important; }
-          .about-team-grid { grid-template-columns: 1fr !important; }
-          .about-hero-title { font-size: 1.9rem !important; }
+        .about-main {
+          flex: 1;
+          width: 100%;
+          max-width: 900px;
+          margin: 0 auto;
+          padding: 6rem 1.5rem 4rem;
+        }
+        .about-reveal {
+          opacity: 0;
+          transform: translateY(14px);
+          transition: opacity 0.55s ease, transform 0.55s ease;
+        }
+        .about-reveal.visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .about-label {
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: var(--color-text-tertiary);
+          text-transform: uppercase;
+          letter-spacing: 0.18em;
+          margin: 0 0 1.25rem;
+        }
+        .about-section {
+          padding: 0 0 5.5rem;
+        }
+        .about-section:last-of-type {
+          padding-bottom: 0;
+        }
+        .about-heading {
+          font-size: 2.6rem;
+          font-weight: 300;
+          color: var(--color-text-primary);
+          letter-spacing: -0.02em;
+          line-height: 1.18;
+          margin: 0 0 1.5rem;
+          max-width: 720px;
+        }
+        .about-intro .about-heading {
+          font-size: 3rem;
+        }
+        .about-heading .accent {
+          color: var(--color-brand-primary);
+        }
+        .about-body {
+          font-size: 1.05rem;
+          color: var(--color-text-secondary);
+          line-height: 1.75;
+          margin: 0 0 1.15rem;
+          max-width: 640px;
+        }
+        .about-body:last-of-type {
+          margin-bottom: 0;
+        }
+        .about-divider {
+          height: 1px;
+          background-color: var(--color-border-subtle);
+          width: 100%;
+          margin: 0 0 5rem;
+          opacity: 0.75;
+        }
+        .about-team-intro {
+          margin-bottom: 2.75rem;
+        }
+        .about-team-row {
+          display: grid;
+          grid-template-columns: 200px 1fr;
+          gap: 3rem;
+          align-items: center;
+          padding: 2.5rem 0;
+          border-top: 1px solid var(--color-border-subtle);
+        }
+        .about-team-row:last-of-type {
+          border-bottom: 1px solid var(--color-border-subtle);
+        }
+        .about-team-row.reverse {
+          grid-template-columns: 1fr 200px;
+        }
+        .about-team-row.reverse .about-team-portrait {
+          order: 2;
+        }
+        .about-team-portrait {
+          width: 100%;
+          aspect-ratio: 1 / 1;
+          border-radius: 14px;
+          overflow: hidden;
+          background-color: var(--color-bg-elevated);
+          border: 1px solid var(--color-border-subtle);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .about-team-portrait:hover {
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-md);
+        }
+        .about-team-portrait img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          /* keep the broken-image icon from showing while src is empty */
+          color: transparent;
+          font-size: 0;
+        }
+        .about-team-name {
+          font-size: 1.5rem;
+          font-weight: 500;
+          color: var(--color-text-primary);
+          letter-spacing: -0.01em;
+          margin: 0 0 0.35rem;
+        }
+        .about-team-role {
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: var(--color-text-tertiary);
+          text-transform: uppercase;
+          letter-spacing: 0.16em;
+          margin: 0 0 1rem;
+        }
+        .about-team-body {
+          font-size: 1rem;
+          color: var(--color-text-secondary);
+          line-height: 1.7;
+          margin: 0;
+          max-width: 560px;
+        }
+        @media (max-width: 720px) {
+          .about-main {
+            padding: 4rem 1.25rem 3rem;
+          }
+          .about-intro .about-heading {
+            font-size: 2.2rem;
+          }
+          .about-heading {
+            font-size: 1.95rem;
+          }
+          .about-divider {
+            margin-bottom: 3.5rem;
+          }
+          .about-section {
+            padding-bottom: 3.5rem;
+          }
+          .about-team-row,
+          .about-team-row.reverse {
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+            padding: 2rem 0;
+          }
+          .about-team-row.reverse .about-team-portrait {
+            order: 0;
+          }
+          .about-team-portrait {
+            max-width: 180px;
+          }
         }
       `}</style>
 
       <TopBar showSignIn={true} />
 
-      {/* ── HERO ── */}
-      <section
-        style={{
-          position: "relative",
-          overflow: "hidden",
-          background: isDark
-            ? "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)"
-            : "linear-gradient(135deg, #e8f0fe 0%, #dce8ff 50%, #c8d9ff 100%)",
-          padding: "90px 24px 100px",
-        }}
-      >
-        {/* decorative blobs */}
-        <div
-          style={{
-            position: "absolute",
-            top: "-80px",
-            right: "-80px",
-            width: "420px",
-            height: "420px",
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(71,144,253,0.18) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            bottom: "-60px",
-            left: "-60px",
-            width: "300px",
-            height: "300px",
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(124,110,245,0.14) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "48px",
-            alignItems: "center",
-          }}
-          className="about-hero-grid"
-        >
-          <div>
-            <span
-              style={{
-                display: "inline-block",
-                padding: "4px 14px",
-                borderRadius: "999px",
-                background: "rgba(71,144,253,0.15)",
-                color: "#4790fd",
-                fontSize: "0.8rem",
-                fontWeight: 600,
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                marginBottom: "20px",
-              }}
-            >
-              Our Story
-            </span>
-            <h1
-              className="about-hero-title"
-              style={{
-                fontSize: "3.2rem",
-                fontWeight: 800,
-                color: isDark ? "#ffffff" : "#0d1b3e",
-                lineHeight: 1.15,
-                margin: "0 0 20px",
-                letterSpacing: "-1px",
-              }}
-            >
-              We make great spaces{" "}
-              <span style={{ color: "#4790fd", fontStyle: "italic" }}>
-                accessible
-              </span>{" "}
-              to everyone.
+      <main className="about-main">
+        {/* ── Intro ────────────────────────────────────────── */}
+        <section className="about-section about-intro">
+          <Reveal>
+            <p className="about-label">DeClutter</p>
+            <h1 className="about-heading">
+              An AI tool that redesigns a room{" "}
+              <span className="accent">from a single photo</span>. Built by
+              four students as a capstone.
             </h1>
-            <p
-              style={{
-                fontSize: "1.1rem",
-                color: isDark ? "#c0c0c0" : "#4a5568",
-                lineHeight: 1.8,
-                margin: "0 0 32px",
-                maxWidth: "480px",
-              }}
-            >
-              DeClutter is a capstone project that uses AI and computer vision
-              to turn any uploaded room photo into a professionally styled
-              interior — no design degree required.
+          </Reveal>
+        </section>
+
+        <div className="about-divider" />
+
+        {/* ── Mission ──────────────────────────────────────── */}
+        <section className="about-section">
+          <Reveal>
+            <p className="about-label">Mission</p>
+            <h2 className="about-heading">The in-between question.</h2>
+            <p className="about-body">
+              Hiring an interior designer takes weeks. Modelling a room in 3D
+              takes hours. Most people who are curious about how their space
+              could look fall into the gap between those two options, and stay
+              there.
             </p>
-            <div style={{ display: "flex", gap: "40px" }}>
-              {[
-                ["6+", "Design styles"],
-                ["4", "Team members"],
-                ["AI", "Powered core"],
-              ].map(([val, label]) => (
-                <div key={label}>
-                  <div
-                    style={{
-                      fontSize: "1.9rem",
-                      fontWeight: 800,
-                      color: "#4790fd",
-                      lineHeight: 1,
-                    }}
-                  >
-                    {val}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.8rem",
-                      color: muted,
-                      marginTop: "4px",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+            <p className="about-body">
+              DeClutter is for that question. You upload a photo, pick a style,
+              and twenty seconds later you have a render of the same room with
+              less in it, or in a different visual language entirely. The
+              answer should not take a meeting.
+            </p>
+          </Reveal>
+        </section>
 
-          {/* right side — stacked tags */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "14px",
-              alignItems: "flex-start",
-            }}
-          >
-            {[
-              { tag: "Modern", color: "#4790fd" },
-              { tag: "Minimalist", color: "#7c6ef5" },
-              { tag: "Scandinavian", color: "#2ec4b6" },
-              { tag: "Industrial", color: "#64748b" },
-              { tag: "Bohemian", color: "#f97316" },
-              { tag: "Spa", color: "#10b981" },
-            ].map(({ tag, color }, i) => (
-              <div
-                key={tag}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  padding: "12px 20px",
-                  borderRadius: "12px",
-                  background: surface,
-                  border: `1px solid ${border}`,
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                  transform: `translateX(${i % 2 === 0 ? "0" : "28px"})`,
-                  minWidth: "220px",
-                }}
-              >
-                <div
-                  style={{
-                    width: "10px",
-                    height: "10px",
-                    borderRadius: "50%",
-                    backgroundColor: color,
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  style={{ fontSize: "0.95rem", fontWeight: 600, color: text }}
-                >
-                  {tag}
-                </span>
-                <span
-                  style={{
-                    marginLeft: "auto",
-                    fontSize: "0.75rem",
-                    color: muted,
-                  }}
-                >
-                  style
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        <div className="about-divider" />
 
-      {/* ── STATS BAND ── */}
-      <section
-        style={{
-          background: isDark ? "#141414" : "#ffffff",
-          padding: "50px 24px",
-          borderBottom: `1px solid ${border}`,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "24px",
-          }}
-          className="about-stats-row"
-        >
-          {[
-            { value: "4", label: "Room types supported", suffix: "" },
-            { value: "5", label: "Interior styles", suffix: "+" },
-            { value: "100", label: "Transformations ready", suffix: "%" },
-            { value: "0", label: "Design experience needed", suffix: "" },
-          ].map(({ value, label, suffix }) => (
-            <div
-              key={label}
-              className="about-stat-card"
-              style={{
-                background: surface,
-                border: `1px solid ${border}`,
-                borderRadius: "16px",
-                padding: "28px 24px",
-                textAlign: "center",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "2.8rem",
-                  fontWeight: 800,
-                  color: "#4790fd",
-                  lineHeight: 1,
-                }}
-              >
-                {value}
-                <span style={{ fontSize: "1.6rem" }}>{suffix}</span>
-              </div>
-              <div
-                style={{
-                  fontSize: "0.85rem",
-                  color: muted,
-                  marginTop: "8px",
-                  lineHeight: 1.4,
-                }}
-              >
-                {label}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section style={{ padding: "90px 24px", background: bg }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "56px" }}>
-            <span
-              style={{
-                display: "inline-block",
-                padding: "4px 14px",
-                borderRadius: "999px",
-                background: "rgba(71,144,253,0.12)",
-                color: "#4790fd",
-                fontSize: "0.78rem",
-                fontWeight: 600,
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                marginBottom: "14px",
-              }}
-            >
-              Process
-            </span>
-            <h2
-              style={{
-                fontSize: "2.2rem",
-                fontWeight: 800,
-                color: text,
-                margin: 0,
-                letterSpacing: "-0.5px",
-              }}
-            >
-              How it works
+        {/* ── Vision ───────────────────────────────────────── */}
+        <section className="about-section">
+          <Reveal>
+            <p className="about-label">Vision</p>
+            <h2 className="about-heading">
+              What this looks like in a year.
             </h2>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: "20px",
-            }}
-            className="about-steps-grid"
-          >
-            {steps.map((step, i) => (
-              <div
-                key={step.number}
-                className="about-step-card"
-                style={{
-                  background: surface,
-                  border: `1px solid ${border}`,
-                  borderRadius: "16px",
-                  padding: "32px 24px",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "-10px",
-                    right: "-4px",
-                    fontSize: "5rem",
-                    fontWeight: 900,
-                    color: isDark
-                      ? "rgba(255,255,255,0.04)"
-                      : "rgba(0,0,0,0.04)",
-                    lineHeight: 1,
-                    userSelect: "none",
-                  }}
-                >
-                  {step.number}
-                </div>
-                <div
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "10px",
-                    background: `rgba(71,144,253,${0.1 + i * 0.06})`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: "16px",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "1rem",
-                      fontWeight: 800,
-                      color: "#4790fd",
-                    }}
-                  >
-                    {step.number}
-                  </span>
-                </div>
-                <h3
-                  style={{
-                    fontSize: "1.05rem",
-                    fontWeight: 700,
-                    color: text,
-                    margin: "0 0 10px",
-                  }}
-                >
-                  {step.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: "0.88rem",
-                    color: muted,
-                    margin: 0,
-                    lineHeight: 1.7,
-                  }}
-                >
-                  {step.body}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── MISSION ── */}
-      <section
-        style={{
-          padding: "90px 24px",
-          background: isDark ? "#141414" : "#ffffff",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "64px",
-            alignItems: "center",
-          }}
-          className="about-hero-grid"
-        >
-          <div>
-            <span
-              style={{
-                display: "inline-block",
-                padding: "4px 14px",
-                borderRadius: "999px",
-                background: "rgba(71,144,253,0.12)",
-                color: "#4790fd",
-                fontSize: "0.78rem",
-                fontWeight: 600,
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                marginBottom: "14px",
-              }}
-            >
-              Mission
-            </span>
-            <h2
-              style={{
-                fontSize: "2.2rem",
-                fontWeight: 800,
-                color: text,
-                margin: "0 0 20px",
-                letterSpacing: "-0.5px",
-                lineHeight: 1.2,
-              }}
-            >
-              Interior design shouldn't be a luxury.
-            </h2>
-            <p
-              style={{
-                fontSize: "1rem",
-                color: muted,
-                lineHeight: 1.8,
-                margin: "0 0 20px",
-              }}
-            >
-              Professional interior designers charge thousands. We built
-              DeClutter so anyone — renting their first apartment, redecorating
-              a family home, or just curious — can visualise a redesigned space
-              instantly and for free.
+            <p className="about-body">
+              You stand in a room with your phone. The app shows you the same
+              room three ways. As it is now, as it would be without the things
+              you keep meaning to clear out, and in a different style entirely.
+              You pick the version you want to live in, and the app tells you
+              what to move, what to keep, and what to buy.
             </p>
-            <p
-              style={{
-                fontSize: "1rem",
-                color: muted,
-                lineHeight: 1.8,
-                margin: 0,
-              }}
-            >
-              Our AI analyses your photo, understands the geometry of the room,
-              and generates a result that respects your space rather than
-              ignoring it.
+            <p className="about-body">
+              The model gets better every week. The catalogue of styles grows.
+              The minimum spec for a usable redesign drops to a phone photo
+              taken in bad lighting. That is the version we are building
+              toward.
             </p>
-          </div>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-          >
-            {[
-              {
-                color: "#4790fd",
-                title: "Functional beauty",
-                body: "Clean, visually balanced interiors that are both liveable and beautiful.",
-              },
-              {
-                color: "#7c6ef5",
-                title: "No expertise needed",
-                body: "Built for people who know what they like but not how to achieve it.",
-              },
-              {
-                color: "#2ec4b6",
-                title: "Budget-conscious",
-                body: "Design recommendations that respect real-world financial constraints.",
-              },
-              {
-                color: "#f97316",
-                title: "Personalised",
-                body: "Results tailored to your room dimensions, existing furniture, and chosen style.",
-              },
-            ].map(({ color, title, body }) => (
-              <div
-                key={title}
-                style={{
-                  display: "flex",
-                  gap: "16px",
-                  alignItems: "flex-start",
-                  background: surface,
-                  border: `1px solid ${border}`,
-                  borderRadius: "12px",
-                  padding: "18px 20px",
-                }}
+          </Reveal>
+        </section>
+
+        <div className="about-divider" />
+
+        {/* ── Team ─────────────────────────────────────────── */}
+        <section className="about-section">
+          <Reveal>
+            <div className="about-team-intro">
+              <p className="about-label">Team</p>
+              <h2 className="about-heading">Four people, one capstone.</h2>
+              <p className="about-body">
+                Each of us owns a layer of the system. Roughly, this is what
+                that means.
+              </p>
+            </div>
+          </Reveal>
+
+          {team.map((member, i) => (
+            <Reveal key={member.name} delay={i * 70}>
+              <article
+                className={`about-team-row${i % 2 === 1 ? " reverse" : ""}`}
               >
-                <div
-                  style={{
-                    width: "4px",
-                    borderRadius: "4px",
-                    alignSelf: "stretch",
-                    backgroundColor: color,
-                    flexShrink: 0,
-                    minHeight: "40px",
-                  }}
-                />
+                <div className="about-team-portrait">
+                  {/* TODO: replace src with the photo for {member.name} */}
+                  <img src={member.photo} alt={member.name} />
+                </div>
                 <div>
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      color: text,
-                      fontSize: "0.95rem",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {title}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.85rem",
-                      color: muted,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {body}
-                  </div>
+                  <h3 className="about-team-name">{member.name}</h3>
+                  <p className="about-team-role">{member.role}</p>
+                  <p className="about-team-body">{member.body}</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TEAM ── */}
-      <section style={{ padding: "90px 24px", background: bg }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "56px" }}>
-            <span
-              style={{
-                display: "inline-block",
-                padding: "4px 14px",
-                borderRadius: "999px",
-                background: "rgba(71,144,253,0.12)",
-                color: "#4790fd",
-                fontSize: "0.78rem",
-                fontWeight: 600,
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                marginBottom: "14px",
-              }}
-            >
-              The Team
-            </span>
-            <h2
-              style={{
-                fontSize: "2.2rem",
-                fontWeight: 800,
-                color: text,
-                margin: "0 0 12px",
-                letterSpacing: "-0.5px",
-              }}
-            >
-              Built by four students
-            </h2>
-            <p
-              style={{
-                fontSize: "1rem",
-                color: muted,
-                maxWidth: "480px",
-                margin: "0 auto",
-                lineHeight: 1.7,
-              }}
-            >
-              A capstone project that started as a challenge to make AI-powered
-              design real, practical, and usable.
-            </p>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: "24px",
-            }}
-            className="about-team-grid"
-          >
-            {team.map(({ name, role, description, initials, color }) => (
-              <div
-                key={name}
-                className="about-team-card"
-                style={{
-                  background: surface,
-                  border: `1px solid ${border}`,
-                  borderRadius: "20px",
-                  padding: "32px 24px",
-                  textAlign: "center",
-                  boxShadow: "0 2px 16px rgba(0,0,0,0.05)",
-                }}
-              >
-                <div
-                  style={{
-                    width: "68px",
-                    height: "68px",
-                    borderRadius: "50%",
-                    background: `linear-gradient(135deg, ${color}33 0%, ${color}66 100%)`,
-                    border: `2px solid ${color}55`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 16px",
-                    fontSize: "1.3rem",
-                    fontWeight: 800,
-                    color: color,
-                  }}
-                >
-                  {initials}
-                </div>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    color: text,
-                    fontSize: "1rem",
-                    marginBottom: "4px",
-                  }}
-                >
-                  {name}
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.78rem",
-                    fontWeight: 600,
-                    color: color,
-                    textTransform: "uppercase",
-                    letterSpacing: "1px",
-                    marginBottom: "12px",
-                  }}
-                >
-                  {role}
-                </div>
-                <p
-                  style={{
-                    fontSize: "0.85rem",
-                    color: muted,
-                    margin: 0,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section
-        style={{
-          background: isDark
-            ? "linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%)"
-            : "linear-gradient(135deg, #dce8ff 0%, #c8d9ff 100%)",
-          padding: "80px 24px",
-          textAlign: "center",
-        }}
-      >
-        <h2
-          style={{
-            fontSize: "2rem",
-            fontWeight: 800,
-            color: isDark ? "#ffffff" : "#0d1b3e",
-            margin: "0 0 14px",
-            letterSpacing: "-0.5px",
-          }}
-        >
-          Ready to transform your space?
-        </h2>
-        <p
-          style={{
-            fontSize: "1rem",
-            color: isDark ? "#c0c0c0" : "#4a5568",
-            margin: "0 0 32px",
-          }}
-        >
-          Upload a photo and see the difference AI makes in seconds.
-        </p>
-        <a
-          href="/login"
-          style={{
-            display: "inline-block",
-            padding: "14px 36px",
-            background: "linear-gradient(135deg, #4790fd 0%, #7c6ef5 100%)",
-            color: "#fff",
-            borderRadius: "999px",
-            fontWeight: 700,
-            fontSize: "1rem",
-            textDecoration: "none",
-            boxShadow: "0 4px 20px rgba(71,144,253,0.4)",
-            transition: "transform 0.2s ease, box-shadow 0.2s ease",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLAnchorElement).style.transform =
-              "translateY(-2px)";
-            (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-              "0 8px 28px rgba(71,144,253,0.5)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLAnchorElement).style.transform = "";
-            (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-              "0 4px 20px rgba(71,144,253,0.4)";
-          }}
-        >
-          Try it free →
-        </a>
-      </section>
+              </article>
+            </Reveal>
+          ))}
+        </section>
+      </main>
 
       <Footer />
     </div>

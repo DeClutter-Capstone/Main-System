@@ -96,10 +96,17 @@ function App() {
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:id" element={<BlogPost />} />
           <Route path="/faq" element={<FAQ />} />
-          <Route path="/generate" element={<Generate />} />
           <Route path="/contact" element={<ContactUs />} />
 
           {/* Protected Routes */}
+          <Route
+            path="/generate"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <Generate />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/projects"
             element={

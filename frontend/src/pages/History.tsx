@@ -172,7 +172,7 @@ function History() {
   return (
     <Layout hideFooter>
       <style>{generationCardStyles}</style>
-      <div style={containerStyle}>
+      <div style={containerStyle} className="history-container">
         {/* Header Section */}
         <div style={headerStyle}>
           <div style={titleSectionStyle}>
@@ -191,7 +191,7 @@ function History() {
           </div>
 
           {/* Search and Filters Toolbar */}
-          <div style={toolbarStyle}>
+          <div style={toolbarStyle} className="history-toolbar">
             {/* Search Bar */}
             <input
               type="text"
@@ -203,7 +203,7 @@ function History() {
             />
 
             {/* Filter Dropdowns */}
-            <div style={dropdownsContainerStyle}>
+            <div style={dropdownsContainerStyle} className="history-dropdowns">
               {/* Style Dropdown */}
               <div style={dropdownWrapperStyle}>
                 <select
@@ -344,6 +344,27 @@ function History() {
           background-color: #3a3a3aff !important;
           color: #fff !important;
         }
+
+        /* ── Responsive toolbar ── */
+        @media (max-width: 768px) {
+          .history-container    { padding: 24px 20px !important; }
+          .history-toolbar      { flex-direction: column !important; align-items: stretch !important; }
+          .history-search-input { min-width: 0 !important; width: 100% !important; }
+          .history-dropdowns    { width: 100% !important; flex-direction: row !important; flex-wrap: nowrap !important; }
+          .history-dropdown     { flex: 1 !important; min-width: 0 !important; }
+        }
+
+        @media (max-width: 487px) {
+          .history-container    { padding: 28px 24px 48px !important; }
+          .history-title        { font-size: 22px !important; }
+          .history-dropdown     { font-size: 12px !important; padding: 10px 6px !important; padding-right: 20px !important; background-position: right 4px center !important; }
+        }
+
+        @media (max-width: 360px) {
+          .history-container    { padding: 20px 14px 40px !important; }
+          .history-dropdowns    { gap: 6px !important; }
+          .history-dropdown     { font-size: 11px !important; padding: 9px 4px !important; padding-right: 16px !important; }
+        }
       `}</style>
     </Layout>
   );
@@ -392,7 +413,7 @@ const toolbarStyle: React.CSSProperties = {
 
 const searchInputStyle: React.CSSProperties = {
   flex: "1",
-  minWidth: "300px",
+  minWidth: "200px",
   padding: "10px 16px",
   fontSize: "13px",
   border: "1px solid #e0e0e0",

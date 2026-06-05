@@ -298,20 +298,22 @@ function Projects() {
             grid-template-columns: repeat(2, 1fr);
           }
         }
+        @media (max-width: 768px) {
+          .projects-page__inner { padding: 24px 16px 48px; }
+          .projects-page__header { flex-direction: column; align-items: stretch; }
+          .projects-page__controls { flex-direction: row; justify-content: stretch; flex-wrap: nowrap; }
+          .projects-page__search { max-width: none; flex: 1; }
+          .projects-page__new { white-space: nowrap; flex-shrink: 0; }
+        }
         @media (max-width: 640px) {
-          .projects-page__grid {
-            grid-template-columns: 1fr;
-          }
-          .projects-page__header {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          .projects-page__controls {
-            justify-content: stretch;
-          }
-          .projects-page__search {
-            max-width: none;
-          }
+          .projects-page__grid { grid-template-columns: 1fr; }
+          .projects-page__inner { padding: 28px 24px 48px; }
+          .projects-page__title { font-size: 22px; }
+        }
+        @media (max-width: 420px) {
+          .projects-page__controls { flex-direction: column; }
+          .projects-page__search { width: 100%; }
+          .projects-page__new { width: 100%; justify-content: center; }
         }
         .projects-page__empty {
           display: flex;

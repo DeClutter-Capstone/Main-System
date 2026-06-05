@@ -193,6 +193,55 @@ function Blog() {
         [data-theme="dark"] .blog-empty-state {
           color: #777 !important;
         }
+
+        /* ══════════════════════════════
+           RESPONSIVE
+        ══════════════════════════════ */
+
+        /* ── Tablets (≤1024px): 2-col room grid ── */
+        @media (max-width: 1024px) {
+          .blog-room-grid  { grid-template-columns: repeat(2, 1fr) !important; }
+          .blog-posts-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .blog-room-section { padding: 4rem 2.5rem !important; }
+          .blog-room-title { font-size: 2rem !important; }
+          .blog-heading    { font-size: 2rem !important; }
+          .blog-header-section { padding: 4rem 2.5rem 2.5rem !important; }
+          .blog-category-section { padding: 0 2.5rem 2.5rem !important; }
+          .blog-posts-section { padding: 0 2.5rem 4rem !important; }
+        }
+
+        /* ── Large phones (≤768px) ── */
+        @media (max-width: 768px) {
+          .blog-room-section     { padding: 3rem 1.75rem !important; }
+          .blog-room-grid        { grid-template-columns: repeat(2, 1fr) !important; gap: 1rem !important; }
+          .blog-room-title       { font-size: 1.75rem !important; }
+          .blog-room-subtitle    { font-size: 0.95rem !important; }
+
+          .blog-header-section   { padding: 3rem 1.75rem 2rem !important; }
+          .blog-heading          { font-size: 1.75rem !important; }
+          .blog-subheading       { font-size: 0.95rem !important; }
+
+          .blog-category-section { padding: 0 1.75rem 2rem !important; }
+
+          .blog-posts-section    { padding: 0 1.75rem 4rem !important; }
+          .blog-posts-grid       { grid-template-columns: repeat(2, 1fr) !important; gap: 1.25rem !important; }
+        }
+
+        /* ── Mobile (≤540px): single column ── */
+        @media (max-width: 540px) {
+          .blog-room-section     { padding: 2.5rem 1.25rem !important; }
+          .blog-room-grid        { grid-template-columns: 1fr !important; gap: 1rem !important; }
+          .blog-room-title       { font-size: 1.5rem !important; }
+
+          .blog-header-section   { padding: 2.5rem 1.25rem 1.5rem !important; }
+          .blog-heading          { font-size: 1.5rem !important; }
+
+          .blog-category-section { padding: 0 1.25rem 1.5rem !important; }
+          .blog-cat-btn          { font-size: 0.82rem !important; padding: 0.45rem 1rem !important; }
+
+          .blog-posts-section    { padding: 0 1.25rem 3rem !important; }
+          .blog-posts-grid       { grid-template-columns: 1fr !important; gap: 1.25rem !important; }
+        }
       `}</style>
       <TopBar showSignIn={true} />
 
@@ -201,13 +250,13 @@ function Blog() {
         <section style={styles.roomTypesSection} className="blog-room-section">
           <div style={styles.roomTypesHeader}>
             <p style={styles.roomTypesEyebrow} className="blog-room-eyebrow">Explore by Space</p>
-            <h2 style={styles.roomTypesTitle} className="blog-room-title">Every Room, Reimagined</h2>
-            <p style={styles.roomTypesSubtitle} className="blog-room-subtitle">
+            <h2 style={styles.roomTypesTitle} className="blog-room-title blog-heading">Every Room, Reimagined</h2>
+            <p style={styles.roomTypesSubtitle} className="blog-room-subtitle blog-subheading">
               Pick a room type to discover tailored design ideas, AI
               transformations, and expert tips curated just for that space.
             </p>
           </div>
-          <div style={styles.roomTypesGrid}>
+          <div style={styles.roomTypesGrid} className="blog-room-grid">
             {roomTypes.map((room) => {
               const isActive = selectedRoom === room.label;
               return (
@@ -263,7 +312,7 @@ function Blog() {
         {/* BLOG HEADER */}
         <section style={styles.blogHeader} className="blog-header-section">
           <p style={styles.blogEyebrow} className="blog-eyebrow">From Our Journal</p>
-          <h2 style={styles.blogTitle} className="blog-heading">AI Interior Design Insights</h2>
+          <h2 style={styles.blogTitle} className="blog-heading blog-main-title">AI Interior Design Insights</h2>
           <p style={styles.blogSubtitle} className="blog-subheading">
             Curated articles on modern design, minimalism, and the AI tools
             reshaping how we think about our homes.
@@ -295,7 +344,7 @@ function Blog() {
 
         {/* BLOG POSTS GRID */}
         <section ref={postsRef} style={styles.postsSection} className="blog-posts-section" data-static-colors>
-          <div style={styles.postsGrid}>
+          <div style={styles.postsGrid} className="blog-posts-grid">
             {filteredPosts.map((post) => (
               <article
                 key={post.id}

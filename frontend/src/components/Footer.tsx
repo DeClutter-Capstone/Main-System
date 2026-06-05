@@ -1,4 +1,17 @@
+import { useNavigate } from "react-router-dom";
+import { auth } from "../Firebase/Firebase";
+
 function Footer() {
+  const navigate = useNavigate();
+
+  const goProtected = (path: string) => {
+    if (auth.currentUser) {
+      navigate(path);
+    } else {
+      navigate("/login", { state: { from: path } });
+    }
+  };
+
   return (
     <footer style={styles.footer}>
       <style>{`
@@ -16,8 +29,29 @@ function Footer() {
         [data-theme="dark"] .footer-title {
           color: #ffffff !important;
         }
+        [data-theme="dark"] .footer-link {
+          color: #aaa !important;
+        }
+        [data-theme="dark"] .footer-copyright {
+          color: #888 !important;
+          border-top-color: #333 !important;
+        }
+        @media (max-width: 640px) {
+          .footer-inner {
+            gap: 2.5rem !important;
+            justify-content: flex-start !important;
+            padding: 0 1.5rem !important;
+          }
+        }
+        @media (max-width: 400px) {
+          .footer-inner {
+            flex-direction: column !important;
+            gap: 2rem !important;
+            padding: 0 1.25rem !important;
+          }
+        }
       `}</style>
-      <div style={styles.container}>
+      <div style={styles.container} className="footer-inner">
         {/* Company Column */}
         <div style={styles.column}>
           <h3 style={styles.columnTitle} className="footer-title">Company</h3>
@@ -33,8 +67,8 @@ function Footer() {
         <div style={styles.column}>
           <h3 style={styles.columnTitle} className="footer-title">Product</h3>
           <nav style={styles.linksList}>
-            <a href="/generate" style={styles.link} className="footer-link">Generate</a>
-            <a href="/history" style={styles.link} className="footer-link">History</a>
+            <button onClick={() => goProtected("/generate")} style={styles.linkBtn} className="footer-link">Generate</button>
+            <button onClick={() => goProtected("/history")} style={styles.linkBtn} className="footer-link">History</button>
             <a href="/faq" style={styles.link} className="footer-link">FAQ</a>
           </nav>
         </div>
@@ -49,7 +83,7 @@ function Footer() {
       </div>
 
       {/* Copyright */}
-      <div style={styles.copyright} className="footer-copyright">2026 © DeClutter, Inc.</div>
+      <div style={styles.copyright} className="footer-copyright footer-link">2026 © DeClutter, Inc.</div>
     </footer>
   );
 }
@@ -95,6 +129,17 @@ const styles = {
     fontSize: "0.95rem",
     fontFamily: "'Alata', sans-serif",
     cursor: "pointer",
+  } as React.CSSProperties,
+  linkBtn: {
+    color: "#888888",
+    textDecoration: "none",
+    fontSize: "0.95rem",
+    fontFamily: "'Alata', sans-serif",
+    cursor: "pointer",
+    background: "none",
+    border: "none",
+    padding: "0",
+    textAlign: "left",
   } as React.CSSProperties,
   copyright: {
     textAlign: "left",

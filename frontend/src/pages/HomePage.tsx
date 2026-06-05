@@ -203,23 +203,20 @@ function HomePage() {
   );
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const getClientX = (e: MouseEvent | TouchEvent) =>
+      "touches" in e ? e.touches[0].clientX : e.clientX;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
       if (isSlider1Active && sliderContainerRef1.current) {
         const rect = sliderContainerRef1.current.getBoundingClientRect();
         setSlider1Position(
-          Math.max(
-            0,
-            Math.min(100, ((e.clientX - rect.left) / rect.width) * 100),
-          ),
+          Math.max(0, Math.min(100, ((getClientX(e) - rect.left) / rect.width) * 100)),
         );
       }
       if (isSlider2Active && sliderContainerRef2.current) {
         const rect = sliderContainerRef2.current.getBoundingClientRect();
         setSlider2Position(
-          Math.max(
-            0,
-            Math.min(100, ((e.clientX - rect.left) / rect.width) * 100),
-          ),
+          Math.max(0, Math.min(100, ((getClientX(e) - rect.left) / rect.width) * 100)),
         );
       }
     };
@@ -228,11 +225,15 @@ function HomePage() {
       setIsSlider2Active(false);
     };
     if (isSlider1Active || isSlider2Active) {
-      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mousemove", handleMove as EventListener);
+      document.addEventListener("touchmove", handleMove as EventListener, { passive: false });
       document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("touchend", handleMouseUp);
       return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mousemove", handleMove as EventListener);
+        document.removeEventListener("touchmove", handleMove as EventListener);
         document.removeEventListener("mouseup", handleMouseUp);
+        document.removeEventListener("touchend", handleMouseUp);
       };
     }
   }, [isSlider1Active, isSlider2Active]);
@@ -328,6 +329,110 @@ function HomePage() {
         .reveal-scale.visible { animation: scale-in 0.6s cubic-bezier(0.34,1.1,0.64,1) forwards; }
         .grid-icon-dark { display: none; }
 
+        /* ══════════════════════════════
+           RESPONSIVE STYLES
+        ══════════════════════════════ */
+
+        /* ── Large tablets (≤1024px) ── */
+        @media (max-width: 1024px) {
+          .hero-title { font-size: 2.8rem !important; }
+          .hero-subtitle { font-size: 1rem !important; }
+          .projects-section { flex-direction: column !important; }
+          .projects-left { min-height: 280px !important; flex: none !important; }
+          .projects-right { padding: 2rem !important; }
+          .projects-title { font-size: 2rem !important; }
+          .showcase-panel { flex-direction: column !important; }
+          .showcase-img-side { min-height: unset !important; aspect-ratio: 1 / 1 !important; width: 100% !important; }
+          .showcase-text-side { padding: 2rem !important; }
+          .cta-title { font-size: 2.4rem !important; }
+        }
+
+        /* ── Tablets (≤768px) ── */
+        @media (max-width: 768px) {
+          .hero-carousel { height: 620px !important; }
+          .hero-content { padding: 0 2rem !important; }
+          .hero-title { font-size: 2.2rem !important; max-width: 100% !important; }
+          .hero-subtitle { font-size: 0.95rem !important; max-width: 100% !important; }
+          .hero-button { padding: 12px 32px !important; font-size: 0.95rem !important; }
+
+          .main-wrapper { padding: 0 1.25rem !important; }
+
+          .projects-section { margin-top: 5rem !important; border-radius: 20px !important; }
+          .projects-left { min-height: 220px !important; }
+          .projects-right { padding: 1.75rem !important; gap: 0.85rem !important; }
+          .projects-title { font-size: 1.75rem !important; }
+          .projects-card-preview-wrap {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            padding: 1rem !important;
+          }
+          .projects-card-img {
+            width: 100% !important;
+            height: 180px !important;
+            padding: 0 !important;
+            border-radius: 10px !important;
+          }
+
+          .sliders-section { margin-top: 5rem !important; }
+          .sliders-row { flex-direction: column !important; align-items: center !important; }
+          .slider-item {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: 300px !important;
+          }
+          .slider-title { font-size: 1.8rem !important; }
+
+          .styles-section { margin-top: 5rem !important; }
+          .styles-title { font-size: 2rem !important; }
+          .showcase-img-side { min-height: unset !important; aspect-ratio: 1 / 1 !important; width: 100% !important; }
+          .showcase-heading { font-size: 1.6rem !important; }
+          .showcase-desc { font-size: 0.95rem !important; }
+
+          .cta-section { margin-top: 5rem !important; margin-bottom: 4rem !important; padding: 3.5rem 1.75rem !important; border-radius: 20px !important; }
+          .cta-title { font-size: 2rem !important; }
+          .cta-desc { font-size: 1rem !important; }
+          .cta-button { padding: 14px 36px !important; font-size: 1rem !important; }
+        }
+
+        /* ── Mobile (≤480px) ── */
+        @media (max-width: 480px) {
+          .hero-carousel { height: 520px !important; }
+          .hero-content { padding: 0 1.25rem !important; gap: 0.9rem !important; }
+          .hero-title { font-size: 1.75rem !important; line-height: 1.2 !important; }
+          .hero-subtitle { font-size: 0.875rem !important; }
+          .hero-arrow { display: none !important; }
+          .hero-button { padding: 11px 28px !important; font-size: 0.9rem !important; }
+
+          .main-wrapper { padding: 0 1rem !important; }
+
+          .projects-section { margin-top: 3.5rem !important; border-radius: 16px !important; }
+          .projects-left { min-height: 180px !important; }
+          .projects-right { padding: 1.25rem !important; gap: 0.75rem !important; }
+          .projects-title { font-size: 1.4rem !important; }
+          .projects-desc { font-size: 0.9rem !important; }
+          .projects-card-img { height: 140px !important; }
+
+          .sliders-section { margin-top: 3.5rem !important; }
+          .slider-item { height: 240px !important; }
+          .slider-title { font-size: 1.5rem !important; }
+          .slider-subtitle { font-size: 0.9rem !important; }
+
+          .styles-section { margin-top: 3.5rem !important; }
+          .styles-title { font-size: 1.6rem !important; }
+          .tabs-row { gap: 0.4rem !important; }
+          .style-tab { padding: 0.5rem 0.9rem !important; font-size: 0.8rem !important; }
+          .showcase-panel { border-radius: 16px !important; }
+          .showcase-img-side { min-height: unset !important; aspect-ratio: 1 / 1 !important; width: 100% !important; }
+          .showcase-text-side { padding: 1.5rem !important; gap: 1rem !important; }
+          .showcase-heading { font-size: 1.35rem !important; }
+          .showcase-desc { font-size: 0.875rem !important; }
+
+          .cta-section { margin-top: 3.5rem !important; margin-bottom: 3rem !important; padding: 2.5rem 1.25rem !important; border-radius: 16px !important; }
+          .cta-title { font-size: 1.6rem !important; }
+          .cta-desc { font-size: 0.9rem !important; }
+          .cta-button { padding: 12px 28px !important; font-size: 0.9rem !important; }
+        }
+
         /* ── Dark mode overrides ── */
         [data-theme="dark"] .home-container { background-color: #252525 !important; }
         [data-theme="dark"] .home-container h1,
@@ -356,6 +461,7 @@ function HomePage() {
       <section style={heroSectionStyle}>
         <div
           style={carouselWrapStyle}
+          className="hero-carousel"
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
@@ -415,7 +521,7 @@ function HomePage() {
           <div style={overlayStyle} />
 
           {/* Content */}
-          <div style={slideContentStyle}>
+          <div style={slideContentStyle} className="hero-content">
             <span
               key={`style-${currentSlide}`}
               style={{
@@ -426,14 +532,14 @@ function HomePage() {
             >
               {heroSlides[currentSlide].style}
             </span>
-            <h1 key={`title-${currentSlide}`} style={heroTitleStyle}>
+            <h1 key={`title-${currentSlide}`} style={heroTitleStyle} className="hero-title">
               {heroSlides[currentSlide].title}
             </h1>
-            <p key={`sub-${currentSlide}`} style={heroSubtitleStyle}>
+            <p key={`sub-${currentSlide}`} style={heroSubtitleStyle} className="hero-subtitle">
               {heroSlides[currentSlide].subtitle}
             </p>
             <button
-              className="glow-button"
+              className="glow-button hero-button"
               style={heroButtonStyle}
               onClick={() =>
                 navigate(
@@ -452,6 +558,7 @@ function HomePage() {
           ].map(({ side, label, onClick }) => (
             <button
               key={side}
+              className="hero-arrow"
               style={{ ...arrowButtonStyle, [side]: "24px" }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.backgroundColor =
@@ -490,12 +597,12 @@ function HomePage() {
         </div>
       </section>
 
-      <main style={mainStyle}>
+      <main style={mainStyle} className="main-wrapper">
         {/* ═══════════════ PROJECTS SECTION ═══════════════ */}
-        <div ref={projectsRef} style={projectsSectionStyle}>
+        <div ref={projectsRef} style={projectsSectionStyle} className="projects-section">
           {/* Left: photo + floating project card */}
           <div
-            className={`reveal-fade-left${projectsVisible ? " visible" : ""}`}
+            className={`projects-left reveal-fade-left${projectsVisible ? " visible" : ""}`}
             style={projectsLeftStyle}
           >
             <img
@@ -509,19 +616,19 @@ function HomePage() {
 
           {/* Right: text + bullets */}
           <div
-            className={`projects-right-panel reveal-fade-right${projectsVisible ? " visible" : ""}`}
+            className={`projects-right projects-right-panel reveal-fade-right${projectsVisible ? " visible" : ""}`}
             style={projectsRightStyle}
           >
             {/* 1. Eyebrow */}
             <div style={projectsEyebrowStyle}>A Collection of Spaces</div>
 
             {/* 2. Title */}
-            <h2 style={projectsTitleStyle}>
+            <h2 style={projectsTitleStyle} className="projects-title">
               Every room, organised in one place
             </h2>
 
             {/* 3. Description */}
-            <p style={projectsDescStyle}>
+            <p style={projectsDescStyle} className="projects-desc">
               Each project groups all the spaces in a building so your designs
               stay consistent, comparable, and easy to refine — room by room.
             </p>
@@ -529,7 +636,7 @@ function HomePage() {
             {/* 4. Card preview + bullets + CTA side by side */}
             <div
               style={projectsCardPreviewWrapStyle}
-              className="projects-card-preview"
+              className="projects-card-preview projects-card-preview-wrap"
             >
               <img
                 src={
@@ -539,7 +646,7 @@ function HomePage() {
                 }
                 alt="Project card preview"
                 style={projectsCardPreviewImgStyle}
-                className="collection-image-animated"
+                className="projects-card-img collection-image-animated"
               />
               <div
                 style={{
@@ -595,20 +702,20 @@ function HomePage() {
         {/* ═══════════════ BEFORE / AFTER SLIDERS ═══════════════ */}
         <div
           ref={sliderRef}
-          className={`reveal-fade-up${sliderVisible ? " visible" : ""}`}
+          className={`sliders-section reveal-fade-up${sliderVisible ? " visible" : ""}`}
           style={slidersSectionStyle}
         >
           <div style={sliderHeaderStyle}>
             <div style={sectionBadgeStyle}>See the Difference</div>
-            <h2 style={sliderTitleStyle}>
+            <h2 style={sliderTitleStyle} className="slider-title">
               Intelligent design turns clutter into calm spaces
             </h2>
-            <p style={sliderSubtitleStyle}>
+            <p style={sliderSubtitleStyle} className="slider-subtitle">
               Drag the handle to reveal the transformation
             </p>
           </div>
 
-          <div style={slidersRowStyle} className="slider-container-wrapper">
+          <div style={slidersRowStyle} className="sliders-row slider-container-wrapper">
             {[
               {
                 ref: sliderContainerRef1,
@@ -627,7 +734,7 @@ function HomePage() {
                 onUp: () => setIsSlider2Active(false),
               },
             ].map((s, i) => (
-              <div key={i} ref={s.ref} style={sliderContainerStyle}>
+              <div key={i} ref={s.ref} style={sliderContainerStyle} className="slider-item">
                 <img src={s.before} alt="Before" style={sliderImgBaseStyle} />
                 <div
                   style={{ ...sliderAfterContainerStyle, width: `${s.pos}%` }}
@@ -681,16 +788,16 @@ function HomePage() {
         {/* ═══════════════ DESIGN STYLES ═══════════════ */}
         <div
           ref={stylesRef}
-          className={`reveal-fade-up${stylesVisible ? " visible" : ""}`}
+          className={`styles-section reveal-fade-up${stylesVisible ? " visible" : ""}`}
           style={stylesSectionStyle}
         >
           <div style={stylesHeaderStyle}>
             <div style={sectionBadgeStyle}>Explore</div>
-            <h2 style={stylesTitleStyle}>Discover Design Styles</h2>
+            <h2 style={stylesTitleStyle} className="styles-title">Discover Design Styles</h2>
           </div>
 
           {/* Tabs */}
-          <div style={tabsRowStyle}>
+          <div style={tabsRowStyle} className="tabs-row">
             {designStyles.map((s, i) => {
               const isActive = activeStyle === i;
               const isHovered = hoveredTab === i;
@@ -726,8 +833,8 @@ function HomePage() {
           </div>
 
           {/* Showcase */}
-          <div className="style-showcase-bg" style={showcasePanelStyle}>
-            <div style={showcaseImageSideStyle}>
+          <div className="showcase-panel style-showcase-bg" style={showcasePanelStyle}>
+            <div style={showcaseImageSideStyle} className="showcase-img-side">
               <img
                 key={current.key}
                 src={current.image}
@@ -744,7 +851,7 @@ function HomePage() {
                 }}
               />
             </div>
-            <div className="style-text-area" style={showcaseTextSideStyle}>
+            <div className="showcase-text-side style-text-area" style={showcaseTextSideStyle}>
               <div
                 style={{
                   ...styleColorBadgeStyle,
@@ -757,6 +864,7 @@ function HomePage() {
               </div>
               <h3
                 key={`h-${current.key}`}
+                className="showcase-heading"
                 style={{
                   ...showcaseHeadingStyle,
                   opacity: styleTransitioning ? 0 : 1,
@@ -769,6 +877,7 @@ function HomePage() {
               </h3>
               <p
                 key={`p-${current.key}`}
+                className="showcase-desc"
                 style={{
                   ...showcaseDescStyle,
                   opacity: styleTransitioning ? 0 : 1,
@@ -810,17 +919,18 @@ function HomePage() {
           className={`cta-section reveal-scale${ctaVisible ? " visible" : ""}`}
           style={ctaSectionStyle}
         >
+
           <div style={ctaOrb1Style} />
           <div style={ctaOrb2Style} />
           <div style={ctaContentStyle}>
             <div style={ctaBadgeStyle}>AI-Powered Design</div>
-            <h2 style={ctaTitleStyle}>Ready to transform your space?</h2>
-            <p style={ctaDescStyle}>
+            <h2 style={ctaTitleStyle} className="cta-title">Ready to transform your space?</h2>
+            <p style={ctaDescStyle} className="cta-desc">
               Upload a photo and watch AI redesign your room in any style — in
               under 2 minutes.
             </p>
             <button
-              className="glow-button"
+              className="glow-button cta-button"
               style={ctaButtonStyle}
               onClick={() =>
                 navigate(

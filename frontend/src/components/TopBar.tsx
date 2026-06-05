@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import type { User } from "firebase/auth";
 import { auth } from "../Firebase/Firebase";
@@ -16,6 +16,8 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
     return localStorage.getItem("darkMode") === "true";
   });
   const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => setCurrentUser(user));
@@ -47,11 +49,44 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
     }
   }, []);
 
+  // Close menu when route changes
+  useEffect(() => {
+    const id = setTimeout(() => setMenuOpen(false), 0);
+    return () => clearTimeout(id);
+  }, [location.pathname]);
+
+  // Close menu when viewport grows past mobile breakpoint
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 640) setMenuOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [menuOpen]);
+
   const isActive = (path: string) => location.pathname === path;
   const toggleDarkMode = () => setIsDarkMode((v) => !v);
 
+  const navLinks = [
+    { to: "/", label: "Home" },
+    { to: "/about", label: "About" },
+    { to: "/blog", label: "Blog" },
+  ];
+
   return (
-    <div style={styles.container} className="topbar-container">
+    <div style={styles.container} className="topbar-container" ref={menuRef}>
       <style>{`
         [data-theme="dark"] .topbar-container {
           background-color: #1a1a1a !important;
@@ -63,12 +98,9 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
           text-decoration: none;
           font-family: inherit;
         }
-        .nav-link:hover {
-          color: var(--color-text-primary);
-        }
-        .nav-link.active {
-          color: var(--color-brand-primary);
-        }
+        .nav-link:hover { color: var(--color-text-primary); }
+        .nav-link.active { color: var(--color-brand-primary); }
+
         .signin-btn {
           background-color: transparent;
           color: var(--color-brand-primary);
@@ -130,54 +162,141 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
           box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-primary) 30%, transparent);
         }
         .avatar-btn img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
+          width: 100%; height: 100%;
+          object-fit: cover; display: block;
+        }
+
+        /* ── Burger button ── */
+        .burger-btn {
+          display: none;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          gap: 5px;
+          width: 36px;
+          height: 36px;
+          background: transparent;
+          border: 1px solid var(--color-border-subtle);
+          border-radius: 8px;
+          cursor: pointer;
+          padding: 0;
+          transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+        .burger-btn:hover {
+          background-color: var(--color-bg-elevated);
+        }
+        .burger-line {
+          width: 18px;
+          height: 2px;
+          background: var(--color-text-secondary);
+          border-radius: 2px;
+          transition: all 0.25s ease;
+          transform-origin: center;
+        }
+        .burger-btn.open .burger-line:nth-child(1) {
+          transform: translateY(7px) rotate(45deg);
+        }
+        .burger-btn.open .burger-line:nth-child(2) {
+          opacity: 0;
+          transform: scaleX(0);
+        }
+        .burger-btn.open .burger-line:nth-child(3) {
+          transform: translateY(-7px) rotate(-45deg);
+        }
+
+        /* ── Mobile nav drawer ── */
+        .mobile-nav {
+          display: none;
+          flex-direction: column;
+          position: absolute;
+          top: 60px;
+          left: 0;
+          right: 0;
+          background: var(--color-bg-surface);
+          border-bottom: 1px solid var(--color-border-low);
+          padding: 1rem 1.5rem 1.5rem;
+          gap: 0;
+          z-index: 99;
+          box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+          animation: drawer-slide 0.22s ease forwards;
+        }
+        [data-theme="dark"] .mobile-nav {
+          background: #1a1a1a !important;
+          border-bottom-color: #333 !important;
+        }
+        @keyframes drawer-slide {
+          from { opacity: 0; transform: translateY(-8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .mobile-nav.open { display: flex; }
+
+        .mobile-nav-link {
+          display: flex;
+          align-items: center;
+          padding: 0.9rem 0.5rem;
+          font-size: 1rem;
+          font-weight: 500;
+          color: var(--color-text-secondary);
+          text-decoration: none;
+          font-family: inherit;
+          border-bottom: 1px solid var(--color-border-low);
+          transition: color 0.15s ease, background-color 0.15s ease;
+          border-radius: 6px;
+        }
+        .mobile-nav-link:last-of-type { border-bottom: none; }
+        .mobile-nav-link:hover { color: var(--color-text-primary); background-color: var(--color-bg-elevated); }
+        .mobile-nav-link.active { color: var(--color-brand-primary); }
+
+        .mobile-nav-divider {
+          height: 1px;
+          background: var(--color-border-low);
+          margin: 0.75rem 0;
+        }
+
+        .mobile-nav-actions {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 0.25rem;
+          gap: 0.75rem;
+        }
+
+        /* ── Breakpoints ── */
+        .burger-btn-wrap { display: none; }
+
+        @media (max-width: 640px) {
+          .topbar-desktop-nav { display: none !important; }
+          .topbar-desktop-right { display: none !important; }
+          .burger-btn-wrap { display: flex !important; }
+          .burger-btn { display: flex !important; }
         }
       `}</style>
+
       {/* Logo */}
       <Link to="/" style={styles.logoSection}>
         <span style={{ color: "var(--color-brand-primary)" }}>De</span>
         <span style={{ color: "var(--color-text-primary)" }}>Clutter</span>
       </Link>
 
-      {/* Navigation links in center */}
-      <nav style={styles.navSection}>
-        <Link
-          to="/"
-          style={{
-            ...styles.navLink,
-            ...(isActive("/") && { color: "var(--color-brand-primary)" }),
-          }}
-          className={`nav-link${isActive("/") ? " active" : ""}`}
-        >
-          Home
-        </Link>
-        <Link
-          to="/about"
-          style={{
-            ...styles.navLink,
-            ...(isActive("/about") && { color: "var(--color-brand-primary)" }),
-          }}
-          className={`nav-link${isActive("/about") ? " active" : ""}`}
-        >
-          About
-        </Link>
-        <Link
-          to="/blog"
-          style={{
-            ...styles.navLink,
-            ...(isActive("/blog") && { color: "var(--color-brand-primary)" }),
-          }}
-          className={`nav-link${isActive("/blog") ? " active" : ""}`}
-        >
-          Blog
-        </Link>
+      {/* Desktop nav center */}
+      <nav style={styles.navSection} className="topbar-desktop-nav">
+        {navLinks.map(({ to, label }) => (
+          <Link
+            key={to}
+            to={to}
+            style={{
+              ...styles.navLink,
+              ...(isActive(to) && { color: "var(--color-brand-primary)" }),
+            }}
+            className={`nav-link${isActive(to) ? " active" : ""}`}
+          >
+            {label}
+          </Link>
+        ))}
       </nav>
 
-      {/* Right side - Sign In & Dark Mode */}
-      <div style={styles.rightSection}>
+      {/* Desktop right */}
+      <div style={styles.rightSection} className="topbar-desktop-right">
         <div>
           {currentUser ? (
             <button
@@ -211,37 +330,93 @@ function TopBar({ showSignIn = false, onSignIn }: TopBarProps) {
           title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
           aria-label="Toggle theme"
         >
-          {isDarkMode ? (
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="4" />
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-            </svg>
-          ) : (
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-          )}
+          {isDarkMode ? <SunIcon /> : <MoonIcon />}
         </button>
       </div>
+
+      {/* Mobile burger — hidden on desktop via CSS */}
+      <div className="burger-btn-wrap" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <button
+          className={`burger-btn${menuOpen ? " open" : ""}`}
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+        >
+          <span className="burger-line" />
+          <span className="burger-line" />
+          <span className="burger-line" />
+        </button>
+      </div>
+
+      {/* Mobile drawer */}
+      <div className={`mobile-nav${menuOpen ? " open" : ""}`} role="navigation" aria-label="Mobile navigation">
+        {navLinks.map(({ to, label }) => (
+          <Link
+            key={to}
+            to={to}
+            className={`mobile-nav-link${isActive(to) ? " active" : ""}`}
+            onClick={() => setMenuOpen(false)}
+          >
+            {label}
+          </Link>
+        ))}
+        <div className="mobile-nav-divider" />
+        <div className="mobile-nav-actions">
+          {currentUser ? (
+            <button
+              className="avatar-btn"
+              onClick={() => { navigate("/account"); setMenuOpen(false); }}
+              title="Go to account"
+              aria-label="Account"
+            >
+              {currentUser.photoURL ? (
+                <img src={currentUser.photoURL} alt="Profile" referrerPolicy="no-referrer" />
+              ) : (
+                (currentUser.displayName?.[0] ?? currentUser.email?.[0] ?? "U").toUpperCase()
+              )}
+            </button>
+          ) : showSignIn ? (
+            <button
+              className="signin-btn"
+              style={{ flex: 1 }}
+              onClick={() => {
+                if (onSignIn) onSignIn();
+                navigate("/login", { replace: true });
+                setMenuOpen(false);
+              }}
+            >
+              Sign in
+            </button>
+          ) : <div />}
+          <button
+            className="nav-icon-btn"
+            style={styles.toggleButton}
+            onClick={toggleDarkMode}
+            title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label="Toggle theme"
+          >
+            {isDarkMode ? <SunIcon /> : <MoonIcon />}
+          </button>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
   );
 }
 
@@ -306,10 +481,6 @@ const styles = {
     justifyContent: "center",
     cursor: "pointer",
     transition: "color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease",
-  } as React.CSSProperties,
-  toggleIcon: {
-    width: "18px",
-    height: "18px",
   } as React.CSSProperties,
 };
 

@@ -718,8 +718,26 @@ function Generate() {
           background-color: rgba(0, 0, 0, 0.8) !important;
           transform: scale(1.05);
         }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+          .generate-container { padding: 1.25rem !important; gap: 2rem !important; }
+          .hero-style-card-inner { flex-direction: column !important; min-height: unset !important; }
+          .hero-style-img-wrap { width: 100% !important; min-width: unset !important; max-width: unset !important; height: 180px !important; }
+          .hero-style-info-inner { padding: 1.1rem 1.25rem !important; }
+          .hero-style-name { font-size: 1.35rem !important; }
+          .hero-style-desc { font-size: 0.875rem !important; }
+          .small-style-row-inner { gap: 0.75rem !important; flex-wrap: wrap !important; }
+          .small-style-card-inner { flex: 1 1 calc(50% - 0.375rem) !important; min-width: calc(50% - 0.375rem) !important; max-width: calc(50% - 0.375rem) !important; }
+          .small-style-img-wrap { height: 110px !important; }
+        }
+
+        @media (max-width: 400px) {
+          .hero-style-img-wrap { height: 140px !important; }
+          .small-style-img-wrap { height: 90px !important; }
+        }
       `}</style>
-      <div style={styles.container} className="generate-container">
+      <div style={styles.container} className="generate-container" id="generate-container">
         {/* HERO UPLOAD ZONE */}
         <section style={styles.heroSection}>
           <h1 style={styles.heroTitle}>Upload your room</h1>
@@ -842,7 +860,7 @@ function Generate() {
             return (
               <div
                 onClick={() => handleStyleCardClick(hero.id)}
-                className="hero-style-card"
+                className="hero-style-card hero-style-card-inner"
                 style={{
                   ...styles.heroStyleCard,
                   borderColor: isSelected
@@ -853,7 +871,7 @@ function Generate() {
                     : "0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)",
                 }}
               >
-                <div style={styles.heroStyleImageWrapper}>
+                <div style={styles.heroStyleImageWrapper} className="hero-style-img-wrap">
                   <img
                     src={hero.image}
                     alt={hero.name}
@@ -867,11 +885,11 @@ function Generate() {
                       ? "var(--color-brand-soft)"
                       : "transparent",
                   }}
-                  className="hero-style-info"
+                  className="hero-style-info hero-style-info-inner"
                 >
                   <div style={styles.heroStyleTag}>Default style</div>
-                  <div style={styles.heroStyleName}>{hero.name}</div>
-                  <div style={styles.heroStyleDescription}>
+                  <div style={styles.heroStyleName} className="hero-style-name">{hero.name}</div>
+                  <div style={styles.heroStyleDescription} className="hero-style-desc">
                     Clean, clutter-free spaces with neutral tones and only
                     essential furniture
                   </div>
@@ -896,7 +914,7 @@ function Generate() {
           <div style={styles.otherStylesLabel}>Other styles</div>
 
           {/* Secondary cards */}
-          <div style={styles.smallStyleRow}>
+          <div style={styles.smallStyleRow} className="small-style-row-inner">
             {all_styles_data.slice(1).map((style) => {
               const isSelected = selectedStyle === style.id;
               const visible = isStyleVisible(style.id, roomType);
@@ -904,7 +922,7 @@ function Generate() {
                 <div
                   key={style.id}
                   onClick={() => visible && handleStyleCardClick(style.id)}
-                  className={`style-card-small${visible ? "" : " hidden"}`}
+                  className={`style-card-small small-style-card-inner${visible ? "" : " hidden"}`}
                   aria-hidden={!visible}
                   style={{
                     ...styles.smallStyleCard,
@@ -919,7 +937,7 @@ function Generate() {
                       : "0 1px 3px rgba(0, 0, 0, 0.06)",
                   }}
                 >
-                  <div style={styles.smallStyleImageWrapper}>
+                  <div style={styles.smallStyleImageWrapper} className="small-style-img-wrap">
                     <img
                       src={style.image}
                       alt={style.name}

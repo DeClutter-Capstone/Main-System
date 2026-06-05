@@ -13,7 +13,7 @@ const team = [
       "Mohamed picked the image models the app runs on (gpt-image-1.5 and gpt-image-2) and wrote the prompts that decide what the model removes, what it keeps, and how strict it is about the room's geometry. The deploy is also his.",
   },
   {
-    name: "Firas Nazar",
+    name: "Firas Abelgadir",
     role: "Backend",
     photo: "/team/firas.jpg",
     body:

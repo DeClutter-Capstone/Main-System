@@ -2,36 +2,36 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import TopBar from "../components/TopBar";
 import Footer from "../components/Footer";
 
-// TODO: drop each team member's photo URL or import path into the `photo`
-// field below. The empty string keeps the slot rendered but visually blank.
+// Photos live in /frontend/public/team/. Drop the four jpgs in there with the
+// filenames below and they'll show up automatically.
 const team = [
   {
     name: "Mohamed Elfaki",
-    role: "AI",
-    photo: "",
+    role: "AI and deployment",
+    photo: "/team/mohamed.jpg",
     body:
-      "Mohamed works on the model. He's responsible for the system that looks at a photo of a room and figures out what each thing is, then puts the room back together without the parts that don't belong.",
+      "Mohamed picked the image models the app runs on (gpt-image-1.5 and gpt-image-2) and wrote the prompts that decide what the model removes, what it keeps, and how strict it is about the room's geometry. The deploy is also his.",
   },
   {
     name: "Firas Nazar",
     role: "Backend",
-    photo: "",
+    photo: "/team/firas.jpg",
     body:
-      "Firas wrote the API. He keeps the storage layer honest and the database from going sideways when twenty requests land at once.",
-  },
-  {
-    name: "Saad Ahmed",
-    role: "Frontend",
-    photo: "",
-    body:
-      "Saad wrote almost every screen you can click. The motion, the spacing, and the way the before/after slider behaves are his.",
+      "Firas wrote the backend. He designed the database models and the relationships between projects, generations, and users, and built the API endpoints the frontend talks to. When the storage layer or a migration needs to do something unusual, it's his code.",
   },
   {
     name: "Ahmed Salmi",
-    role: "Mobile and integration",
-    photo: "",
+    role: "Frontend and UI",
+    photo: "/team/ahmed-salmi.jpg",
     body:
-      "Ahmed makes the pieces talk to each other. He owns the mobile build and the parts of the codebase nobody else wants to touch.",
+      "Ahmed wrote a large part of the frontend and shaped the way the UI looks. He also handled the wiring between the screens and the backend endpoints Firas built, the boring but essential plumbing that makes the app feel like one thing.",
+  },
+  {
+    name: "Saad Ahmed",
+    role: "UI and style references",
+    photo: "/team/saad.jpg",
+    body:
+      "Saad worked on the early visual research that defined the catalogue of styles the app supports, and shaped parts of the UI alongside Ahmed. The references that anchor what Minimalist, Scandinavian, Industrial, and the rest look like to the model and to the user came through him, along with a number of the design decisions you see on the screens themselves.",
   },
 ];
 

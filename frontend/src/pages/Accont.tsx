@@ -1061,19 +1061,19 @@ function Account() {
                 </div>
                 <div style={styles.userDetailsContainer}>
                   <div style={styles.detailRow}>
-                    <span style={styles.detailLabel}>Username</span>
+                    <span style={isDark ? { ...styles.detailLabel, color: "#ffffff" } : styles.detailLabel}>Username</span>
                     <span style={styles.detailValue} className="detail-value">
                       {firebaseUser.displayName || "No name set"}
                     </span>
                   </div>
                   <div style={styles.detailRow}>
-                    <span style={styles.detailLabel}>Email</span>
+                    <span style={isDark ? { ...styles.detailLabel, color: "#ffffff" } : styles.detailLabel}>Email</span>
                     <span style={styles.detailValue} className="detail-value">
                       {firebaseUser.email || "No email set"}
                     </span>
                   </div>
                   <div style={styles.detailRow}>
-                    <span style={styles.detailLabel}>Signed in with</span>
+                    <span style={isDark ? { ...styles.detailLabel, color: "#ffffff" } : styles.detailLabel}>Signed in with</span>
                     <span
                       style={
                         firebaseUser.providerData.some(
@@ -1723,14 +1723,17 @@ function Account() {
             >
               <div
                 style={{
-                  ...styles.modalContent,
+                  ...(isDark ? styles.modalContentDark : styles.modalContent),
                   maxWidth: "880px",
                 }}
+                className="export-modal"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h3 style={styles.modalTitle}>Export Transformations</h3>
+                <h3 style={isDark ? styles.modalTitleDark : styles.modalTitle}>
+                  Export Transformations
+                </h3>
                 <div style={styles.modalBody}>
-                  <p style={styles.modalDescription}>
+                  <p style={isDark ? { ...styles.modalDescription, color: "#ffffff" } : styles.modalDescription}>
                     Choose a filter, preview your transformations, then export to
                     PDF.
                   </p>
@@ -1742,13 +1745,24 @@ function Account() {
                         checked={exportMode === "timeframe"}
                         onChange={() => setExportMode("timeframe")}
                       />
-                      <span style={styles.radioLabel}>Time frame</span>
+                      <span style={isDark ? { ...styles.radioLabel, color: "#ffffff" } : styles.radioLabel}>Time frame</span>
                     </label>
                     {exportMode === "timeframe" && (
-                      <div style={styles.exportSubsection}>
-                        <label style={styles.label}>Preset</label>
+                      <div
+                        style={
+                          isDark
+                            ? { ...styles.exportSubsection, backgroundColor: "#2a2a2a", borderColor: "#4a4a4a" }
+                            : styles.exportSubsection
+                        }
+                        className="export-subsection"
+                      >
+                        <label style={isDark ? styles.labelDark : styles.label}>Preset</label>
                         <select
-                          style={styles.select}
+                          style={
+                            isDark
+                              ? { ...styles.select, backgroundColor: "#1a1a1a", color: "#ffffff", borderColor: "#555555" }
+                              : styles.select
+                          }
                           value={timeframe}
                           onChange={(e) =>
                             setTimeframe(
@@ -1773,25 +1787,33 @@ function Account() {
                         {timeframe === "custom" && (
                           <div style={styles.customDateRow}>
                             <div style={styles.customDateField}>
-                              <label style={styles.label}>Start date</label>
+                              <label style={isDark ? styles.labelDark : styles.label}>Start date</label>
                               <input
                                 type="date"
                                 value={customStartDate}
                                 onChange={(e) =>
                                   setCustomStartDate(e.target.value)
                                 }
-                                style={styles.input}
+                                style={
+                                  isDark
+                                    ? { ...styles.input, backgroundColor: "#1a1a1a", color: "#ffffff", borderColor: "#555555", colorScheme: "dark" }
+                                    : styles.input
+                                }
                               />
                             </div>
                             <div style={styles.customDateField}>
-                              <label style={styles.label}>End date</label>
+                              <label style={isDark ? styles.labelDark : styles.label}>End date</label>
                               <input
                                 type="date"
                                 value={customEndDate}
                                 onChange={(e) =>
                                   setCustomEndDate(e.target.value)
                                 }
-                                style={styles.input}
+                                style={
+                                  isDark
+                                    ? { ...styles.input, backgroundColor: "#1a1a1a", color: "#ffffff", borderColor: "#555555", colorScheme: "dark" }
+                                    : styles.input
+                                }
                               />
                             </div>
                           </div>
@@ -1805,29 +1827,40 @@ function Account() {
                         checked={exportMode === "lastx"}
                         onChange={() => setExportMode("lastx")}
                       />
-                      <span style={styles.radioLabel}>Last X transformations</span>
+                      <span style={isDark ? { ...styles.radioLabel, color: "#ffffff" } : styles.radioLabel}>Last X transformations</span>
                     </label>
                     {exportMode === "lastx" && (
-                      <div style={styles.exportSubsection}>
-                        <label style={styles.label}>Number of items</label>
+                      <div
+                        style={
+                          isDark
+                            ? { ...styles.exportSubsection, backgroundColor: "#2a2a2a", borderColor: "#4a4a4a" }
+                            : styles.exportSubsection
+                        }
+                        className="export-subsection"
+                      >
+                        <label style={isDark ? styles.labelDark : styles.label}>Number of items</label>
                         <input
                           type="number"
                           min={1}
                           max={EXPORT_MAX_ITEMS}
                           value={lastX}
                           onChange={(e) => setLastX(Number(e.target.value))}
-                          style={styles.input}
+                          style={
+                            isDark
+                              ? { ...styles.input, backgroundColor: "#1a1a1a", color: "#ffffff", borderColor: "#555555" }
+                              : styles.input
+                          }
                         />
-                        <p style={styles.helpText}>
+                        <p style={isDark ? { ...styles.helpText, color: "#cccccc" } : styles.helpText}>
                           Maximum export size is {EXPORT_MAX_ITEMS} transformations.
                         </p>
                       </div>
                     )}
                   </div>
 
-                  <div style={styles.previewSection}>
+                  <div style={styles.previewSection} className="export-preview-section">
                     <div style={styles.previewHeader}>
-                      <h4 style={styles.previewTitle}>Preview</h4>
+                      <h4 style={isDark ? { ...styles.previewTitle, color: "#ffffff" } : styles.previewTitle}>Preview</h4>
                       {previewTotalCount !== null && (
                         <span style={styles.previewCount}>
                           {previewTotalCount} found
@@ -1838,11 +1871,11 @@ function Account() {
                     {isLoadingPreview ? (
                       <p style={styles.loadingText}>Loading preview...</p>
                     ) : !hasPreviewLoaded ? (
-                      <p style={styles.previewEmptyText}>
+                      <p style={isDark ? { ...styles.previewEmptyText, color: "#ffffff" } : styles.previewEmptyText}>
                         Click Preview to load transformations.
                       </p>
                     ) : previewItems.length === 0 ? (
-                      <p style={styles.previewEmptyText}>
+                      <p style={isDark ? { ...styles.previewEmptyText, color: "#ffffff" } : styles.previewEmptyText}>
                         No transformations found for this filter.
                       </p>
                     ) : (
@@ -1859,6 +1892,7 @@ function Account() {
                               <div
                                 key={item.transformation_id}
                                 style={styles.previewCard}
+                                className="export-preview-card"
                               >
                                 <div style={styles.previewImages}>
                                   <div style={styles.previewImageColumn}>
@@ -1937,9 +1971,9 @@ function Account() {
                       )}
                   </div>
 
-                  <div style={styles.modalActions}>
+                  <div style={isDark ? styles.modalActionsDark : styles.modalActions}>
                     <button
-                      style={styles.cancelButton}
+                      style={isDark ? styles.cancelButtonDark : styles.cancelButton}
                       onClick={() => setIsExportModalOpen(false)}
                       disabled={
                         isLoadingPreview ||
@@ -1950,7 +1984,7 @@ function Account() {
                       Close
                     </button>
                     <button
-                      style={styles.secondaryButton}
+                      style={isDark ? styles.secondaryButtonDark : styles.secondaryButton}
                       onClick={fetchTransformationsPreview}
                       disabled={
                         isLoadingPreview ||
@@ -1961,7 +1995,7 @@ function Account() {
                       {isLoadingPreview ? "Loading..." : "Preview"}
                     </button>
                     <button
-                      style={styles.submitButton}
+                      style={isDark ? styles.submitButtonDark : styles.submitButton}
                       onClick={downloadTransformationsZip}
                       disabled={
                         !hasPreviewLoaded ||
@@ -1975,7 +2009,7 @@ function Account() {
                       {isGeneratingExportZip ? "Generating ZIP..." : "Export as Zip"}
                     </button>
                     <button
-                      style={styles.submitButton}
+                      style={isDark ? styles.submitButtonDark : styles.submitButton}
                       onClick={downloadTransformationsPdf}
                       disabled={
                         !hasPreviewLoaded ||
@@ -2099,9 +2133,15 @@ function Account() {
                 </h3>
                 <div style={styles.modalBody}>
                   <p style={styles.deleteWarningText}>
-                    ⚠️ Are you sure you want to delete your account?
+                    Are you sure you want to delete your account?
                   </p>
-                  <p style={styles.deleteDescriptionText}>
+                  <p
+                    style={
+                      isDark
+                        ? { ...styles.deleteDescriptionText, color: "#ffffff" }
+                        : styles.deleteDescriptionText
+                    }
+                  >
                     This action is permanent and cannot be undone. All your
                     data, projects, and transformations will be permanently
                     deleted from our servers.
@@ -2432,6 +2472,30 @@ const styles = {
     borderRadius: "6px",
     backgroundColor: "#f8f8f8",
     color: "#1a1a1a",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    outline: "none",
+  } as React.CSSProperties,
+  secondaryButtonDark: {
+    padding: "10px 24px",
+    fontSize: "14px",
+    fontWeight: "500",
+    border: "1px solid #555",
+    borderRadius: "6px",
+    backgroundColor: "#3a3a3a",
+    color: "#e8e8e8",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    outline: "none",
+  } as React.CSSProperties,
+  submitButtonDark: {
+    padding: "10px 24px",
+    fontSize: "14px",
+    fontWeight: "500",
+    border: "none",
+    borderRadius: "6px",
+    backgroundColor: "#2563eb",
+    color: "#ffffff",
     cursor: "pointer",
     transition: "all 0.2s ease",
     outline: "none",
@@ -2786,7 +2850,7 @@ const styles = {
   deleteWarningText: {
     fontSize: "16px",
     fontWeight: "600",
-    color: "#d32f2f",
+    color: "#e57373",
     margin: "0 0 16px 0",
   } as React.CSSProperties,
   deleteDescriptionText: {
@@ -2813,7 +2877,7 @@ const styles = {
     fontWeight: "500",
     border: "none",
     borderRadius: "6px",
-    backgroundColor: "#d32f2f",
+    backgroundColor: "#e57373",
     color: "#ffffff",
     cursor: "pointer",
     transition: "all 0.2s ease",
@@ -3006,8 +3070,8 @@ const ACCOUNT_PAGE_OVERRIDES_CSS = `
   }
 
   /* Delete Account Modal Styles */
-  [data-theme="dark"] p[style*="color: #d32f2f"] {
-    color: #ff5252 !important;
+  [data-theme="dark"] p[style*="color: #e57373"] {
+    color: #e57373 !important;
   }
 
   [data-theme="dark"] div[style*="backgroundColor: #fff3cd"] {
@@ -3019,12 +3083,44 @@ const ACCOUNT_PAGE_OVERRIDES_CSS = `
     color: #e8e8e8 !important;
   }
 
-  [data-theme="dark"] button[style*="backgroundColor: #d32f2f"] {
-    background-color: #b71c1c !important;
+  [data-theme="dark"] button[style*="backgroundColor: #e57373"] {
+    background-color: #e57373 !important;
   }
 
-  [data-theme="dark"] button[style*="backgroundColor: #d32f2f"]:hover {
-    background-color: #9a1414 !important;
+  [data-theme="dark"] button[style*="backgroundColor: #e57373"]:hover {
+    background-color: #d96666 !important;
+  }
+
+  /* Export Transformations Modal — dark mode */
+  [data-theme="dark"] .export-modal h3,
+  [data-theme="dark"] .export-modal h4,
+  [data-theme="dark"] .export-modal p,
+  [data-theme="dark"] .export-modal span,
+  [data-theme="dark"] .export-modal strong,
+  [data-theme="dark"] .export-modal label {
+    color: #ffffff !important;
+  }
+  [data-theme="dark"] .export-modal select,
+  [data-theme="dark"] .export-modal input[type="number"],
+  [data-theme="dark"] .export-modal input[type="date"] {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+    border-color: #555555 !important;
+  }
+  [data-theme="dark"] .export-subsection {
+    background-color: #2a2a2a !important;
+    border-color: #4a4a4a !important;
+  }
+  [data-theme="dark"] .export-preview-section {
+    border-top-color: #444444 !important;
+  }
+  [data-theme="dark"] .export-preview-card {
+    background-color: #333333 !important;
+    border-color: #4a4a4a !important;
+  }
+  [data-theme="dark"] .export-modal button[style*="backgroundColor: rgb(37, 99, 235)"]:hover,
+  [data-theme="dark"] .export-modal button[style*="backgroundColor: #2563eb"]:hover {
+    background-color: #1d4ed8 !important;
   }
 
 `;

@@ -12,21 +12,19 @@ function Generate() {
   const [assignProject, setAssignProject] = useState("N/A");
   const [customPrompt, setCustomPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("Minimalist");
-  // Center node ("Recommended" → v1.5) is selected by default on every page load.
-  // The value sent to the backend (v1.0 / v1.5 / v2.0) is unchanged.
-  const [quality, setQuality] = useState<"v1.0" | "v1.5" | "v2.0">("v1.5");
-  // Left→right order of the three timeline nodes; used by both click and drag.
-  const qualityOrder = ["v1.0", "v1.5", "v2.0"] as const;
+  // Left node ("Recommended" → v1.5) is selected by default on every page load.
+  // The value sent to the backend (v1.5 / v2.0) is unchanged.
+  const [quality, setQuality] = useState<"v1.5" | "v2.0">("v1.5");
+  // Left→right order of the two timeline nodes; used by both click and drag.
+  const qualityOrder = ["v1.5", "v2.0"] as const;
   // Each node's accent color (theme variables → dark-mode safe), in node order.
   const qualityColors = [
-    "var(--color-brand-primary)",
     "var(--color-success)",
     "var(--color-accent-purple)",
   ] as const;
   // Each node's position along the track as a 0→1 fraction (left→right).
   const qualityFraction: Record<(typeof qualityOrder)[number], number> = {
-    "v1.0": 0,
-    "v1.5": 0.5,
+    "v1.5": 0,
     "v2.0": 1,
   };
   const isDraggingQuality = useRef(false);
@@ -39,8 +37,8 @@ function Generate() {
   // runs between the outer node centers (inset 1/6 on each side of the row).
   const pointerFraction = (clientX: number, row: HTMLElement) => {
     const rect = row.getBoundingClientRect();
-    const left = rect.left + rect.width / 6;
-    const right = rect.left + (rect.width * 5) / 6;
+    const left = rect.left + rect.width / 4;
+    const right = rect.left + (rect.width * 3) / 4;
     return Math.max(0, Math.min(1, (clientX - left) / (right - left)));
   };
   // The fill width to render: the live drag fraction if dragging, else the
@@ -50,11 +48,9 @@ function Generate() {
   // cursor lights up live; otherwise it's the committed selection.
   const activeQualityIndex =
     qualityDragFraction !== null
-      ? qualityDragFraction < 0.25
+      ? qualityDragFraction < 0.5
         ? 0
-        : qualityDragFraction < 0.75
-          ? 1
-          : 2
+        : 1
       : qualityOrder.indexOf(quality);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -609,8 +605,8 @@ function Generate() {
         .quality-track {
           position: absolute;
           top: 11.5px;
-          left: 16.666%;
-          right: 16.666%;
+          left: 25%;
+          right: 25%;
           height: 3px;
           border-radius: 999px;
           background-color: var(--color-border-subtle);
@@ -984,7 +980,7 @@ function Generate() {
               isDraggingQuality.current = false;
               e.currentTarget.releasePointerCapture(e.pointerId);
               const f = pointerFraction(e.clientX, e.currentTarget);
-              const idx = f < 0.25 ? 0 : f < 0.75 ? 1 : 2;
+              const idx = f < 0.5 ? 0 : 1;
               setQuality(qualityOrder[idx]);
               setQualityDragFraction(null);
             }}
@@ -1006,11 +1002,6 @@ function Generate() {
             </div>
             {(
               [
-                {
-                  value: "v1.0",
-                  title: "Fastest",
-                  lines: ["Super fast results", "Moderate quality"],
-                },
                 {
                   value: "v1.5",
                   title: "Recommended",

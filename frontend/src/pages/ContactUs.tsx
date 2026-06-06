@@ -3,10 +3,10 @@ import TopBar from "../components/TopBar";
 import Footer from "../components/Footer";
 
 function ContactUs() {
-  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [form, setForm] = useState({ fullName: "", company: "", email: "", phone: "", address: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -15,182 +15,178 @@ function ContactUs() {
     setSubmitted(true);
   };
 
-  // ── styles ──────────────────────────────────────────────────────────────────
-
-  const accentBar = (color: string): CSSProperties => ({
-    width: "4px", borderRadius: "4px", alignSelf: "stretch",
-    backgroundColor: color, flexShrink: 0, minHeight: "44px",
-  });
-
-  const infoLabel = (color: string): CSSProperties => ({
-    fontSize: "0.75rem", fontWeight: 600, color,
-    textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px",
-  });
-
   const s: Record<string, CSSProperties> = {
     page: {
       display: "flex", flexDirection: "column", minHeight: "100vh",
-      backgroundColor: "var(--color-bg-base)", transition: "background-color 0.3s ease",
+      backgroundColor: "var(--color-bg-base)",
       fontFamily: "'Alata', sans-serif",
     },
-    hero: {
-      position: "relative", overflow: "hidden", textAlign: "center",
-      padding: "80px 24px 90px",
-      background: "var(--color-bg-surface)",
-      borderBottom: "1px solid var(--color-border-subtle)",
+    main: {
+      flex: 1,
+      display: "flex", alignItems: "stretch",
+      padding: "60px 24px",
+      background: "var(--color-bg-base)",
     },
-    blobTR: {
-      position: "absolute", top: "-60px", right: "-60px",
+    wrapper: {
+      maxWidth: "1050px", width: "100%", margin: "0 auto",
+      display: "grid", gridTemplateColumns: "1fr 1.55fr",
+      borderRadius: "20px", overflow: "hidden",
+      boxShadow: "0 24px 80px rgba(0,0,0,0.18)",
+    },
+    left: {
+      background: "linear-gradient(135deg, #1a3a6f 0%, #0d2040 50%, #1a1a3e 100%)",
+      padding: "52px 44px",
+      display: "flex", flexDirection: "column", justifyContent: "space-between",
+      position: "relative", overflow: "hidden",
+    },
+    leftContent: { position: "relative", zIndex: 1 },
+    ring1: {
+      position: "absolute", top: "-40px", right: "-40px",
+      width: "200px", height: "200px", borderRadius: "50%",
+      border: "1px solid rgba(255,255,255,0.12)", pointerEvents: "none",
+    },
+    ring2: {
+      position: "absolute", top: "-70px", right: "-70px",
+      width: "280px", height: "280px", borderRadius: "50%",
+      border: "1px solid rgba(255,255,255,0.07)", pointerEvents: "none",
+    },
+    ring3: {
+      position: "absolute", top: "-100px", right: "-100px",
       width: "360px", height: "360px", borderRadius: "50%",
-      background: "radial-gradient(circle, rgba(83, 141, 239, 0.08) 0%, transparent 70%)",
-      pointerEvents: "none",
+      border: "1px solid rgba(255,255,255,0.04)", pointerEvents: "none",
     },
-    blobBL: {
-      position: "absolute", bottom: "-40px", left: "-40px",
-      width: "260px", height: "260px", borderRadius: "50%",
-      background: "radial-gradient(circle, rgba(124, 110, 245, 0.06) 0%, transparent 70%)",
-      pointerEvents: "none",
+    leftTitle: {
+      fontSize: "2.2rem", fontWeight: 800, color: "#fff",
+      margin: "0 0 20px", lineHeight: 1.25,
     },
-    heroInner: { position: "relative", maxWidth: "600px", margin: "0 auto" },
-    badge: {
-      display: "inline-block", padding: "4px 14px", borderRadius: "999px",
-      background: "var(--color-brand-soft)", color: "var(--color-brand-primary)",
-      fontSize: "0.78rem", fontWeight: 600, letterSpacing: "1.5px",
-      textTransform: "uppercase", marginBottom: "16px",
+    leftDesc: {
+      fontSize: "0.92rem", color: "rgba(255,255,255,0.65)",
+      lineHeight: 1.75, margin: "0 0 36px",
     },
-    heroTitle: {
-      fontSize: "2.8rem", fontWeight: 800, letterSpacing: "-1px", lineHeight: 1.15,
-      color: "var(--color-text-primary)", margin: "0 0 16px",
+    contactRow: {
+      display: "flex", alignItems: "center", gap: "12px",
+      marginBottom: "16px",
     },
-    heroSub: {
-      fontSize: "1.05rem", lineHeight: 1.7, margin: 0,
-      color: "var(--color-text-secondary)",
+    contactIcon: {
+      width: "36px", height: "36px", borderRadius: "50%",
+      background: "rgba(255,255,255,0.12)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      flexShrink: 0,
     },
-    main: { flex: 1, padding: "70px 24px", background: "var(--color-bg-base)" },
-    grid: {
-      maxWidth: "1050px", margin: "0 auto",
-      display: "grid", gridTemplateColumns: "1fr 1.6fr",
-      gap: "40px", alignItems: "start",
+    contactText: { color: "rgba(255,255,255,0.85)", fontSize: "0.9rem" },
+    right: {
+      background: "var(--color-bg-surface)",
+      padding: "52px 44px",
     },
-    infoCol: { display: "flex", flexDirection: "column", gap: "16px" },
-    infoCard: {
-      background: "var(--color-bg-surface)", border: "1px solid var(--color-border-subtle)",
-      borderRadius: "14px", padding: "22px 20px",
-      display: "flex", gap: "16px", alignItems: "flex-start",
+    rightTitle: {
+      fontSize: "1.55rem", fontWeight: 800,
+      color: "var(--color-text-primary)", margin: "0 0 28px", lineHeight: 1.3,
     },
-    infoValue: { fontWeight: 700, color: "var(--color-text-primary)", fontSize: "0.95rem", marginBottom: "2px" },
-    infoSub: { fontSize: "0.82rem", color: "var(--color-text-secondary)" },
-    blurb: {
-      background: "var(--color-card)",
-      border: "1px solid var(--color-border-subtle)", borderRadius: "14px",
-      padding: "22px 20px", marginTop: "4px",
-    },
-    blurbText: { fontSize: "0.85rem", color: "var(--color-text-secondary)", lineHeight: 1.7 },
-    formCard: {
-      background: "var(--color-bg-surface)", border: "1px solid var(--color-border-subtle)",
-      borderRadius: "20px", padding: "40px 36px",
-      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-    },
-    successBox: { textAlign: "center", padding: "40px 0" },
-    successIcon: {
-      width: "64px", height: "64px", borderRadius: "50%",
-      background: "var(--color-brand-soft)", display: "flex",
-      alignItems: "center", justifyContent: "center",
-      margin: "0 auto 20px", fontSize: "1.8rem", color: "var(--color-brand-primary)",
-    },
-    successTitle: { fontSize: "1.4rem", fontWeight: 800, color: "var(--color-text-primary)", margin: "0 0 10px" },
-    successText: { fontSize: "0.95rem", color: "var(--color-text-secondary)", margin: "0 0 28px", lineHeight: 1.6 },
-    resetBtn: {
-      padding: "10px 28px", borderRadius: "999px",
-      border: "1px solid var(--color-border-subtle)", background: "transparent",
-      color: "var(--color-text-primary)", fontFamily: "'Alata', sans-serif",
-      fontSize: "0.9rem", cursor: "pointer", transition: "all 0.2s ease",
-    },
-    form: { display: "flex", flexDirection: "column", gap: "18px" },
-    formHeading: { fontSize: "1.4rem", fontWeight: 800, color: "var(--color-text-primary)", margin: "0 0 6px" },
-    formSub: { fontSize: "0.85rem", color: "var(--color-text-secondary)", margin: 0 },
-    nameEmailRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" },
+    row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" },
+    fieldWrap: { display: "flex", flexDirection: "column", marginBottom: "16px" },
     label: {
-      display: "block", fontSize: "0.8rem", fontWeight: 600,
-      color: "var(--color-text-secondary)", marginBottom: "6px",
-      textTransform: "uppercase", letterSpacing: "0.5px",
+      fontSize: "0.78rem", fontWeight: 600, color: "var(--color-text-secondary)",
+      marginBottom: "6px", letterSpacing: "0.2px",
     },
     input: {
-      width: "100%", padding: "12px 16px", borderRadius: "10px",
-      border: "1px solid var(--color-border-subtle)", background: "var(--color-bg-surface)",
-      color: "var(--color-text-primary)", fontSize: "0.95rem", fontFamily: "'Alata', sans-serif",
-      outline: "none", boxSizing: "border-box",
+      padding: "11px 14px", borderRadius: "8px",
+      border: "1px solid var(--color-border-subtle)", background: "var(--color-bg-base)",
+      color: "var(--color-text-primary)", fontSize: "0.93rem",
+      fontFamily: "'Alata', sans-serif", outline: "none",
+      boxSizing: "border-box" as const,
       transition: "border-color 0.2s ease, box-shadow 0.2s ease",
     },
     textarea: {
-      width: "100%", padding: "12px 16px", borderRadius: "10px",
-      border: "1px solid var(--color-border-subtle)", background: "var(--color-bg-surface)",
-      color: "var(--color-text-primary)", fontSize: "0.95rem", fontFamily: "'Alata', sans-serif",
-      outline: "none", boxSizing: "border-box", resize: "vertical", minHeight: "120px",
+      padding: "11px 14px", borderRadius: "8px",
+      border: "1px solid var(--color-border-subtle)", background: "var(--color-bg-base)",
+      color: "var(--color-text-primary)", fontSize: "0.93rem",
+      fontFamily: "'Alata', sans-serif", outline: "none",
+      boxSizing: "border-box" as const, resize: "vertical", minHeight: "110px",
       transition: "border-color 0.2s ease, box-shadow 0.2s ease",
     },
     submitBtn: {
-      width: "100%", padding: "14px", borderRadius: "10px", border: "none",
-      background: "var(--color-brand-primary)",
-      color: "#fff", fontSize: "1rem", fontWeight: 700,
+      padding: "13px 32px", borderRadius: "8px", border: "none",
+      background: "#4790fd", color: "#fff",
+      fontSize: "0.97rem", fontWeight: 700,
       fontFamily: "'Alata', sans-serif", cursor: "pointer",
-      boxShadow: "0 4px 12px rgba(67, 132, 226, 0.25)",
       transition: "transform 0.2s ease, box-shadow 0.2s ease",
+    },
+    successBox: { textAlign: "center", padding: "60px 0" },
+    successIcon: {
+      width: "64px", height: "64px", borderRadius: "50%",
+      background: "rgba(71,144,253,0.1)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+      margin: "0 auto 20px", fontSize: "1.6rem", color: "#4790fd",
+    },
+    successTitle: { fontSize: "1.4rem", fontWeight: 800, color: "#1a1a1a", margin: "0 0 10px" },
+    successText: { fontSize: "0.95rem", color: "#666", margin: "0 0 28px", lineHeight: 1.6 },
+    resetBtn: {
+      padding: "11px 30px", borderRadius: "8px",
+      border: "1px solid #ddd", background: "transparent",
+      color: "#1a1a1a", fontFamily: "'Alata', sans-serif",
+      fontSize: "0.9rem", cursor: "pointer",
     },
   };
 
-  const infoCards = [
-    { color: "#5B8DEF", label: "Email", value: "hello@declutter.app", sub: "We reply within 24 hours" },
-  ];
-
   return (
     <div style={s.page}>
-      {/* pseudo-selectors and media queries must stay in <style> */}
       <style>{`
-        .c-input { background-color: var(--color-bg-surface); color: var(--color-text-primary); border: 1px solid var(--color-border-subtle); }
-        .c-input:focus { border-color: var(--color-brand-primary) !important; box-shadow: 0 0 0 3px var(--color-focus-ring) !important; }
-        .c-input::placeholder { color: var(--color-text-secondary); }
-        .c-submit { background-color: var(--color-brand-primary); }
-        .c-submit:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 24px rgba(67, 132, 226, 0.35) !important; }
-        .c-submit:active { transform: translateY(0) !important; }
+        .cu-input:focus { border-color: #4790fd !important; box-shadow: 0 0 0 3px rgba(71,144,253,0.15) !important; }
+        .cu-input::placeholder { color: #aaa; }
+        .cu-submit:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 24px rgba(61,44,110,0.35) !important; }
+        .cu-submit:active { transform: translateY(0) !important; }
+        [data-theme="dark"] .cu-right { background: #1e1e1e !important; }
+        [data-theme="dark"] .cu-right h2 { color: #fff !important; }
+        [data-theme="dark"] .cu-label { color: #aaa !important; }
+        [data-theme="dark"] .cu-input { background: #2a2a2a !important; border-color: #444 !important; color: #fff !important; }
+        [data-theme="dark"] .cu-input::placeholder { color: #666 !important; }
         @media (max-width: 768px) {
-          .c-grid  { grid-template-columns: 1fr !important; }
-          .c-title { font-size: 2rem !important; }
-          .c-name-row { grid-template-columns: 1fr !important; }
+          .cu-wrapper { grid-template-columns: 1fr !important; }
+          .cu-row { grid-template-columns: 1fr !important; }
+          .cu-left { padding: 36px 28px !important; }
+          .cu-right { padding: 36px 28px !important; }
         }
       `}</style>
 
       <TopBar showSignIn={true} />
 
-      {/* Main */}
       <section style={s.main}>
-        <div style={s.grid} className="c-grid">
+        <div style={s.wrapper} className="cu-wrapper">
 
-          {/* Info cards */}
-          <div style={s.infoCol}>
-            <div>
-              <span style={s.badge}>Get in touch</span>
-              <h2 style={{ fontSize: "1.8rem", fontWeight: 800, color: "var(--color-text-primary)", margin: "12px 0 10px", lineHeight: 1.2 }}>
-                We'd love to hear from you
-              </h2>
-              <p style={{ fontSize: "0.92rem", color: "var(--color-text-secondary)", lineHeight: 1.7, margin: "0 0 24px" }}>
-                Have a question, suggestion, or just want to say hi? Drop us a message and we'll get back to you.
+          {/* Left — dark panel */}
+          <div style={s.left} className="cu-left">
+            <div style={s.ring1} />
+            <div style={s.ring2} />
+            <div style={s.ring3} />
+            <div style={s.leftContent}>
+              <h2 style={s.leftTitle}>Contact Us</h2>
+              <p style={s.leftDesc}>
+                Not sure what you need? The team at DeClutter will be happy to listen to you and suggest design ideas you hadn't considered.
               </p>
-            </div>
-            {infoCards.map(({ color, label, value, sub }) => (
-              <div key={label} style={s.infoCard}>
-                <div style={accentBar(color)} />
-                <div>
-                  <div style={infoLabel(color)}>{label}</div>
-                  <div style={s.infoValue}>{value}</div>
-                  <div style={s.infoSub}>{sub}</div>
+
+              <div style={s.contactRow}>
+                <div style={s.contactIcon}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                  </svg>
                 </div>
+                <span style={s.contactText}>hello@declutter.app</span>
               </div>
-            ))}
+
+              <div style={s.contactRow}>
+                <div style={s.contactIcon}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                </div>
+                <span style={s.contactText}>Support: +1 (555) 000-0000</span>
+              </div>
+            </div>
           </div>
 
-          {/* Form card */}
-          <div style={s.formCard}>
+          {/* Right — form */}
+          <div style={s.right} className="cu-right">
             {submitted ? (
               <div style={s.successBox}>
                 <div style={s.successIcon}>✓</div>
@@ -198,50 +194,54 @@ function ContactUs() {
                 <p style={s.successText}>Thanks for reaching out. We'll get back to you within 24 hours.</p>
                 <button
                   style={s.resetBtn}
-                  onClick={() => { setSubmitted(false); setForm({ name: "", email: "", subject: "", message: "" }); }}
+                  onClick={() => { setSubmitted(false); setForm({ fullName: "", company: "", email: "", phone: "", address: "", message: "" }); }}
                 >
                   Send another
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} style={s.form}>
-                <div>
-                  <h2 style={s.formHeading}>Send a message</h2>
-                  <p style={s.formSub}>Fill in the form and we'll get back to you shortly.</p>
-                </div>
+              <form onSubmit={handleSubmit}>
+                <h2 style={s.rightTitle} className="cu-right">
+                  We'd love to hear from you!<br />Let's get in touch
+                </h2>
 
-                <div style={s.nameEmailRow} className="c-name-row">
-                  <div>
-                    <label style={s.label}>Name</label>
-                    <input className="c-input" style={s.input} name="name" value={form.name} onChange={handleChange} placeholder="Your name" required />
+                <div style={s.row} className="cu-row">
+                  <div style={s.fieldWrap}>
+                    <label style={s.label} className="cu-label">Full Name</label>
+                    <input className="cu-input" style={s.input} name="fullName" value={form.fullName} onChange={handleChange} placeholder="" required />
                   </div>
-                  <div>
-                    <label style={s.label}>Email</label>
-                    <input className="c-input" style={s.input} name="email" type="email" value={form.email} onChange={handleChange} placeholder="you@email.com" required />
+                  <div style={s.fieldWrap}>
+                    <label style={s.label} className="cu-label">Company</label>
+                    <input className="cu-input" style={s.input} name="company" value={form.company} onChange={handleChange} placeholder="" />
                   </div>
                 </div>
 
-                <div>
-                  <label style={s.label}>Subject</label>
-                  <select className="c-input" style={s.input} name="subject" value={form.subject} onChange={handleChange} required>
-                    <option value="" disabled>Select a subject</option>
-                    <option value="general">General enquiry</option>
-                    <option value="bug">Bug report</option>
-                    <option value="feature">Feature request</option>
-                    <option value="feedback">Feedback</option>
-                    <option value="other">Other</option>
-                  </select>
+                <div style={s.row} className="cu-row">
+                  <div style={s.fieldWrap}>
+                    <label style={s.label} className="cu-label">Email</label>
+                    <input className="cu-input" style={s.input} name="email" type="email" value={form.email} onChange={handleChange} placeholder="olivia@untitledui.com" required />
+                  </div>
+                  <div style={s.fieldWrap}>
+                    <label style={s.label} className="cu-label">Phone number</label>
+                    <input className="cu-input" style={s.input} name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="+1 (555) 000-0000" />
+                  </div>
                 </div>
 
-                <div>
-                  <label style={s.label}>Message</label>
-                  <textarea className="c-input" style={s.textarea} name="message" value={form.message} onChange={handleChange} placeholder="Tell us what's on your mind..." rows={5} required />
+                <div style={s.fieldWrap}>
+                  <label style={s.label} className="cu-label">Address</label>
+                  <input className="cu-input" style={s.input} name="address" value={form.address} onChange={handleChange} placeholder="" />
                 </div>
 
-                <button type="submit" className="c-submit" style={s.submitBtn}>Send message →</button>
+                <div style={s.fieldWrap}>
+                  <label style={s.label} className="cu-label">Your Message</label>
+                  <textarea className="cu-input" style={s.textarea} name="message" value={form.message} onChange={handleChange} placeholder="Type your message here" rows={4} required />
+                </div>
+
+                <button type="submit" className="cu-submit" style={s.submitBtn}>Send Message</button>
               </form>
             )}
           </div>
+
         </div>
       </section>
 

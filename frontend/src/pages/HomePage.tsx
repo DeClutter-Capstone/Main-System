@@ -13,7 +13,7 @@ const heroSlides = [
     subtitle:
       "Discover how AI transforms your spaces into serene, decluttered havens of tranquility",
     style: "Minimalist",
-    imageUrl: "/HomePageImages/minimalist.jpg",
+    imageUrl: "/HomePageImages/minimalist.png",
     accent: "#a8d8ea",
   },
   {
@@ -67,7 +67,7 @@ const designStyles = [
   {
     key: "minimalist",
     label: "Minimalist",
-    image: "/HomePageImages/minimalist.jpg",
+    image: "/HomePageImages/minimalist.png",
     heading: "Minimalist Style",
     description:
       "Minimalist design focuses on clarity, balance, and purpose. It reduces visual noise by using clean lines, neutral tones, and carefully selected elements. Each detail serves a function, creating calm, open spaces that feel refined, organized, and timeless.",
@@ -660,10 +660,10 @@ function HomePage() {
                   {[
                     {
                       icon: "◈",
-                      text: "Group multiple rooms under one project",
+                      text: "Group all rooms of a building under one project",
                     },
-                    { icon: "◈", text: "Apply a unique style to each space" },
-                    { icon: "◈", text: "Compare before & after at a glance" },
+                    { icon: "◈", text: "Organise generations into named groups" },
+                    { icon: "◈", text: "Re-generate any room directly from its saved result" },
                   ].map(({ icon, text }) => (
                     <div key={text} style={projectsBulletRowStyle}>
                       <span style={projectsBulletIconStyle}>{icon}</span>
@@ -720,16 +720,16 @@ function HomePage() {
               {
                 ref: sliderContainerRef1,
                 pos: slider1Position,
-                before: "\\public\\HomePageImages\\before.jpg",
-                after: "\\public\\HomePageImages\\after.png",
+                before: "/HomePageImages/before.png",
+                after: "/HomePageImages/after.png",
                 onDown: () => setIsSlider1Active(true),
                 onUp: () => setIsSlider1Active(false),
               },
               {
                 ref: sliderContainerRef2,
                 pos: slider2Position,
-                before: "/public/HomePageImages/before 2.png",
-                after: "/public/HomePageImages/after 2.png",
+                before: "/HomePageImages/before 2.png",
+                after: "/HomePageImages/after 2.png",
                 onDown: () => setIsSlider2Active(true),
                 onUp: () => setIsSlider2Active(false),
               },
@@ -770,12 +770,12 @@ function HomePage() {
                   onTouchEnd={s.onUp}
                 >
                   <img
-                    src="/public/HomePageImages/left.png"
+                    src="/HomePageImages/left.png"
                     alt=""
                     style={sliderArrowStyle}
                   />
                   <img
-                    src="/public/HomePageImages/right.png"
+                    src="/HomePageImages/right.png"
                     alt=""
                     style={sliderArrowStyle}
                   />

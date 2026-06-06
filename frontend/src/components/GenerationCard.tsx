@@ -13,6 +13,8 @@ interface GenerationCardProps {
   onRename?: (newName: string | null) => void;
   /** Slot rendered absolutely at the top-right of the image (kebab menus, badges, …). */
   imageOverlay?: ReactNode;
+  /** When provided, clicking the image fires this (e.g. open a before/after viewer). */
+  onImageClick?: () => void;
   /** Footer action buttons. Use `<button className="gen-card__icon-btn">…</button>`,
    *  plus `gen-card__icon-btn--danger` for destructive ones. */
   actions?: ReactNode;
@@ -26,6 +28,7 @@ function GenerationCard({
   date,
   onRename,
   imageOverlay,
+  onImageClick,
   actions,
 }: GenerationCardProps) {
   const [editing, setEditing] = useState(false);
@@ -59,7 +62,23 @@ function GenerationCard({
 
   return (
     <article className="gen-card">
-      <div className="gen-card__image">
+      <div
+        className={`gen-card__image${onImageClick ? " gen-card__image--clickable" : ""}`}
+        onClick={onImageClick}
+        role={onImageClick ? "button" : undefined}
+        tabIndex={onImageClick ? 0 : undefined}
+        onKeyDown={
+          onImageClick
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onImageClick();
+                }
+              }
+            : undefined
+        }
+        aria-label={onImageClick ? `View before and after for ${name}` : undefined}
+      >
         <img src={image} alt={name} />
         {imageOverlay}
       </div>
@@ -150,6 +169,15 @@ export const generationCardStyles = `
     height: 100%;
     object-fit: cover;
     display: block;
+  }
+  .gen-card__image--clickable {
+    cursor: pointer;
+  }
+  .gen-card__image--clickable img {
+    transition: transform 0.2s ease;
+  }
+  .gen-card__image--clickable:hover img {
+    transform: scale(1.04);
   }
   .gen-card__body {
     padding: 8px 10px 10px;

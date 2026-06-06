@@ -52,7 +52,7 @@ function History() {
   }, []);
   const [selectedStyle, setSelectedStyle] = useState("All Styles");
   const [selectedRoom, setSelectedRoom] = useState("All Rooms");
-  const [sortBy, setSortBy] = useState("Newest");
+  const [timeFilter, setTimeFilter] = useState("All time");
 
   const styles = [
     "All Styles",
@@ -71,11 +71,39 @@ function History() {
     "Bathroom",
     "Office",
   ];
-  const sortOptions = ["Newest", "Oldest", "Most Popular", "A-Z"];
+  const timeFilterOptions = [
+    "All time",
+    "Last 24 hours",
+    "Last week",
+    "Last month",
+  ];
+  // Lookback windows in milliseconds; null = show everything.
+  const PERIOD_MS: Record<string, number | null> = {
+    "All time": null,
+    "Last 24 hours": 24 * 60 * 60 * 1000,
+    "Last week": 7 * 24 * 60 * 60 * 1000,
+    "Last month": 30 * 24 * 60 * 60 * 1000,
+  };
 
   const [historyCards, setHistoryCards] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  // The card whose before/after viewer is open (null = closed).
+  const [viewerCard, setViewerCard] = useState<HistoryItem | null>(null);
+
+  // The "before" (input) image lives alongside the output under /storage/input/.
+  const beforeImageFor = (card: HistoryItem) =>
+    card.image.replace("/storage/output/", "/storage/input/");
+
+  // Close the before/after viewer on Escape.
+  useEffect(() => {
+    if (!viewerCard) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setViewerCard(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [viewerCard]);
 
   const handleDelete = async (id: string, fileKey: string) => {
     setDeletingIds((prev) => new Set(prev).add(id));
@@ -141,11 +169,10 @@ function History() {
     const run = async () => {
       setIsLoading(true);
       try {
-        const sort = sortBy === "Oldest" ? "oldest" : "newest";
         const data = await fetchHistory({
           style: selectedStyle,
           room: selectedRoom,
-          sort,
+          sort: "newest",
         });
         setHistoryCards(data);
       } catch (e) {
@@ -157,9 +184,18 @@ function History() {
     };
 
     run();
-  }, [selectedStyle, selectedRoom, sortBy]);
+  }, [selectedStyle, selectedRoom]);
+
+  const periodMs = PERIOD_MS[timeFilter];
+  const periodCutoff = periodMs !== null ? Date.now() - periodMs : null;
 
   const filteredCards = historyCards.filter((card) => {
+    // Time-period filter (client-side, based on when the item was created).
+    if (periodCutoff !== null) {
+      const ts = Date.parse(card.created_at ?? card.date);
+      if (Number.isNaN(ts) || ts < periodCutoff) return false;
+    }
+
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -236,15 +272,15 @@ function History() {
                 </select>
               </div>
 
-              {/* Sort By Dropdown */}
+              {/* Time Period Filter Dropdown */}
               <div style={dropdownWrapperStyle}>
                 <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                  value={timeFilter}
+                  onChange={(e) => setTimeFilter(e.target.value)}
                   style={dropdownStyle}
                   className="history-dropdown"
                 >
-                  {sortOptions.map((option) => (
+                  {timeFilterOptions.map((option) => (
                     <option key={option} value={option}>
                       {option}
                     </option>
@@ -269,6 +305,7 @@ function History() {
                   isAutoName={AUTO_NAME_RE.test(card.title)}
                   styleLabel={card.style}
                   date={card.date}
+                  onImageClick={() => setViewerCard(card)}
                   onRename={(newName) => {
                     if (newName) handleRename(card.id, card.title, newName);
                   }}
@@ -310,6 +347,83 @@ function History() {
         </div>
       </div>
 
+      {/* Before / After Viewer */}
+      {viewerCard && (
+        <div
+          style={viewerOverlayStyle}
+          onClick={() => setViewerCard(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Before and after viewer"
+        >
+          <div
+            style={isDark ? { ...viewerModalStyle, ...viewerModalDarkStyle } : viewerModalStyle}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={viewerHeaderStyle}>
+              <div>
+                <h2
+                  style={{
+                    ...viewerTitleStyle,
+                    ...(isDark ? { color: "#ffffff" } : null),
+                  }}
+                >
+                  {viewerCard.title}
+                </h2>
+                <span style={viewerSubtitleStyle}>
+                  {viewerCard.style}
+                  {viewerCard.room ? ` · ${viewerCard.room}` : ""} · {viewerCard.date}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewerCard(null)}
+                style={isDark ? { ...viewerCloseStyle, ...viewerCloseDarkStyle } : viewerCloseStyle}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={viewerImagesStyle} className="history-viewer-images">
+              <figure style={viewerFigureStyle}>
+                <img
+                  src={beforeImageFor(viewerCard)}
+                  alt={`Before — ${viewerCard.title}`}
+                  style={viewerImageStyle}
+                  onError={(e) => {
+                    e.currentTarget.style.opacity = "0.35";
+                  }}
+                />
+                <figcaption
+                  style={{
+                    ...viewerCaptionStyle,
+                    ...(isDark ? { color: "#cccccc" } : null),
+                  }}
+                >
+                  Before
+                </figcaption>
+              </figure>
+              <figure style={viewerFigureStyle}>
+                <img
+                  src={viewerCard.image}
+                  alt={`After — ${viewerCard.title}`}
+                  style={viewerImageStyle}
+                />
+                <figcaption
+                  style={{
+                    ...viewerCaptionStyle,
+                    ...(isDark ? { color: "#cccccc" } : null),
+                  }}
+                >
+                  After
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         [data-theme="dark"] {
           background-color: #383838ff !important;
@@ -343,6 +457,11 @@ function History() {
         [data-theme="dark"] .history-dropdown option:checked {
           background-color: #3a3a3aff !important;
           color: #fff !important;
+        }
+
+        /* Before/after viewer: stack the two images on narrow screens. */
+        @media (max-width: 560px) {
+          .history-viewer-images { grid-template-columns: 1fr !important; }
         }
 
         /* ── Responsive toolbar ── */
@@ -469,6 +588,103 @@ const cardsGridStyle: React.CSSProperties = {
   gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
   gap: "14px",
   width: "100%",
+};
+
+// ── Before / After viewer modal ──
+const viewerOverlayStyle: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  backgroundColor: "rgba(0, 0, 0, 0.6)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 1000,
+  padding: "24px",
+};
+
+const viewerModalStyle: React.CSSProperties = {
+  backgroundColor: "#ffffff",
+  borderRadius: "14px",
+  boxShadow: "0 12px 48px rgba(0, 0, 0, 0.3)",
+  width: "100%",
+  maxWidth: "920px",
+  maxHeight: "90vh",
+  overflowY: "auto",
+  padding: "24px",
+};
+
+const viewerModalDarkStyle: React.CSSProperties = {
+  backgroundColor: "#2a2a2a",
+};
+
+const viewerHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "16px",
+  marginBottom: "20px",
+};
+
+const viewerTitleStyle: React.CSSProperties = {
+  fontSize: "18px",
+  fontWeight: 600,
+  margin: "0 0 4px",
+  color: "#1a1a1a",
+  wordBreak: "break-word",
+};
+
+const viewerSubtitleStyle: React.CSSProperties = {
+  fontSize: "13px",
+  color: "#888888",
+};
+
+const viewerCloseStyle: React.CSSProperties = {
+  flexShrink: 0,
+  width: "32px",
+  height: "32px",
+  borderRadius: "8px",
+  border: "1px solid #e0e0e0",
+  backgroundColor: "transparent",
+  color: "#1a1a1a",
+  fontSize: "15px",
+  cursor: "pointer",
+  lineHeight: 1,
+};
+
+const viewerCloseDarkStyle: React.CSSProperties = {
+  border: "1px solid #555",
+  color: "#ffffff",
+};
+
+const viewerImagesStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "16px",
+};
+
+const viewerFigureStyle: React.CSSProperties = {
+  margin: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+};
+
+const viewerImageStyle: React.CSSProperties = {
+  width: "100%",
+  aspectRatio: "4 / 3",
+  objectFit: "cover",
+  borderRadius: "10px",
+  backgroundColor: "#f0f0f0",
+  display: "block",
+};
+
+const viewerCaptionStyle: React.CSSProperties = {
+  fontSize: "12px",
+  fontWeight: 600,
+  textAlign: "center",
+  textTransform: "uppercase",
+  letterSpacing: "0.5px",
+  color: "#666666",
 };
 
 export default History;

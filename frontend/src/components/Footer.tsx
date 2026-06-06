@@ -90,7 +90,7 @@ function Footer() {
 
 const styles = {
   footer: {
-    backgroundColor: "#ebeaeaff",
+    backgroundColor: "var(--color-bg-surface)",
     padding: "2rem 0",
     marginTop: "auto",
     fontFamily: "'Alata', sans-serif",

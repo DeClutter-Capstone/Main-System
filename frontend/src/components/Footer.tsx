@@ -57,8 +57,8 @@ function Footer() {
           <h3 style={styles.columnTitle} className="footer-title">Company</h3>
           <nav style={styles.linksList}>
             <a href="/about" style={styles.link} className="footer-link">About Us</a>
-            <a href="#privacy" style={styles.link} className="footer-link">Privacy Policy</a>
-            <a href="#terms" style={styles.link} className="footer-link">Terms of Service</a>
+            <a href="/privacy" style={styles.link} className="footer-link">Privacy Policy</a>
+            <a href="/terms" style={styles.link} className="footer-link">Terms of Service</a>
             <a href="/blog" style={styles.link} className="footer-link">Blog</a>
           </nav>
         </div>

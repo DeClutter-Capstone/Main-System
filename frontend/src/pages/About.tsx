@@ -115,7 +115,7 @@ function About() {
           padding: 0 0 5.5rem;
         }
         .about-section:last-of-type {
-          padding-bottom: 0;
+          padding-bottom: 4rem;
         }
         .about-heading {
           font-size: 2.6rem;
@@ -138,7 +138,7 @@ function About() {
           color: var(--color-text-secondary);
           line-height: 1.75;
           margin: 0 0 1.15rem;
-          max-width: 660px;
+          max-width: 780px;
         }
         .about-body:last-of-type {
           margin-bottom: 0;
@@ -189,9 +189,6 @@ function About() {
           align-items: center;
           padding: 2.5rem 0;
           border-top: 1px solid var(--color-border-subtle);
-        }
-        .about-team-row:last-of-type {
-          border-bottom: 1px solid var(--color-border-subtle);
         }
         .about-team-row.reverse {
           grid-template-columns: 1fr 200px;

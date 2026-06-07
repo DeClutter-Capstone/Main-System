@@ -2098,26 +2098,26 @@ function Account() {
                   Delete Account
                 </h3>
                 <div style={styles.modalBody}>
-                  <p style={styles.deleteWarningText}>
-                    ⚠️ Are you sure you want to delete your account?
+                  <p style={isDark ? styles.deleteWarningTextDark : styles.deleteWarningText}>
+                    Are you sure you want to delete your account?
                   </p>
-                  <p style={styles.deleteDescriptionText}>
+                  <p style={isDark ? styles.deleteDescriptionTextDark : styles.deleteDescriptionText}>
                     This action is permanent and cannot be undone. All your
                     data, projects, and transformations will be permanently
                     deleted from our servers.
                   </p>
 
-                  <div style={styles.deleteInfoBox}>
-                    <p style={styles.deleteInfoItem}>
+                  <div style={isDark ? styles.deleteInfoBoxDark : styles.deleteInfoBox}>
+                    <p style={isDark ? styles.deleteInfoItemDark : styles.deleteInfoItem}>
                       • Your profile will be removed
                     </p>
-                    <p style={styles.deleteInfoItem}>
+                    <p style={isDark ? styles.deleteInfoItemDark : styles.deleteInfoItem}>
                       • All your projects will be deleted
                     </p>
-                    <p style={styles.deleteInfoItem}>
+                    <p style={isDark ? styles.deleteInfoItemDark : styles.deleteInfoItem}>
                       • Your saved accounts will be cleared
                     </p>
-                    <p style={styles.deleteInfoItem}>
+                    <p style={isDark ? styles.deleteInfoItemDark : styles.deleteInfoItem}>
                       • You will be signed out immediately
                     </p>
                   </div>
@@ -2786,7 +2786,13 @@ const styles = {
   deleteWarningText: {
     fontSize: "16px",
     fontWeight: "600",
-    color: "#d32f2f",
+    color: "#c0392b",
+    margin: "0 0 16px 0",
+  } as React.CSSProperties,
+  deleteWarningTextDark: {
+    fontSize: "16px",
+    fontWeight: "600",
+    color: "#e08c83",
     margin: "0 0 16px 0",
   } as React.CSSProperties,
   deleteDescriptionText: {
@@ -2795,9 +2801,22 @@ const styles = {
     margin: "0 0 16px 0",
     lineHeight: "1.5",
   } as React.CSSProperties,
+  deleteDescriptionTextDark: {
+    fontSize: "14px",
+    color: "#aaaaaa",
+    margin: "0 0 16px 0",
+    lineHeight: "1.5",
+  } as React.CSSProperties,
   deleteInfoBox: {
-    backgroundColor: "#fff3cd",
-    border: "1px solid #ffc107",
+    backgroundColor: "#fdf6f5",
+    border: "1px solid #f0d9d6",
+    borderRadius: "6px",
+    padding: "12px 16px",
+    marginBottom: "20px",
+  } as React.CSSProperties,
+  deleteInfoBoxDark: {
+    backgroundColor: "#2a2222",
+    border: "1px solid #443434",
     borderRadius: "6px",
     padding: "12px 16px",
     marginBottom: "20px",
@@ -2807,13 +2826,18 @@ const styles = {
     color: "#333333",
     margin: "6px 0",
   } as React.CSSProperties,
+  deleteInfoItemDark: {
+    fontSize: "13px",
+    color: "#bbbbbb",
+    margin: "6px 0",
+  } as React.CSSProperties,
   deleteButton: {
     padding: "10px 24px",
     fontSize: "14px",
     fontWeight: "500",
     border: "none",
     borderRadius: "6px",
-    backgroundColor: "#d32f2f",
+    backgroundColor: "#c0392b",
     color: "#ffffff",
     cursor: "pointer",
     transition: "all 0.2s ease",

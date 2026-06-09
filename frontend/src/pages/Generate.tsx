@@ -294,7 +294,7 @@ function Generate() {
     {
       id: "Minimalist",
       name: "Minimalist",
-      image: "/public/HomePageImages/minimalist.jpg",
+      image: "/public/HomePageImages/minimalist.png",
     },
     {
       id: "Modern",

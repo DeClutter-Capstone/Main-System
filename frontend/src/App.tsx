@@ -29,6 +29,8 @@ import Accont from "./pages/Accont";
 import Authentication from "./pages/Authentication";
 import Signup from "./pages/Signup";
 import ContactUs from "./pages/ContactUs";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 // Protected Route Component
 interface ProtectedRouteProps {
@@ -97,6 +99,8 @@ function App() {
           <Route path="/blog/:id" element={<BlogPost />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/contact" element={<ContactUs />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
 
           {/* Protected Routes */}
           <Route

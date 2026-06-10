@@ -294,7 +294,7 @@ function Generate() {
     {
       id: "Minimalist",
       name: "Minimalist",
-      image: "/public/HomePageImages/minimalist.jpg",
+      image: "/public/HomePageImages/minimalist.png",
     },
     {
       id: "Modern",
@@ -733,7 +733,11 @@ function Generate() {
           .small-style-img-wrap { height: 90px !important; }
         }
       `}</style>
-      <div style={styles.container} className="generate-container" id="generate-container">
+      <div
+        style={styles.container}
+        className="generate-container"
+        id="generate-container"
+      >
         {/* HERO UPLOAD ZONE */}
         <section style={styles.heroSection}>
           <h1 style={styles.heroTitle}>Upload your room</h1>
@@ -867,7 +871,10 @@ function Generate() {
                     : "0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)",
                 }}
               >
-                <div style={styles.heroStyleImageWrapper} className="hero-style-img-wrap">
+                <div
+                  style={styles.heroStyleImageWrapper}
+                  className="hero-style-img-wrap"
+                >
                   <img
                     src={hero.image}
                     alt={hero.name}
@@ -884,8 +891,13 @@ function Generate() {
                   className="hero-style-info hero-style-info-inner"
                 >
                   <div style={styles.heroStyleTag}>Default style</div>
-                  <div style={styles.heroStyleName} className="hero-style-name">{hero.name}</div>
-                  <div style={styles.heroStyleDescription} className="hero-style-desc">
+                  <div style={styles.heroStyleName} className="hero-style-name">
+                    {hero.name}
+                  </div>
+                  <div
+                    style={styles.heroStyleDescription}
+                    className="hero-style-desc"
+                  >
                     Clean, clutter-free spaces with neutral tones and only
                     essential furniture
                   </div>
@@ -933,7 +945,10 @@ function Generate() {
                       : "0 1px 3px rgba(0, 0, 0, 0.06)",
                   }}
                 >
-                  <div style={styles.smallStyleImageWrapper} className="small-style-img-wrap">
+                  <div
+                    style={styles.smallStyleImageWrapper}
+                    className="small-style-img-wrap"
+                  >
                     <img
                       src={style.image}
                       alt={style.name}
@@ -967,7 +982,9 @@ function Generate() {
             onPointerDown={(e) => {
               isDraggingQuality.current = true;
               e.currentTarget.setPointerCapture(e.pointerId);
-              setQualityDragFraction(pointerFraction(e.clientX, e.currentTarget));
+              setQualityDragFraction(
+                pointerFraction(e.clientX, e.currentTarget),
+              );
             }}
             onPointerMove={(e) => {
               if (isDraggingQuality.current)
@@ -1025,7 +1042,9 @@ function Generate() {
                   onClick={() => setQuality(node.value)}
                   className={`quality-node-col${isSelected ? " selected" : ""}`}
                   style={
-                    { "--node-color": qualityColors[idx] } as React.CSSProperties
+                    {
+                      "--node-color": qualityColors[idx],
+                    } as React.CSSProperties
                   }
                 >
                   <span className="quality-dot" />
@@ -1262,8 +1281,7 @@ function Generate() {
                     mode: "cors",
                     cache: "no-store",
                   });
-                  if (!res.ok)
-                    throw new Error(`Fetch failed: ${res.status}`);
+                  if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
                   const blob = await res.blob();
                   const ext = blob.type.split("/")[1] || "png";
                   const blobUrl = URL.createObjectURL(blob);

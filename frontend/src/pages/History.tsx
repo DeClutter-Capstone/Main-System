@@ -212,15 +212,6 @@ function History() {
         {/* Header Section */}
         <div style={headerStyle}>
           <div style={titleSectionStyle}>
-            <img
-              src={
-                isDark
-                  ? "/HomePageImages/gridlight.png"
-                  : "/HomePageImages/griddark.png"
-              }
-              alt="Projects"
-              style={iconStyle}
-            />
             <h1 style={titleStyle} className="history-title">
               Generation History
             </h1>
@@ -507,12 +498,6 @@ const titleSectionStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "12px",
-};
-
-const iconStyle: React.CSSProperties = {
-  width: "32px",
-  height: "32px",
-  objectFit: "contain",
 };
 
 const titleStyle: React.CSSProperties = {

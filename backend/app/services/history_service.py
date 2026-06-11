@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Optional
 from datetime import datetime
 from pathlib import Path
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, func
 from sqlmodel import Session, select
 
 from app.models import Transformation
@@ -26,11 +26,21 @@ def get_history(
 
     stmt = select(Transformation)
 
+    # Stored values are verbatim user input ("Living Room", "Modern") while the
+    # frontend sends normalized slugs ("living_room", "modern"), so compare
+    # case-insensitively with "_" and " " treated as equivalent.
+    def _norm(value: str) -> str:
+        return value.replace("_", " ").lower()
+
     if style and style.lower() not in {"all", "all styles"}:
-        stmt = stmt.where(Transformation.style_name == style)
+        stmt = stmt.where(
+            func.lower(func.replace(Transformation.style_name, "_", " ")) == _norm(style)
+        )
 
     if room and room.lower() not in {"all", "all rooms"}:
-        stmt = stmt.where(Transformation.room_type == room)
+        stmt = stmt.where(
+            func.lower(func.replace(Transformation.room_type, "_", " ")) == _norm(room)
+        )
 
     if sort == "oldest":
         stmt = stmt.order_by(asc(Transformation.created_at))

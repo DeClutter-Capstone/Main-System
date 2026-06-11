@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Layout from "../components/Layout";
 import { generationCardStyles } from "../components/GenerationCard";
+import BeforeAfterViewer from "../components/BeforeAfterViewer";
 import {
   assignGeneration,
   clearProjectThumbnail,
@@ -153,6 +154,14 @@ const ProjectsPage: React.FC = () => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const [cardMenuOpenFor, setCardMenuOpenFor] = useState<string | null>(null);
+
+  // The generation whose before/after viewer is open (null = closed).
+  const [viewerGen, setViewerGen] = useState<Generation | null>(null);
+
+  // The "before" (input) image; legacy rows without input_image_path fall back
+  // to the History convention of swapping /storage/output/ for /storage/input/.
+  const beforeImageFor = (gen: Generation) =>
+    gen.originalImage ?? gen.image.replace("/storage/output/", "/storage/input/");
 
   const refetch = useCallback(async () => {
     if (!projectId) return;
@@ -418,6 +427,21 @@ const ProjectsPage: React.FC = () => {
     }
   };
 
+  // Detach the generation from this project without deleting it (it stays
+  // available in Generation History).
+  const handleRemoveFromProject = async (genId: string) => {
+    setCardMenuOpenFor(null);
+    const previous = generations;
+    setGenerations(generations.filter((g) => g.id !== genId));
+    try {
+      await assignGeneration(genId, { project_id: null });
+      toast.success("Removed from project — still available in History");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove from project");
+      setGenerations(previous);
+    }
+  };
+
   const handleMoveToGroup = async (genId: string, groupId: string | undefined) => {
     if (!projectId) return;
     setCardMenuOpenFor(null);
@@ -497,7 +521,24 @@ const ProjectsPage: React.FC = () => {
     const displayLabel = gen.displayName ?? autoName(gen);
     return (
       <article key={gen.id} className="gen-card">
-        <div className="gen-card__image">
+        <div
+          className="gen-card__image gen-card__image--clickable"
+          onClick={(e) => {
+            // Ignore clicks inside the kebab menu so its items don't open the viewer.
+            if ((e.target as HTMLElement).closest("[data-menu-root]")) return;
+            setViewerGen(gen);
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if ((e.target as HTMLElement).closest("[data-menu-root]")) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setViewerGen(gen);
+            }
+          }}
+          aria-label={`View before and after for ${displayLabel}`}
+        >
           <img src={gen.image} alt={`${displayLabel} redesign`} />
           <div className="gen-card__menu" data-menu-root>
             <button
@@ -558,6 +599,14 @@ const ProjectsPage: React.FC = () => {
                     Remove from group
                   </button>
                 )}
+                <div className="gen-card__menu-divider" />
+                <button
+                  className="gen-card__menu-item"
+                  onClick={() => handleRemoveFromProject(gen.id)}
+                  title="Detach from this project without deleting the image"
+                >
+                  Remove from project
+                </button>
               </div>
             )}
           </div>
@@ -1017,6 +1066,17 @@ const ProjectsPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ─── Before / After Viewer ─── */}
+      {viewerGen && (
+        <BeforeAfterViewer
+          beforeSrc={beforeImageFor(viewerGen)}
+          afterSrc={viewerGen.image}
+          title={viewerGen.displayName ?? autoName(viewerGen)}
+          subtitle={`${viewerGen.style}${viewerGen.roomType ? ` · ${viewerGen.roomType}` : ""} · ${viewerGen.date}`}
+          onClose={() => setViewerGen(null)}
+        />
       )}
 
       {/* ─── Rename Group Modal ─── */}

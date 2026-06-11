@@ -11,6 +11,7 @@ class HistoryItem(BaseModel):
     style: str
     room: str
     created_at: Optional[datetime] = None
+    project_id: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+from enum import Enum
 from typing import List, Optional
 from datetime import datetime
 from pathlib import Path
@@ -13,9 +15,29 @@ STORAGE_DIR = Path(__file__).parent.parent.parent / "storage"
 OUTPUT_DIR = STORAGE_DIR / "output"
 INPUT_DIR = STORAGE_DIR / "input"
 
+# file_keys become filenames on disk, so only allow safe characters (this also
+# blocks path traversal like "../x"). Matches the frontend's sanitizeFilename.
+FILE_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{1,100}$")
+
+
+class RenameResult(str, Enum):
+    OK = "ok"
+    NOT_FOUND = "not_found"
+    NAME_TAKEN = "name_taken"
+    INVALID_NAME = "invalid_name"
+    ERROR = "error"
+
+
+def _owned_by(t: Transformation, user_id: Optional[int]) -> bool:
+    # Legacy rows with no user_id stay accessible; otherwise enforce ownership
+    # (same rule as the /generations routes).
+    return t.user_id is None or t.user_id == user_id
+
+
 def get_history(
     db: Session,
     *,
+    user_id: Optional[int] = None,
     style: Optional[str] = None,
     room: Optional[str] = None,
     sort: str = "newest",
@@ -25,6 +47,11 @@ def get_history(
     """Return formatted Transformation rows for the history page."""
 
     stmt = select(Transformation)
+
+    # Only the caller's generations (legacy rows without an owner stay visible).
+    stmt = stmt.where(
+        (Transformation.user_id == user_id) | (Transformation.user_id == None)  # noqa: E711
+    )
 
     # Stored values are verbatim user input ("Living Room", "Modern") while the
     # frontend sends normalized slugs ("living_room", "modern"), so compare
@@ -60,19 +87,22 @@ def get_history(
             style=t.style_name.replace("_", " ").title(),  # "industrial" -> "Industrial"
             room=t.room_type.replace("_", " ").title(),  # "living_room" -> "Living Room"
             created_at=t.created_at,
+            project_id=str(t.project_id) if t.project_id else None,
         )
         for t in transformations
     ]
 
 
-def delete_transformation(db: Session, file_key: str) -> bool:
+def delete_transformation(
+    db: Session, file_key: str, *, user_id: Optional[int] = None
+) -> bool:
     """Delete a transformation record and its associated files from storage."""
-    
+
     # Find transformation by file_key
     stmt = select(Transformation).where(Transformation.file_key == file_key)
     transformation = db.exec(stmt).first()
-    
-    if not transformation:
+
+    if not transformation or not _owned_by(transformation, user_id):
         return False
     
     # Delete files from storage
@@ -92,21 +122,31 @@ def delete_transformation(db: Session, file_key: str) -> bool:
     return True
 
 
-def rename_transformation(db: Session, old_file_key: str, new_file_key: str) -> bool:
+def rename_transformation(
+    db: Session,
+    old_file_key: str,
+    new_file_key: str,
+    *,
+    user_id: Optional[int] = None,
+) -> RenameResult:
     """Rename a transformation record and its associated files."""
-    
-    # Check if old transformation exists
+
+    # The new key becomes a filename — reject anything unsafe.
+    if not FILE_KEY_RE.fullmatch(new_file_key):
+        return RenameResult.INVALID_NAME
+
+    # Check if old transformation exists and belongs to the caller
     stmt = select(Transformation).where(Transformation.file_key == old_file_key)
     transformation = db.exec(stmt).first()
-    
-    if not transformation:
-        return False
-    
+
+    if not transformation or not _owned_by(transformation, user_id):
+        return RenameResult.NOT_FOUND
+
     # Check if new name already exists
     stmt_check = select(Transformation).where(Transformation.file_key == new_file_key)
     if db.exec(stmt_check).first():
-        return False
-    
+        return RenameResult.NAME_TAKEN
+
     # Rename files in storage
     old_output_file = OUTPUT_DIR / f"{old_file_key}.png"
     new_output_file = OUTPUT_DIR / f"{new_file_key}.png"
@@ -127,9 +167,9 @@ def rename_transformation(db: Session, old_file_key: str, new_file_key: str) -> 
         transformation.file_key = new_file_key
         db.add(transformation)
         db.commit()
-        
-        return True
+
+        return RenameResult.OK
     except Exception as e:
         print(f"Error renaming transformation: {e}")
         db.rollback()
-        return False
+        return RenameResult.ERROR

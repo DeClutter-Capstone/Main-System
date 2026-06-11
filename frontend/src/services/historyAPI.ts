@@ -1,3 +1,5 @@
+import { authHeader } from "./auth";
+
 export type HistoryItem = {
   id: string;
   image: string;
@@ -6,6 +8,7 @@ export type HistoryItem = {
   style: string;
   room?: string;
   created_at?: string;
+  project_id?: string | null;
 };
 
 export async function fetchHistory(params?: {
@@ -35,7 +38,7 @@ export async function fetchHistory(params?: {
   if (params?.limit) url.searchParams.set("limit", String(params.limit));
   if (params?.offset) url.searchParams.set("offset", String(params.offset));
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), { headers: await authHeader() });
   if (!res.ok) {
     throw new Error(`Failed to load history: ${res.status}`);
   }
@@ -54,6 +57,7 @@ export async function deleteHistoryItem(fileKey: string): Promise<void> {
 
   const res = await fetch(`${backendBase}/api/history/${fileKey}`, {
     method: "DELETE",
+    headers: await authHeader(),
   });
 
   if (!res.ok) {
@@ -74,6 +78,7 @@ export async function renameHistoryItem(
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
+      ...(await authHeader()),
     },
     body: JSON.stringify({
       old_file_key: oldFileKey,

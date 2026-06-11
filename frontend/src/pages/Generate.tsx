@@ -272,7 +272,10 @@ function Generate() {
         }
       }
       setUploadedImage(regen.image);
-      fetch(regen.image, { mode: "cors" })
+      // `cache: "no-store"` forces a fresh CORS request — the <img> tags on the
+      // Projects/History pages cache these URLs without CORS headers, and a
+      // cors-mode fetch served from that cache is blocked by the browser.
+      fetch(regen.image, { mode: "cors", cache: "no-store" })
         .then((r) =>
           r.ok ? r.blob() : Promise.reject(new Error("fetch failed")),
         )
@@ -294,32 +297,32 @@ function Generate() {
     {
       id: "Minimalist",
       name: "Minimalist",
-      image: "/public/HomePageImages/minimalist.png",
+      image: "/HomePageImages/minimalist.png",
     },
     {
       id: "Modern",
       name: "Modern",
-      image: "/public/GenerateImages/Moderninterior.jpg",
+      image: "/GenerateImages/Moderninterior.jpg",
     },
     {
       id: "Scandinavian",
       name: "Scandinavian",
-      image: "/public/GenerateImages/Scandinavianinterior.webp",
+      image: "/GenerateImages/Scandinavianinterior.webp",
     },
     {
       id: "Industrial",
       name: "Industrial",
-      image: "/public/HomePageImages/industrial.png",
+      image: "/HomePageImages/industrial.png",
     },
     {
       id: "Bohemian",
       name: "Bohemian",
-      image: "/public/GenerateImages/Bohemianinterior.jpg",
+      image: "/GenerateImages/BohemianInterior.jpg",
     },
     {
       id: "Spa",
       name: "Spa",
-      image: "/public/GenerateImages/SpaInterior.webp",
+      image: "/GenerateImages/SpaInterior.webp",
     },
   ];
 
@@ -327,7 +330,7 @@ function Generate() {
     Bedroom: ["Spa"],
     "Living Room": ["Spa"],
     Kitchen: ["Bohemian", "Spa"],
-    Bathroom: ["Bohemian", "Rustic"],
+    Bathroom: ["Bohemian"],
   };
 
   const isStyleVisible = (styleId: string, room: string): boolean => {
@@ -781,7 +784,7 @@ function Generate() {
             ) : (
               <div style={styles.heroUploadContent}>
                 <img
-                  src="/public/upload icon.png"
+                  src="/upload icon.png"
                   alt="upload"
                   style={styles.heroUploadIcon}
                   className="hero-upload-icon"

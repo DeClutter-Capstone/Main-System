@@ -392,6 +392,37 @@ function Generate() {
     }
   };
 
+  // Feed the freshly generated result back in as the next input so the user
+  // can refine it iteratively (new style/prompt on top of the last output).
+  const handleIterate = async () => {
+    if (!generatedImage) return;
+    try {
+      const res = await fetch(generatedImage, { mode: "cors", cache: "no-store" });
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+      const blob = await res.blob();
+      const type = blob.type || "image/png";
+      const ext = type.split("/")[1] ?? "png";
+      const file = new File([blob], `iteration-source.${ext}`, { type });
+      // Data URL keeps the preview + before/after crop logic identical to a
+      // manual upload.
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("read failed"));
+        reader.readAsDataURL(blob);
+      });
+      setUploadedFile(file);
+      setUploadedImage(dataUrl);
+      setGeneratedImage(null);
+      setCroppedInput(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      toast.success("This design is now your room photo — pick a style and go again");
+    } catch (err) {
+      console.error("Iterate error:", err);
+      toast.error("Could not load the result as input");
+    }
+  };
+
   const handleGenerate = async () => {
     if (!uploadedFile) {
       toast.error("Please upload an image first");
@@ -709,6 +740,30 @@ function Generate() {
         .generate-btn:active:not(:disabled) {
           transform: translateY(0);
           box-shadow: 0 4px 12px rgba(67, 132, 226, 0.25);
+        }
+        .iterate-btn {
+          transition: all 0.18s ease;
+        }
+        .iterate-btn__icon {
+          width: 19px;
+          height: 19px;
+          transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .iterate-btn:hover {
+          background-color: var(--color-brand-primary) !important;
+          color: var(--color-text-inverse) !important;
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px rgba(67, 132, 226, 0.28);
+        }
+        .iterate-btn:hover .iterate-btn__icon {
+          transform: rotate(180deg);
+        }
+        .iterate-btn:active {
+          transform: translateY(0) scale(0.98);
+        }
+        @media (max-width: 560px) {
+          .result-actions { flex-direction: column !important; }
+          .result-actions > button { width: 100% !important; }
         }
         .remove-btn {
           transition: all 0.15s ease !important;
@@ -1275,34 +1330,57 @@ function Generate() {
                 />
               </div>
             )}
-            <button
-              style={styles.downloadButton}
-              className="generate-btn"
-              onClick={async () => {
-                try {
-                  const res = await fetch(generatedImage, {
-                    mode: "cors",
-                    cache: "no-store",
-                  });
-                  if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-                  const blob = await res.blob();
-                  const ext = blob.type.split("/")[1] || "png";
-                  const blobUrl = URL.createObjectURL(blob);
-                  const link = document.createElement("a");
-                  link.href = blobUrl;
-                  link.download = `declutter-${selectedStyle.toLowerCase()}-${Date.now()}.${ext}`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(blobUrl);
-                } catch (err) {
-                  console.error("Download error:", err);
-                  toast.error("Could not download image");
-                }
-              }}
-            >
-              Download image
-            </button>
+            <div style={styles.resultActions} className="result-actions">
+              <button
+                style={styles.downloadButton}
+                className="generate-btn"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(generatedImage, {
+                      mode: "cors",
+                      cache: "no-store",
+                    });
+                    if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+                    const blob = await res.blob();
+                    const ext = blob.type.split("/")[1] || "png";
+                    const blobUrl = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = blobUrl;
+                    link.download = `declutter-${selectedStyle.toLowerCase()}-${Date.now()}.${ext}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                  } catch (err) {
+                    console.error("Download error:", err);
+                    toast.error("Could not download image");
+                  }
+                }}
+              >
+                Download image
+              </button>
+              <button
+                style={styles.iterateButton}
+                className="iterate-btn"
+                onClick={handleIterate}
+                title="Use this design as your new room photo and try another style"
+              >
+                <svg
+                  className="iterate-btn__icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M21 12a9 9 0 1 1-3-6.7" />
+                  <path d="M21 4v5h-5" />
+                </svg>
+                Keep redesigning
+              </button>
+            </div>
           </section>
         )}
       </div>
@@ -1924,7 +2002,35 @@ const styles = {
     cursor: "pointer",
     boxShadow: "0 8px 24px rgba(67, 132, 226, 0.28)",
     letterSpacing: "0.01em",
+    marginTop: "0",
+  } as React.CSSProperties,
+
+  resultActions: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "14px",
+    flexWrap: "wrap",
     marginTop: "0.5rem",
+  } as React.CSSProperties,
+
+  iterateButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    minWidth: "240px",
+    padding: "0 28px",
+    height: "56px",
+    fontSize: "1.05rem",
+    fontWeight: "600",
+    fontFamily: "inherit",
+    backgroundColor: "transparent",
+    color: "var(--color-brand-primary)",
+    border: "2px solid var(--color-brand-primary)",
+    borderRadius: "12px",
+    cursor: "pointer",
+    letterSpacing: "0.01em",
   } as React.CSSProperties,
 };
 

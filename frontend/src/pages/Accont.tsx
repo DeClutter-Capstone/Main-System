@@ -18,6 +18,9 @@ import { auth, storage } from "../Firebase/Firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { toast } from "react-toastify";
 
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
+
 interface SavedAccount {
   email: string;
   displayName?: string;
@@ -224,7 +227,7 @@ function Account() {
 
   const syncUser = async (user: User) => {
     try {
-      await fetch("http://localhost:8000/api/users/sync", {
+      await fetch(`${BACKEND_URL}/api/users/sync`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -254,7 +257,7 @@ function Account() {
     loginMethod: string,
   ) => {
     try {
-      await fetch("http://localhost:8000/api/activity/login", {
+      await fetch(`${BACKEND_URL}/api/activity/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -274,7 +277,7 @@ function Account() {
   const loadLoginActivity = async (uid: string) => {
     try {
       setIsLoadingActivities(true);
-      const res = await fetch("http://localhost:8000/api/activity/?limit=50", {
+      const res = await fetch(`${BACKEND_URL}/api/activity/?limit=50`, {
         headers: { "x-firebase-uid": uid },
       });
       const data: LoginActivity[] = await res.json();
@@ -294,7 +297,7 @@ function Account() {
     if (isLoadingActivities || !hasMoreActivities) return;
     try {
       setIsLoadingActivities(true);
-      const res = await fetch("http://localhost:8000/api/activity/?limit=10", {
+      const res = await fetch(`${BACKEND_URL}/api/activity/?limit=10`, {
         headers: { "x-firebase-uid": uid },
       });
       const data: LoginActivity[] = await res.json();
@@ -627,7 +630,7 @@ function Account() {
       setIsDeletingAccount(true);
 
       // Delete user and all activity from PostgreSQL first
-      await fetch("http://localhost:8000/api/users/me", {
+      await fetch(`${BACKEND_URL}/api/users/me`, {
         method: "DELETE",
         headers: { "x-firebase-uid": firebaseUser.uid },
       });
@@ -716,7 +719,7 @@ function Account() {
   const resolveImageUrl = (path: string | null) => {
     if (!path) return null;
     if (path.startsWith("http://") || path.startsWith("https://")) return path;
-    return `http://localhost:8000${path.startsWith("/") ? "" : "/"}${path}`;
+    return `${BACKEND_URL}${path.startsWith("/") ? "" : "/"}${path}`;
   };
 
   const buildExportParams = () => {
@@ -778,7 +781,7 @@ function Account() {
       setIsLoadingPreview(true);
       setHasPreviewLoaded(false);
       const res = await fetch(
-        `http://localhost:8000/api/transformations/export?${params.toString()}`,
+        `${BACKEND_URL}/api/transformations/export?${params.toString()}`,
         {
           method: "GET",
           headers: { "x-firebase-uid": firebaseUser.uid },
@@ -829,7 +832,7 @@ function Account() {
     try {
       setIsGeneratingExportPdf(true);
       const res = await fetch(
-        `http://localhost:8000/api/transformations/export.pdf?${params.toString()}`,
+        `${BACKEND_URL}/api/transformations/export.pdf?${params.toString()}`,
         {
           method: "GET",
           headers: { "x-firebase-uid": firebaseUser.uid },
@@ -881,7 +884,7 @@ function Account() {
     try {
       setIsGeneratingExportZip(true);
       const res = await fetch(
-        `http://localhost:8000/api/transformations/export.zip?${params.toString()}`,
+        `${BACKEND_URL}/api/transformations/export.zip?${params.toString()}`,
         {
           method: "GET",
           headers: { "x-firebase-uid": firebaseUser.uid },
@@ -932,7 +935,7 @@ function Account() {
       await syncUser(firebaseUser);
 
       const res = await fetch(
-        "http://localhost:8000/api/users/me/summary.pdf",
+        `${BACKEND_URL}/api/users/me/summary.pdf`,
         {
           method: "GET",
           headers: { "x-firebase-uid": firebaseUser.uid },

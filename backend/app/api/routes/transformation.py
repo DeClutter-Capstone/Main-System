@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from PIL import Image
 from sqlmodel import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import require_generation_access
 from app.database.db import get_session
 from app.models.user import User
 from app.schemas.transformation_schema import TransformationResponse
@@ -38,7 +38,7 @@ def create_transformation(
     prompt: Optional[str] = Form(None),
     quality: Optional[str] = Form(None),
     db: Session = Depends(get_session),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_generation_access),
 ):
     """Create a transformation from an uploaded image.
 

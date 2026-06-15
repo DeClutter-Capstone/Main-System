@@ -10,15 +10,9 @@ from PIL import Image
 from sqlmodel import Session, select
 
 from app.ai.ai import generate_image
+from app.config import INPUT_DIR, OUTPUT_DIR
 from app.models.transformation import Transformation
 from app.models.transformationsequence import TransformationSequence
-
-
-STORAGE_DIR = Path(__file__).parent.parent.parent / "storage"
-INPUT_DIR = STORAGE_DIR / "input"
-OUTPUT_DIR = STORAGE_DIR / "output"
-INPUT_DIR.mkdir(parents=True, exist_ok=True)
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ---------------------------------------------------------------------------

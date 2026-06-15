@@ -25,6 +25,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from app.config import STORAGE_DIR
 from app.models.transformation import Transformation
 from app.models.user import User
 from app.schemas.transformation_export_schema import TransformationExportItem
@@ -32,8 +33,6 @@ from app.schemas.transformation_export_schema import TransformationExportItem
 
 EXPORT_MAX_ITEMS = 200
 EXPORT_MAX_ZIP_BYTES = 500 * 1024 * 1024
-
-STORAGE_DIR = Path(__file__).parent.parent.parent / "storage"
 
 
 def _format_datetime(value: Optional[datetime]) -> str:

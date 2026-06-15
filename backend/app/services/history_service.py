@@ -8,12 +8,9 @@ from pathlib import Path
 from sqlalchemy import asc, desc, func
 from sqlmodel import Session, select
 
+from app.config import INPUT_DIR, OUTPUT_DIR
 from app.models import Transformation
 from app.schemas.history_schema import HistoryItem
-
-STORAGE_DIR = Path(__file__).parent.parent.parent / "storage"
-OUTPUT_DIR = STORAGE_DIR / "output"
-INPUT_DIR = STORAGE_DIR / "input"
 
 # file_keys become filenames on disk, so only allow safe characters (this also
 # blocks path traversal like "../x"). Matches the frontend's sanitizeFilename.

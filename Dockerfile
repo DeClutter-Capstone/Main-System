@@ -1,4 +1,20 @@
-# Backend (FastAPI) image — build context is the repo root.
+# Single-service image: builds the React frontend, then serves it from the
+# FastAPI backend. One Railway service runs the whole app (one URL, one deploy).
+# Build context is the repo root.
+
+# ---------------------------------------------------------------------------
+# Stage 1 — build the frontend (reads frontend/.env.production at build time)
+# ---------------------------------------------------------------------------
+FROM node:20-alpine AS frontend
+WORKDIR /fe
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build   # outputs /fe/dist
+
+# ---------------------------------------------------------------------------
+# Stage 2 — backend that also serves the built frontend
+# ---------------------------------------------------------------------------
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
@@ -7,12 +23,13 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Install Python dependencies first for better layer caching.
 COPY requirements.txt ./
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy the backend application.
 COPY backend/ ./backend/
+
+# Bundle the compiled frontend where the backend can serve it.
+COPY --from=frontend /fe/dist /app/backend/frontend_dist
 
 WORKDIR /app/backend
 

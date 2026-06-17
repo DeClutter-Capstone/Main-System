@@ -79,12 +79,56 @@ ROOM_CONTEXT = {
 }
 
 
-def build_prompt(room_type: str, style_name: str, extra_prompt: str = "") -> str:
+def _minimalist_prompt(room_label: str, declutter_level: str) -> str:
+    """The decluttering prompt, varied by how aggressive the user wants it.
+
+    max      — strict: only remove, never add (the original DeClutter behavior).
+    balanced — remove most clutter but keep essentials and a few tasteful pieces.
+    light    — just tidy obvious clutter, keep the room's existing look.
+    Unknown/missing levels fall back to `max` to preserve the original behavior.
+    """
+    level = (declutter_level or "max").strip().lower()
+
+    if level == "light":
+        return (
+            f"Lightly tidy this {room_label}. Remove only the obvious clutter — "
+            "trash, laundry, scattered or out-of-place items — while keeping the "
+            "existing furniture, decor, and overall look of the room intact. Just "
+            "make it look clean and organised. Do not add anything new, and keep "
+            "the same layout, walls, windows, and structural elements."
+        )
+    if level == "balanced":
+        return (
+            f"Tidy and declutter this {room_label} into a clean, balanced "
+            "minimalist space. Remove most of the clutter and excess items, but "
+            "keep the essential furniture and a few tasteful decorative pieces so "
+            "the room still feels warm and lived-in. You may neatly rearrange "
+            "existing items, but do not add major new furniture. Keep the same "
+            "room layout, same walls, same windows, and same structural elements."
+        )
+    # max (default) — strict, only remove
+    return (
+        f"Transform this {room_label} into a minimalist version. "
+        "Remove all clutter, laundry, decorative items, throw pillows, rugs, "
+        "excessive ornaments, and non-essential objects. If furniture is "
+        "overly ornate, simplify its appearance. Do not add any new furniture, "
+        f"objects, decorations, or elements that are not already present in the {room_label}. "
+        "Keep the same room layout, same walls, same windows, same structural "
+        "elements, same lighting. Only remove and simplify — never add."
+    )
+
+
+def build_prompt(
+    room_type: str,
+    style_name: str,
+    extra_prompt: str = "",
+    declutter_level: str = "max",
+) -> str:
     """Compose the image-edit prompt.
 
-    Minimalist is special-cased with a strict "only remove, never add" rule
-    — it's the flagship style and the whole point of DeClutter. Other
-    styles (Modern, Scandinavian, Industrial, Bohemian, Rustic, Spa, or any
+    Minimalist is special-cased as the decluttering flagship; its strictness is
+    controlled by `declutter_level` (light / balanced / max). Other styles
+    (Modern, Scandinavian, Industrial, Bohemian, Rustic, Spa, or any
     user-supplied label) are free to add the decor that *defines* them, so
     long as the room's structure (walls, windows, layout) stays intact.
     """
@@ -92,15 +136,7 @@ def build_prompt(room_type: str, style_name: str, extra_prompt: str = "") -> str
     style_label = (style_name or "minimalist").replace("_", " ").strip().lower()
 
     if style_label == "minimalist":
-        prompt = (
-            f"Transform this {room_label} into a minimalist version. "
-            "Remove all clutter, laundry, decorative items, throw pillows, rugs, "
-            "excessive ornaments, and non-essential objects. If furniture is "
-            "overly ornate, simplify its appearance. Do not add any new furniture, "
-            f"objects, decorations, or elements that are not already present in the {room_label}. "
-            "Keep the same room layout, same walls, same windows, same structural "
-            "elements, same lighting. Only remove and simplify — never add."
-        )
+        prompt = _minimalist_prompt(room_label, declutter_level)
     else:
         style_desc = STYLE_DESCRIPTIONS.get(style_label, "")
         descriptor = f" — {style_desc}" if style_desc else ""
@@ -134,18 +170,20 @@ def generate_image(
     style_name: str,
     extra_prompt: str = "",
     quality: str = "auto",
+    declutter_level: str = "max",
 ) -> str:
     """
     Call OpenAI to transform a room image. `quality` selects the model
     (auto/v1.5 → gpt-image-1.5, v1.0 → gpt-image-1-mini, v2.0 → gpt-image-2);
-    unknown values default to auto.
+    unknown values default to auto. `declutter_level` (light/balanced/max)
+    controls how aggressively the minimalist style declutters.
 
     Passes `size="auto"` so GPT picks the output dimensions that best fit
     the content — the frontend then center-crops the original input to
     match whatever shape comes back.
     """
     model = _QUALITY_MODELS.get((quality or "auto").lower(), "gpt-image-1.5")
-    prompt = build_prompt(room_type, style_name, extra_prompt)
+    prompt = build_prompt(room_type, style_name, extra_prompt, declutter_level)
     print(f"OpenAI prompt (model={model}, auto size): {prompt}")
 
     with open(input_image_path, "rb") as image_file:

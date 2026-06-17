@@ -55,7 +55,7 @@ const faqSections: FAQSection[] = [
         id: "regen-style",
         question: "Can I regenerate with a different style?",
         answer:
-          "Not directly on the Generate page, but this is supported in Projects — you can group generations together and try different styles for the same room within a project.",
+          "Yes — on the Generate page, keep your uploaded photo, pick a different style, and generate again. Each run is saved separately, so you can compare styles for the same room and organise them into Projects.",
       },
       {
         id: "image-formats",
@@ -83,7 +83,7 @@ const faqSections: FAQSection[] = [
         id: "style-compat",
         question: "Which styles work with which rooms?",
         answer:
-          "Minimalist, Modern, and Scandinavian work with all room types. Industrial is not recommended for bathrooms. Bohemian works best in bedrooms and living rooms. Rustic suits bedrooms, living rooms, and kitchens.",
+          "Minimalist, Modern, Scandinavian, and Industrial work with all room types. Bohemian is available for bedrooms and living rooms. Spa is available for bathrooms. The Generate page automatically shows only the styles available for the room you pick.",
       },
       {
         id: "can-download",

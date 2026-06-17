@@ -37,6 +37,7 @@ def create_transformation(
     input_image_id: Optional[str] = Form(None),
     prompt: Optional[str] = Form(None),
     quality: Optional[str] = Form(None),
+    declutter_level: Optional[str] = Form(None),
     db: Session = Depends(get_session),
     user: User = Depends(require_generation_access),
 ):
@@ -66,6 +67,7 @@ def create_transformation(
             image_url=image_url,
             prompt=prompt or "",
             quality=quality or "auto",
+            declutter_level=declutter_level or "max",
         )
 
         return {

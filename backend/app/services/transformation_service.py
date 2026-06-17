@@ -85,6 +85,7 @@ def generate_transformation(
     image_url: str,
     prompt: str = "",
     quality: str = "auto",
+    declutter_level: str = "max",
 ) -> Tuple[Transformation, str]:
     """Save the input image, call the AI pipeline, persist the result.
 
@@ -129,7 +130,8 @@ def generate_transformation(
     # Call OpenAI — uses the verbatim room_type / style_name so custom values
     # are honored in the prompt. `quality` selects the underlying model.
     b64_result = generate_image(
-        input_image_path_fs, room_type, style_name, prompt, quality=quality
+        input_image_path_fs, room_type, style_name, prompt,
+        quality=quality, declutter_level=declutter_level,
     )
     _save_from_data_url(b64_result, output_image_path_fs)
 

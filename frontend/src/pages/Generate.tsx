@@ -22,6 +22,8 @@ function Generate() {
     setSelectedStyle,
     quality,
     setQuality,
+    declutterLevel,
+    setDeclutterLevel,
     uploadedImage,
     setUploadedImage,
     setUploadedFile,
@@ -81,6 +83,40 @@ function Generate() {
         ? 0
         : 1
       : qualityOrder.indexOf(quality);
+
+  // ── Declutter level timeline (3 nodes, same design as quality) ──
+  const declutterOrder = ["light", "balanced", "max"] as const;
+  // Node accent colors (green → blue → purple), in node order.
+  const declutterColors = [
+    "var(--color-success)",
+    "var(--color-brand-primary)",
+    "var(--color-accent-purple)",
+  ] as const;
+  // Each node's resting position along the track as a 0→1 fraction.
+  const declutterFraction: Record<(typeof declutterOrder)[number], number> = {
+    light: 0,
+    balanced: 0.5,
+    max: 1,
+  };
+  const isDraggingDeclutter = useRef(false);
+  const [declutterDragFraction, setDeclutterDragFraction] = useState<
+    number | null
+  >(null);
+  // Pointer X → 0→1 fraction across the track. With 3 nodes the outer centers
+  // sit 1/6 in from each edge, so the live track spans that inner region.
+  const declutterPointerFraction = (clientX: number, row: HTMLElement) => {
+    const rect = row.getBoundingClientRect();
+    const left = rect.left + rect.width / 6;
+    const right = rect.left + (rect.width * 5) / 6;
+    return Math.max(0, Math.min(1, (clientX - left) / (right - left)));
+  };
+  const declutterFillFraction =
+    declutterDragFraction ?? declutterFraction[declutterLevel];
+  // Snap the live drag fraction to the nearest of the 3 nodes.
+  const activeDeclutterIndex =
+    declutterDragFraction !== null
+      ? Math.round(declutterDragFraction * 2)
+      : declutterOrder.indexOf(declutterLevel);
 
   // ── Page-local UI state (not worth persisting across navigation) ──
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -867,6 +903,101 @@ function Generate() {
                   style={
                     {
                       "--node-color": qualityColors[idx],
+                    } as React.CSSProperties
+                  }
+                >
+                  <span className="quality-dot" />
+                  <span className="quality-node-title">{node.title}</span>
+                  <span className="quality-node-sub">{node.lines[0]}</span>
+                  <span className="quality-node-sub">{node.lines[1]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* DECLUTTER LEVEL */}
+        <section style={styles.qualitySection}>
+          <label style={styles.label}>Declutter Level</label>
+          <span style={styles.qualitySubtitle}>
+            How much to remove from the room
+          </span>
+          <div
+            className="quality-timeline"
+            role="radiogroup"
+            onPointerDown={(e) => {
+              isDraggingDeclutter.current = true;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              setDeclutterDragFraction(
+                declutterPointerFraction(e.clientX, e.currentTarget),
+              );
+            }}
+            onPointerMove={(e) => {
+              if (isDraggingDeclutter.current)
+                setDeclutterDragFraction(
+                  declutterPointerFraction(e.clientX, e.currentTarget),
+                );
+            }}
+            onPointerUp={(e) => {
+              if (!isDraggingDeclutter.current) return;
+              isDraggingDeclutter.current = false;
+              e.currentTarget.releasePointerCapture(e.pointerId);
+              const f = declutterPointerFraction(e.clientX, e.currentTarget);
+              const idx = Math.round(f * 2);
+              setDeclutterLevel(declutterOrder[idx]);
+              setDeclutterDragFraction(null);
+            }}
+            onPointerCancel={() => {
+              isDraggingDeclutter.current = false;
+              setDeclutterDragFraction(null);
+            }}
+          >
+            {/* 3-node track: outer node centers sit 1/6 in from each edge, so
+                the track insets to 16.667% (vs 25% for the 2-node quality). */}
+            <div
+              className="quality-track"
+              style={{ left: "16.667%", right: "16.667%" }}
+            >
+              <div
+                className="quality-track-fill"
+                style={{
+                  width: `${declutterFillFraction * 100}%`,
+                  backgroundColor: declutterColors[activeDeclutterIndex],
+                }}
+              />
+            </div>
+            {(
+              [
+                {
+                  value: "light",
+                  title: "Light",
+                  lines: ["Tidy up", "Keep most items"],
+                },
+                {
+                  value: "balanced",
+                  title: "Balanced",
+                  lines: ["Remove clutter", "Keep essentials"],
+                },
+                {
+                  value: "max",
+                  title: "Maximal",
+                  lines: ["Strip back", "Bare essentials"],
+                },
+              ] as const
+            ).map((node, idx) => {
+              const isSelected = idx === activeDeclutterIndex;
+              return (
+                <button
+                  key={node.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  aria-label={node.title}
+                  onClick={() => setDeclutterLevel(node.value)}
+                  className={`quality-node-col${isSelected ? " selected" : ""}`}
+                  style={
+                    {
+                      "--node-color": declutterColors[idx],
                     } as React.CSSProperties
                   }
                 >

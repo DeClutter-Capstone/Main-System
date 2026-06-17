@@ -1,20 +1,49 @@
 import Layout from "../components/Layout";
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { requestTransformation } from "../services/transformationAPI";
-import { listProjects, type ProjectSummary } from "../services/projectsAPI";
+import { listProjects } from "../services/projectsAPI";
 import { toast } from "react-toastify";
+import { useGeneration } from "../context/GenerationContext";
 
 function Generate() {
   const location = useLocation();
-  const [roomType, setRoomType] = useState("Bedroom");
-  const [customRoomType, setCustomRoomType] = useState("");
-  const [assignProject, setAssignProject] = useState("N/A");
-  const [customPrompt, setCustomPrompt] = useState("");
-  const [selectedStyle, setSelectedStyle] = useState("Minimalist");
-  // Left node ("Recommended" → v1.5) is selected by default on every page load.
-  // The value sent to the backend (v1.5 / v2.0) is unchanged.
-  const [quality, setQuality] = useState<"v1.5" | "v2.0">("v1.5");
+  // Generation state lives in a provider above the router so it survives
+  // navigating away from this page and back. See GenerationContext.
+  const {
+    roomType,
+    setRoomType,
+    customRoomType,
+    setCustomRoomType,
+    assignProject,
+    setAssignProject,
+    customPrompt,
+    setCustomPrompt,
+    selectedStyle,
+    setSelectedStyle,
+    quality,
+    setQuality,
+    uploadedImage,
+    setUploadedImage,
+    setUploadedFile,
+    processFile,
+    removeImage,
+    projects,
+    setProjects,
+    isLoading,
+    progress,
+    stage,
+    showProgress,
+    isJumping,
+    isFadingOut,
+    generatedImage,
+    croppedInput,
+    resultAspectRatio,
+    viewMode,
+    setViewMode,
+    handleGenerate,
+    handleIterate,
+  } = useGeneration();
+
   // Left→right order of the two timeline nodes; used by both click and drag.
   const qualityOrder = ["v1.5", "v2.0"] as const;
   // Each node's accent color (theme variables → dark-mode safe), in node order.
@@ -52,34 +81,14 @@ function Generate() {
         ? 0
         : 1
       : qualityOrder.indexOf(quality);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+
+  // ── Page-local UI state (not worth persisting across navigation) ──
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [stage, setStage] = useState("Analyzing your room...");
-  const [showProgress, setShowProgress] = useState(false);
-  const [isJumping, setIsJumping] = useState(false);
-  const [isFadingOut, setIsFadingOut] = useState(false);
-  // ── Result viewer (Output ↔ Before/After) ──
-  const [viewMode, setViewMode] = useState<"output" | "compare">("output");
-  const [croppedInput, setCroppedInput] = useState<string | null>(null);
-  const [resultAspectRatio, setResultAspectRatio] = useState<number>(1);
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isSliderActive, setIsSliderActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const rafRef = useRef<number | null>(null);
-  const progressStartRef = useRef<number>(0);
   const sliderContainerRef = useRef<HTMLDivElement>(null);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
-
-  useEffect(() => {
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
 
   // Mirror the homepage's slider drag handling: document-level mousemove
   // while a handle is grabbed, mouseup releases.
@@ -103,118 +112,6 @@ function Generate() {
       document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isSliderActive]);
-
-  const getStage = (p: number) => {
-    if (p >= 100) return "Done!";
-    if (p < 25) return "Analyzing your room...";
-    if (p < 50) return "Removing clutter and simplifying...";
-    if (p < 72) return "Applying minimalist style...";
-    return "Finalizing your design...";
-  };
-
-  const startProgressLoop = () => {
-    setShowProgress(true);
-    setIsFadingOut(false);
-    setIsJumping(false);
-    setProgress(0);
-    setStage("Analyzing your room...");
-    progressStartRef.current = performance.now();
-
-    // Timeline (real generation averages ~23s):
-    //   0–5s   : 0 → 30%   (ease-out, feels like it kicked off)
-    //   5–18s  : 30 → 75%  (linear crawl, the bulk of the work)
-    //   18s+   : 75 → 82%  (asymptotic, never quite reaches 82)
-    // The bar holds < 82% until the real API response triggers the jump.
-    const tick = () => {
-      const elapsed = (performance.now() - progressStartRef.current) / 1000;
-      let p: number;
-      if (elapsed < 5) {
-        const t = elapsed / 5;
-        p = 30 * (1 - Math.pow(1 - t, 2)); // ease-out quad
-      } else if (elapsed < 18) {
-        const t = (elapsed - 5) / 13;
-        p = 30 + 45 * t; // linear 30 → 75
-      } else {
-        // Asymptotic creep toward 82, never reaching it. At elapsed=18 → 75;
-        // at elapsed≈18+15s → ~80; the bar slows to a near-stop.
-        p = 75 + 7 * (1 - Math.exp(-(elapsed - 18) / 14));
-      }
-      p = Math.min(p, 81.9);
-      setProgress(p);
-      setStage(getStage(p));
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-  };
-
-  const stopProgressLoop = () => {
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-  };
-
-  const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
-  // Center-crop `inputSrc` so it matches the natural dimensions of
-  // `outputSrc` exactly. Returns a PNG data URL with the cropped pixels.
-  // No resizing or warping of the GPT output happens — only the input is
-  // trimmed at the edges to align with the output's aspect.
-  const cropInputToOutput = async (
-    inputSrc: string,
-    outputSrc: string,
-  ): Promise<{ croppedDataUrl: string; width: number; height: number }> => {
-    const loadImg = (src: string) =>
-      new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error(`Failed to load ${src}`));
-        img.src = src;
-      });
-
-    const [inputImg, outputImg] = await Promise.all([
-      loadImg(inputSrc),
-      loadImg(outputSrc),
-    ]);
-
-    const W = outputImg.naturalWidth;
-    const H = outputImg.naturalHeight;
-    const inW = inputImg.naturalWidth;
-    const inH = inputImg.naturalHeight;
-    const targetRatio = W / H;
-    const inRatio = inW / inH;
-
-    let sx: number;
-    let sy: number;
-    let sw: number;
-    let sh: number;
-    if (inRatio > targetRatio) {
-      // Input is wider — trim the left/right.
-      sh = inH;
-      sw = sh * targetRatio;
-      sx = (inW - sw) / 2;
-      sy = 0;
-    } else {
-      // Input is taller (or equal) — trim the top/bottom.
-      sw = inW;
-      sh = sw / targetRatio;
-      sx = 0;
-      sy = (inH - sh) / 2;
-    }
-
-    const canvas = document.createElement("canvas");
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas 2D context unavailable");
-    ctx.drawImage(inputImg, sx, sy, sw, sh, 0, 0, W, H);
-    return {
-      croppedDataUrl: canvas.toDataURL("image/png"),
-      width: W,
-      height: H,
-    };
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -247,6 +144,8 @@ function Generate() {
     return () => {
       cancelled = true;
     };
+    // Context setters are stable; only re-run when navigation state changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
   useEffect(() => {
@@ -291,6 +190,8 @@ function Generate() {
           );
         });
     }
+    // Context setters are stable; only re-run when navigation state changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
   const all_styles_data = [
@@ -352,25 +253,6 @@ function Generate() {
     fileInputRef.current?.click();
   };
 
-  const processFile = (file: File) => {
-    const validTypes = ["image/jpeg", "image/jpg", "image/png"];
-    if (!validTypes.includes(file.type)) {
-      toast.error("Please upload a JPG, JPEG, or PNG image");
-      return;
-    }
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error("File size must be less than 5MB");
-      return;
-    }
-    setUploadedFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setUploadedImage(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) processFile(file);
@@ -384,126 +266,9 @@ function Generate() {
   };
 
   const handleRemoveImage = () => {
-    setUploadedImage(null);
-    setUploadedFile(null);
-    setGeneratedImage(null);
+    removeImage();
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
-    }
-  };
-
-  // Feed the freshly generated result back in as the next input so the user
-  // can refine it iteratively (new style/prompt on top of the last output).
-  const handleIterate = async () => {
-    if (!generatedImage) return;
-    try {
-      const res = await fetch(generatedImage, { mode: "cors", cache: "no-store" });
-      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-      const blob = await res.blob();
-      const type = blob.type || "image/png";
-      const ext = type.split("/")[1] ?? "png";
-      const file = new File([blob], `iteration-source.${ext}`, { type });
-      // Data URL keeps the preview + before/after crop logic identical to a
-      // manual upload.
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error("read failed"));
-        reader.readAsDataURL(blob);
-      });
-      setUploadedFile(file);
-      setUploadedImage(dataUrl);
-      setGeneratedImage(null);
-      setCroppedInput(null);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      toast.success("This design is now your room photo — pick a style and go again");
-    } catch (err) {
-      console.error("Iterate error:", err);
-      toast.error("Could not load the result as input");
-    }
-  };
-
-  const handleGenerate = async () => {
-    if (!uploadedFile) {
-      toast.error("Please upload an image first");
-      return;
-    }
-
-    setIsLoading(true);
-    setGeneratedImage(null);
-    startProgressLoop();
-
-    try {
-      const effectiveRoomType =
-        roomType === "Other" ? customRoomType.trim() || "Other" : roomType;
-
-      const projectIdToAssign =
-        assignProject && assignProject !== "N/A" ? assignProject : undefined;
-
-      const response = await requestTransformation(
-        uploadedFile,
-        effectiveRoomType,
-        selectedStyle,
-        customPrompt,
-        projectIdToAssign,
-        quality,
-      );
-
-      const backendBase =
-        import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
-
-      const outputUrl = response.output_image_url?.startsWith("http")
-        ? response.output_image_url
-        : `${backendBase}${response.output_image_url}`;
-
-      stopProgressLoop();
-      setIsJumping(true);
-      setProgress(100);
-      setStage("Done!");
-
-      // Use the 600ms "Done!" hold to prepare the matched-dimension input
-      // crop so the Before/After slider works pixel-for-pixel.
-      const cropPromise = uploadedImage
-        ? cropInputToOutput(uploadedImage, outputUrl).catch((err) => {
-            console.error("Input crop failed:", err);
-            return null;
-          })
-        : Promise.resolve(null);
-
-      await wait(600);
-      setIsFadingOut(true);
-      await wait(320);
-      setShowProgress(false);
-      setIsFadingOut(false);
-      setIsJumping(false);
-
-      const cropped = await cropPromise;
-      if (cropped) {
-        setCroppedInput(cropped.croppedDataUrl);
-        setResultAspectRatio(cropped.width / cropped.height);
-      } else {
-        setCroppedInput(null);
-        setResultAspectRatio(1);
-      }
-      setViewMode("output");
-      setSliderPosition(50);
-      setGeneratedImage(outputUrl);
-      toast.success("Image generated successfully!");
-
-      // Backend already persisted the transformation against the selected
-      // project (if any). No client-side write needed.
-    } catch (err) {
-      stopProgressLoop();
-      setShowProgress(false);
-      setIsFadingOut(false);
-      setIsJumping(false);
-      const errorMessage =
-        err instanceof Error ? err.message : "An error occurred";
-      toast.error(errorMessage);
-      setGeneratedImage(null);
-      console.error("Transformation error:", err);
-    } finally {
-      setIsLoading(false);
     }
   };
 

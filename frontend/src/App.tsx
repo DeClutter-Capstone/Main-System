@@ -31,6 +31,7 @@ import Signup from "./pages/Signup";
 import ContactUs from "./pages/ContactUs";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import { GenerationProvider } from "./context/GenerationContext";
 
 // Protected Route Component
 interface ProtectedRouteProps {
@@ -83,6 +84,7 @@ function App() {
       />
       <Router>
         <ScrollToTop />
+        <GenerationProvider>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
@@ -144,6 +146,7 @@ function App() {
             }
           />
         </Routes>
+        </GenerationProvider>
       </Router>
     </>
   );

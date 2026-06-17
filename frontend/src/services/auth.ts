@@ -1,21 +1,33 @@
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "../Firebase/Firebase";
 
-let resolved: { user: User | null } | null = null;
-let pending: Promise<User | null> | null = null;
+let authReady = false;
+let readyPromise: Promise<void> | null = null;
 
-/** Resolve once Firebase has settled the initial auth state. */
-export function getCurrentUser(): Promise<User | null> {
-  if (resolved) return Promise.resolve(resolved.user);
-  if (pending) return pending;
-  pending = new Promise<User | null>((resolve) => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      resolved = { user };
-      unsub();
-      resolve(user);
+/**
+ * Resolve once Firebase has restored the initial auth state on page load.
+ * We keep the listener subscribed for the app's lifetime so that
+ * `auth.currentUser` always reflects the *live* signed-in user — sign-outs and
+ * account switches are picked up immediately instead of being cached.
+ */
+function whenAuthReady(): Promise<void> {
+  if (authReady) return Promise.resolve();
+  if (readyPromise) return readyPromise;
+  readyPromise = new Promise<void>((resolve) => {
+    onAuthStateChanged(auth, () => {
+      if (!authReady) {
+        authReady = true;
+        resolve();
+      }
     });
   });
-  return pending;
+  return readyPromise;
+}
+
+/** The currently signed-in user (always live, never stale). */
+export async function getCurrentUser(): Promise<User | null> {
+  await whenAuthReady();
+  return auth.currentUser;
 }
 
 /** Build the X-Firebase-Uid header for authenticated API calls. */

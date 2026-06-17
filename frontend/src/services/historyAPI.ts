@@ -21,7 +21,9 @@ export async function fetchHistory(params?: {
   const backendBase =
     import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
 
-  const url = new URL(`${backendBase}/api/history/`);
+  // Pass the page origin as the base so a relative backendBase (production,
+  // same-origin) resolves correctly; an absolute backendBase ignores the base.
+  const url = new URL(`${backendBase}/api/history/`, window.location.origin);
 
   if (params?.style && params.style !== "All Styles") {
     url.searchParams.set("style", params.style.toLowerCase());

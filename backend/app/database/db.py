@@ -1,12 +1,13 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel
-from app.config import DATABASE_URL
+from app.config import DATABASE_URL, SQL_ECHO
 
 engine = create_engine(
     DATABASE_URL,
-    echo=True,
-    future=True
+    echo=SQL_ECHO,
+    future=True,
+    pool_pre_ping=True,
 )
 
 SessionLocal = sessionmaker(

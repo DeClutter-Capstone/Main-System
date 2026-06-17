@@ -5,7 +5,22 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# The OpenAI client is created lazily so a missing OPENAI_API_KEY does NOT crash
+# the whole app at import/boot time — only the generate call fails (clearly), and
+# the rest of the site (login, history, account) keeps working.
+_client: OpenAI | None = None
+
+
+def _get_client() -> OpenAI:
+    global _client
+    if _client is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "OPENAI_API_KEY is not set on the server — image generation is unavailable."
+            )
+        _client = OpenAI(api_key=api_key)
+    return _client
 
 # What each style looks like
 STYLE_DESCRIPTIONS = {
@@ -134,7 +149,7 @@ def generate_image(
     print(f"OpenAI prompt (model={model}, auto size): {prompt}")
 
     with open(input_image_path, "rb") as image_file:
-        response = client.images.edit(
+        response = _get_client().images.edit(
             model=model,
             image=image_file,
             prompt=prompt,

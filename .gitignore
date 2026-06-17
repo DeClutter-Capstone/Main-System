@@ -220,3 +220,6 @@ __marimo__/
 backend/storage
 .vscode
 node_modules/
+# Build artifacts (frontend compiled into backend during Docker build)
+backend/frontend_dist/
+frontend/dist/

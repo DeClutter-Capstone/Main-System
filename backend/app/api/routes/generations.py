@@ -1,10 +1,10 @@
-from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
 from app.api.deps import get_current_user
+from app.config import INPUT_DIR, OUTPUT_DIR
 from app.database.db import get_session
 from app.models.group import Group
 from app.models.project import Project
@@ -18,10 +18,6 @@ from app.schemas.projects_schema import (
 
 
 router = APIRouter(prefix="/generations", tags=["generations"])
-
-STORAGE_DIR = Path(__file__).parent.parent.parent.parent / "storage"
-INPUT_DIR = STORAGE_DIR / "input"
-OUTPUT_DIR = STORAGE_DIR / "output"
 
 
 def _serialize(t: Transformation) -> GenerationResponse:

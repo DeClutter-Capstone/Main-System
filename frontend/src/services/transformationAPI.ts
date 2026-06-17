@@ -26,6 +26,7 @@ export async function requestTransformation(
   prompt?: string,
   projectId?: string,
   quality?: string,
+  declutterLevel?: string,
 ): Promise<TransformationResponse> {
   const formData = new FormData();
   formData.append("image_file", imageFile);
@@ -39,6 +40,9 @@ export async function requestTransformation(
   }
   if (quality) {
     formData.append("quality", quality);
+  }
+  if (declutterLevel) {
+    formData.append("declutter_level", declutterLevel);
   }
 
   const auth = await authHeader();

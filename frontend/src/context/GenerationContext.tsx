@@ -16,6 +16,7 @@ import { type ProjectSummary } from "../services/projectsAPI";
 // destroyed the moment React Router unmounts the route.
 
 type Quality = "v1.5" | "v2.0";
+type DeclutterLevel = "light" | "balanced" | "max";
 type ViewMode = "output" | "compare";
 
 interface GenerationContextValue {
@@ -32,6 +33,8 @@ interface GenerationContextValue {
   setSelectedStyle: (v: string) => void;
   quality: Quality;
   setQuality: (v: Quality) => void;
+  declutterLevel: DeclutterLevel;
+  setDeclutterLevel: (v: DeclutterLevel) => void;
 
   // ── Upload ──
   uploadedImage: string | null;
@@ -74,6 +77,8 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
   const [customPrompt, setCustomPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("Minimalist");
   const [quality, setQuality] = useState<Quality>("v1.5");
+  const [declutterLevel, setDeclutterLevel] =
+    useState<DeclutterLevel>("balanced");
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -257,6 +262,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
         customPrompt,
         projectIdToAssign,
         quality,
+        declutterLevel,
       );
 
       const backendBase =
@@ -357,6 +363,8 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     setSelectedStyle,
     quality,
     setQuality,
+    declutterLevel,
+    setDeclutterLevel,
     uploadedImage,
     setUploadedImage,
     uploadedFile,

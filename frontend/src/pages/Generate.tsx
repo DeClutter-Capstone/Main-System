@@ -916,7 +916,8 @@ function Generate() {
           </div>
         </section>
 
-        {/* DECLUTTER LEVEL */}
+        {/* DECLUTTER LEVEL — only affects the Minimalist (declutter) style */}
+        {selectedStyle === "Minimalist" && (
         <section style={styles.qualitySection}>
           <label style={styles.label}>Declutter Level</label>
           <span style={styles.qualitySubtitle}>
@@ -1010,6 +1011,7 @@ function Generate() {
             })}
           </div>
         </section>
+        )}
 
         {/* ADVANCED OPTIONS (collapsible) */}
         <section style={styles.advancedSection}>

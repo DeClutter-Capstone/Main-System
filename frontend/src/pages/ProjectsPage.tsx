@@ -540,7 +540,8 @@ const ProjectsPage: React.FC = () => {
           aria-label={`View before and after for ${displayLabel}`}
         >
           <img src={gen.image} alt={`${displayLabel} redesign`} />
-          <div className="gen-card__menu" data-menu-root>
+        </div>
+        <div className="gen-card__menu" data-menu-root>
             <button
               className="gen-card__menu-trigger"
               onClick={(e) => {
@@ -609,7 +610,6 @@ const ProjectsPage: React.FC = () => {
                 </button>
               </div>
             )}
-          </div>
         </div>
         <div className="gen-card__body">
           {isRenaming ? (

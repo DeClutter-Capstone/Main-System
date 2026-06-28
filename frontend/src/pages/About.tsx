@@ -29,7 +29,7 @@ const team = [
   {
     name: "Saad Ahmed",
     role: "Frontend/UI and style references",
-    photo: "/team/saad.jpg",
+    photo: "/team/saad.jpeg",
     body:
       "Saad worked on the frontend and the early visual research that defined the catalogue of styles the app supports, and shaped parts of the UI alongside Ahmed. The references that anchor what Minimalist, Scandinavian, Industrial, and the rest look like to the model and to the user came through him, along with a number of the design decisions you see on the screens themselves.",
   },

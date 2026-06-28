@@ -143,10 +143,10 @@ function GenerationCard({
  *  `<style>{generationCardStyles}</style>` somewhere in the page. */
 export const generationCardStyles = `
   .gen-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     border-radius: 12px;
-    overflow: hidden;
     background-color: var(--color-card);
     border: 1px solid var(--color-border-subtle);
     box-shadow: var(--shadow-sm);
@@ -163,6 +163,7 @@ export const generationCardStyles = `
     aspect-ratio: 4 / 3;
     background-color: var(--color-bg-elevated);
     overflow: hidden;
+    border-radius: 12px 12px 0 0;
   }
   .gen-card__image img {
     width: 100%;
@@ -184,6 +185,7 @@ export const generationCardStyles = `
     display: flex;
     flex-direction: column;
     gap: 6px;
+    border-radius: 0 0 12px 12px;
   }
   .gen-card__name {
     display: flex;

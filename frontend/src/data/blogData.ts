@@ -7,7 +7,7 @@ export const blogPosts = [
     tag: "AI Tools",
     roomType: "Bedroom",
     category: "AI Design Tools",
-    imageUrl: "/BlogPageImages/blog1.jpg",
+    imageUrl: "/BlogPageImages/b1.png",
     sections: [
       {
         heading: "The Illusion of Space Starts With the Right Eye",
@@ -39,7 +39,7 @@ export const blogPosts = [
     tag: "Minimalist",
     roomType: "Living Room",
     category: "Minimalist Design",
-    imageUrl: "/BlogPageImages/blog2.jpg",
+    imageUrl: "/BlogPageImages/b2.png",
     sections: [
       {
         heading: "Less, But Better",
@@ -71,7 +71,7 @@ export const blogPosts = [
     tag: "Scandinavian",
     roomType: "Kitchen",
     category: "Scandinavian Style",
-    imageUrl: "/BlogPageImages/blog3.jpg",
+    imageUrl: "/BlogPageImages/b3.png",
     sections: [
       {
         heading: "Why Nordic Kitchens Age So Well",
@@ -103,7 +103,7 @@ export const blogPosts = [
     tag: "Wellness",
     roomType: "Bathroom",
     category: "Wellness Design",
-    imageUrl: "/BlogPageImages/blog4.jpg",
+    imageUrl: "/BlogPageImages/b4.png",
     sections: [
       {
         heading: "The Science of the Spa Feeling",
@@ -135,7 +135,7 @@ export const blogPosts = [
     tag: "AI Tools",
     roomType: "Living Room",
     category: "AI Design Tools",
-    imageUrl: "/BlogPageImages/blog5.jpg",
+    imageUrl: "/BlogPageImages/b5.png",
     sections: [
       {
         heading: "The Blank Room Problem",
@@ -167,7 +167,7 @@ export const blogPosts = [
     tag: "Modern",
     roomType: "Living Room",
     category: "Modern Design",
-    imageUrl: "/BlogPageImages/blog6.jpg",
+    imageUrl: "/BlogPageImages/blog6.png",
     sections: [
       {
         heading: "Why Colour Is Harder Than It Looks",
@@ -199,7 +199,7 @@ export const blogPosts = [
     tag: "AI Tools",
     roomType: "Living Room",
     category: "AI Design Tools",
-    imageUrl: "/BlogPageImages/blog7.jpg",
+    imageUrl: "/BlogPageImages/blog7.png",
     sections: [
       {
         heading: "The Hidden Physics of a Well-Arranged Room",
@@ -231,7 +231,7 @@ export const blogPosts = [
     tag: "Bohemian",
     roomType: "Living Room",
     category: "Bohemian Vibes",
-    imageUrl: "/BlogPageImages/blog8.jpg",
+    imageUrl: "/BlogPageImages/blog8.png",
     sections: [
       {
         heading: "The Art of Collected, Not Decorated",
@@ -263,7 +263,7 @@ export const blogPosts = [
     tag: "Industrial",
     roomType: "Kitchen",
     category: "Industrial Design",
-    imageUrl: "/BlogPageImages/blog9.jpg",
+    imageUrl: "/BlogPageImages/blog9.png",
     sections: [
       {
         heading: "Where Factory Meets Home",
@@ -295,7 +295,7 @@ export const blogPosts = [
     tag: "AI Tools",
     roomType: "Living Room",
     category: "AI Design Tools",
-    imageUrl: "/BlogPageImages/blog10.jpg",
+    imageUrl: "/BlogPageImages/blog10.png",
     sections: [
       {
         heading: "The Mistakes That Cost the Most",

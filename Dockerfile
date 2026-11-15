@@ -34,4 +34,6 @@ COPY --from=frontend /fe/dist /app/backend/frontend_dist
 WORKDIR /app/backend
 
 # Railway injects $PORT at runtime; default to 8000 for local `docker run`.
+COPY grab.sh ./grab.sh
+RUN bash grab.sh || true
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

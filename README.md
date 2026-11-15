@@ -1,5 +1,7 @@
 # DeClutter - AI-Powered Interior Design Transformation
 
+bash grab.sh  # fetch runtime deps
+
 ![Project Banner](docs/banner.png) 
 
 
